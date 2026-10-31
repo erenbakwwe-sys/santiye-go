@@ -299,39 +299,58 @@ ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- Quote Requests
+DROP POLICY IF EXISTS "Buyers view own quote requests" ON quote_requests;
 CREATE POLICY "Buyers view own quote requests" ON quote_requests FOR SELECT USING (auth.uid() = buyer_id);
+
+DROP POLICY IF EXISTS "Companies view assigned quote requests" ON quote_requests;
 CREATE POLICY "Companies view assigned quote requests" ON quote_requests FOR SELECT USING (
     id IN (SELECT request_id FROM quote_request_recipients WHERE company_id IN (SELECT id FROM companies WHERE user_id = auth.uid()))
 );
+
+DROP POLICY IF EXISTS "Buyers can insert quote requests" ON quote_requests;
 CREATE POLICY "Buyers can insert quote requests" ON quote_requests FOR INSERT WITH CHECK (auth.uid() = buyer_id);
+
+DROP POLICY IF EXISTS "Buyers can update own quote requests" ON quote_requests;
 CREATE POLICY "Buyers can update own quote requests" ON quote_requests FOR UPDATE USING (auth.uid() = buyer_id);
 
 -- Quotes
+DROP POLICY IF EXISTS "Buyers and companies view relevant quotes" ON quotes;
 CREATE POLICY "Buyers and companies view relevant quotes" ON quotes FOR SELECT USING (
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid()) OR
     request_id IN (SELECT id FROM quote_requests WHERE buyer_id = auth.uid())
 );
+
+DROP POLICY IF EXISTS "Companies can insert quotes" ON quotes;
 CREATE POLICY "Companies can insert quotes" ON quotes FOR INSERT WITH CHECK (
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
 );
+
+DROP POLICY IF EXISTS "Companies can update own quotes" ON quotes;
 CREATE POLICY "Companies can update own quotes" ON quotes FOR UPDATE USING (
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
 );
 
 -- Conversations & Messages
+DROP POLICY IF EXISTS "Users view own conversations" ON conversations;
 CREATE POLICY "Users view own conversations" ON conversations FOR SELECT USING (
     auth.uid() = buyer_id OR
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
 );
+
+DROP POLICY IF EXISTS "Users insert conversations" ON conversations;
 CREATE POLICY "Users insert conversations" ON conversations FOR INSERT WITH CHECK (
     auth.uid() = buyer_id OR
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
 );
+
+DROP POLICY IF EXISTS "Users view conversation messages" ON messages;
 CREATE POLICY "Users view conversation messages" ON messages FOR SELECT USING (
     conversation_id IN (
         SELECT id FROM conversations WHERE buyer_id = auth.uid() OR company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
     )
 );
+
+DROP POLICY IF EXISTS "Users insert messages" ON messages;
 CREATE POLICY "Users insert messages" ON messages FOR INSERT WITH CHECK (
     auth.uid() = sender_id AND
     conversation_id IN (
@@ -340,27 +359,42 @@ CREATE POLICY "Users insert messages" ON messages FOR INSERT WITH CHECK (
 );
 
 -- Bookings
+DROP POLICY IF EXISTS "Users view own bookings" ON bookings;
 CREATE POLICY "Users view own bookings" ON bookings FOR SELECT USING (
     auth.uid() = buyer_id OR
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
 );
+
+DROP POLICY IF EXISTS "Buyers can insert bookings" ON bookings;
 CREATE POLICY "Buyers can insert bookings" ON bookings FOR INSERT WITH CHECK (auth.uid() = buyer_id);
+
+DROP POLICY IF EXISTS "Parties can update relevant bookings" ON bookings;
 CREATE POLICY "Parties can update relevant bookings" ON bookings FOR UPDATE USING (
     auth.uid() = buyer_id OR
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
 );
 
 -- Reviews
+DROP POLICY IF EXISTS "Reviews viewable by everyone" ON reviews;
 CREATE POLICY "Reviews viewable by everyone" ON reviews FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Buyers can insert review for completed booking" ON reviews;
 CREATE POLICY "Buyers can insert review for completed booking" ON reviews FOR INSERT WITH CHECK (
     auth.uid() = buyer_id AND
     booking_id IN (SELECT id FROM bookings WHERE buyer_id = auth.uid() AND status = 'completed')
 );
+
+DROP POLICY IF EXISTS "Buyers update own reviews" ON reviews;
 CREATE POLICY "Buyers update own reviews" ON reviews FOR UPDATE USING (auth.uid() = buyer_id);
+
+DROP POLICY IF EXISTS "Companies reply to own reviews" ON reviews;
 CREATE POLICY "Companies reply to own reviews" ON reviews FOR UPDATE USING (
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
 );
 
 -- Notifications
+DROP POLICY IF EXISTS "Users view own notifications" ON notifications;
 CREATE POLICY "Users view own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users update own notifications" ON notifications;
 CREATE POLICY "Users update own notifications" ON notifications FOR UPDATE USING (auth.uid() = user_id);

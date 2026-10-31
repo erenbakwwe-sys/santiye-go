@@ -292,30 +292,59 @@ ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
 
 -- 1. Profiles
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
 CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
 CREATE POLICY "Users can insert their own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
 CREATE POLICY "Users can update their own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 
 -- 2. Companies
+DROP POLICY IF EXISTS "Companies are viewable by everyone" ON companies;
 CREATE POLICY "Companies are viewable by everyone" ON companies FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Company owners can insert their company" ON companies;
 CREATE POLICY "Company owners can insert their company" ON companies FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Company owners can update their company" ON companies;
 CREATE POLICY "Company owners can update their company" ON companies FOR UPDATE USING (auth.uid() = user_id);
 
 -- 3. Categories / Cities / Districts (Read-only for public)
+DROP POLICY IF EXISTS "Categories viewable by everyone" ON categories;
 CREATE POLICY "Categories viewable by everyone" ON categories FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Cities viewable by everyone" ON cities;
 CREATE POLICY "Cities viewable by everyone" ON cities FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Districts viewable by everyone" ON districts;
 CREATE POLICY "Districts viewable by everyone" ON districts FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Neighborhoods viewable by everyone" ON neighborhoods;
 CREATE POLICY "Neighborhoods viewable by everyone" ON neighborhoods FOR SELECT USING (true);
 
 -- 4. Listings
+DROP POLICY IF EXISTS "Active listings viewable by everyone" ON listings;
 CREATE POLICY "Active listings viewable by everyone" ON listings FOR SELECT USING (status = 'active' OR auth.uid() IN (SELECT user_id FROM companies WHERE id = listings.company_id));
+
+DROP POLICY IF EXISTS "Company owners can insert listings" ON listings;
 CREATE POLICY "Company owners can insert listings" ON listings FOR INSERT WITH CHECK (auth.uid() IN (SELECT user_id FROM companies WHERE id = company_id));
+
+DROP POLICY IF EXISTS "Company owners can update their listings" ON listings;
 CREATE POLICY "Company owners can update their listings" ON listings FOR UPDATE USING (auth.uid() IN (SELECT user_id FROM companies WHERE id = listings.company_id));
+
+DROP POLICY IF EXISTS "Company owners can delete their listings" ON listings;
 CREATE POLICY "Company owners can delete their listings" ON listings FOR DELETE USING (auth.uid() IN (SELECT user_id FROM companies WHERE id = listings.company_id));
 
 -- 5. Favorites
+DROP POLICY IF EXISTS "Users can view own favorites" ON favorites;
 CREATE POLICY "Users can view own favorites" ON favorites FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own favorites" ON favorites;
 CREATE POLICY "Users can insert own favorites" ON favorites FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own favorites" ON favorites;
 CREATE POLICY "Users can delete own favorites" ON favorites FOR DELETE USING (auth.uid() = user_id);
 
 -- ==============================================================================
@@ -851,39 +880,58 @@ ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- Quote Requests
+DROP POLICY IF EXISTS "Buyers view own quote requests" ON quote_requests;
 CREATE POLICY "Buyers view own quote requests" ON quote_requests FOR SELECT USING (auth.uid() = buyer_id);
+
+DROP POLICY IF EXISTS "Companies view assigned quote requests" ON quote_requests;
 CREATE POLICY "Companies view assigned quote requests" ON quote_requests FOR SELECT USING (
     id IN (SELECT request_id FROM quote_request_recipients WHERE company_id IN (SELECT id FROM companies WHERE user_id = auth.uid()))
 );
+
+DROP POLICY IF EXISTS "Buyers can insert quote requests" ON quote_requests;
 CREATE POLICY "Buyers can insert quote requests" ON quote_requests FOR INSERT WITH CHECK (auth.uid() = buyer_id);
+
+DROP POLICY IF EXISTS "Buyers can update own quote requests" ON quote_requests;
 CREATE POLICY "Buyers can update own quote requests" ON quote_requests FOR UPDATE USING (auth.uid() = buyer_id);
 
 -- Quotes
+DROP POLICY IF EXISTS "Buyers and companies view relevant quotes" ON quotes;
 CREATE POLICY "Buyers and companies view relevant quotes" ON quotes FOR SELECT USING (
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid()) OR
     request_id IN (SELECT id FROM quote_requests WHERE buyer_id = auth.uid())
 );
+
+DROP POLICY IF EXISTS "Companies can insert quotes" ON quotes;
 CREATE POLICY "Companies can insert quotes" ON quotes FOR INSERT WITH CHECK (
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
 );
+
+DROP POLICY IF EXISTS "Companies can update own quotes" ON quotes;
 CREATE POLICY "Companies can update own quotes" ON quotes FOR UPDATE USING (
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
 );
 
 -- Conversations & Messages
+DROP POLICY IF EXISTS "Users view own conversations" ON conversations;
 CREATE POLICY "Users view own conversations" ON conversations FOR SELECT USING (
     auth.uid() = buyer_id OR
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
 );
+
+DROP POLICY IF EXISTS "Users insert conversations" ON conversations;
 CREATE POLICY "Users insert conversations" ON conversations FOR INSERT WITH CHECK (
     auth.uid() = buyer_id OR
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
 );
+
+DROP POLICY IF EXISTS "Users view conversation messages" ON messages;
 CREATE POLICY "Users view conversation messages" ON messages FOR SELECT USING (
     conversation_id IN (
         SELECT id FROM conversations WHERE buyer_id = auth.uid() OR company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
     )
 );
+
+DROP POLICY IF EXISTS "Users insert messages" ON messages;
 CREATE POLICY "Users insert messages" ON messages FOR INSERT WITH CHECK (
     auth.uid() = sender_id AND
     conversation_id IN (
@@ -892,29 +940,44 @@ CREATE POLICY "Users insert messages" ON messages FOR INSERT WITH CHECK (
 );
 
 -- Bookings
+DROP POLICY IF EXISTS "Users view own bookings" ON bookings;
 CREATE POLICY "Users view own bookings" ON bookings FOR SELECT USING (
     auth.uid() = buyer_id OR
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
 );
+
+DROP POLICY IF EXISTS "Buyers can insert bookings" ON bookings;
 CREATE POLICY "Buyers can insert bookings" ON bookings FOR INSERT WITH CHECK (auth.uid() = buyer_id);
+
+DROP POLICY IF EXISTS "Parties can update relevant bookings" ON bookings;
 CREATE POLICY "Parties can update relevant bookings" ON bookings FOR UPDATE USING (
     auth.uid() = buyer_id OR
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
 );
 
 -- Reviews
+DROP POLICY IF EXISTS "Reviews viewable by everyone" ON reviews;
 CREATE POLICY "Reviews viewable by everyone" ON reviews FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Buyers can insert review for completed booking" ON reviews;
 CREATE POLICY "Buyers can insert review for completed booking" ON reviews FOR INSERT WITH CHECK (
     auth.uid() = buyer_id AND
     booking_id IN (SELECT id FROM bookings WHERE buyer_id = auth.uid() AND status = 'completed')
 );
+
+DROP POLICY IF EXISTS "Buyers update own reviews" ON reviews;
 CREATE POLICY "Buyers update own reviews" ON reviews FOR UPDATE USING (auth.uid() = buyer_id);
+
+DROP POLICY IF EXISTS "Companies reply to own reviews" ON reviews;
 CREATE POLICY "Companies reply to own reviews" ON reviews FOR UPDATE USING (
     company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
 );
 
 -- Notifications
+DROP POLICY IF EXISTS "Users view own notifications" ON notifications;
 CREATE POLICY "Users view own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users update own notifications" ON notifications;
 CREATE POLICY "Users update own notifications" ON notifications FOR UPDATE USING (auth.uid() = user_id);
 
 
@@ -1277,10 +1340,28 @@ ALTER TABLE listings ADD COLUMN IF NOT EXISTS available_from DATE;
 -- ŞANTİYE GO – MIGRATION 07: CANLI GÜVENLİK (RLS), İNDEKSLER VE SOFT LAUNCH
 -- ==============================================================================
 
+-- 0. SİSTEM AYARLARI TABLOSU (Eğer henüz oluşturulmadıysa)
+CREATE TABLE IF NOT EXISTS system_settings (
+    key VARCHAR(64) PRIMARY KEY,
+    value JSONB NOT NULL,
+    description TEXT,
+    updated_by UUID REFERENCES profiles(id),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS platform_settings (
+    key VARCHAR(64) PRIMARY KEY,
+    value JSONB NOT NULL,
+    description TEXT,
+    updated_by UUID REFERENCES profiles(id),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- 1. ROW LEVEL SECURITY (RLS) AKTİFLEŞTİRME
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE platform_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE company_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ad_campaigns ENABLE ROW LEVEL SECURITY;
@@ -1291,55 +1372,74 @@ ALTER TABLE category_attributes ENABLE ROW LEVEL SECURITY;
 -- 2. RLS POLİTİKALARI
 
 -- 2.1 Admin Kullanıcıları (admin_users)
--- Sadece süper adminler okuyabilir/yazabilir
+DROP POLICY IF EXISTS "admin_users_super_admin_all" ON admin_users;
 CREATE POLICY "admin_users_super_admin_all" ON admin_users
     FOR ALL
     USING (
         EXISTS (
             SELECT 1 FROM admin_users au
-            WHERE au.id = auth.uid()::text AND au.role = 'super_admin' AND au.is_active = true
+            WHERE au.id = auth.uid() AND au.role = 'super_admin' AND au.is_active = true
         )
     );
 
 -- 2.2 Denetim Logları (admin_audit_logs)
+DROP POLICY IF EXISTS "admin_audit_logs_read" ON admin_audit_logs;
 CREATE POLICY "admin_audit_logs_read" ON admin_audit_logs
     FOR SELECT
     USING (
         EXISTS (
             SELECT 1 FROM admin_users au
-            WHERE au.id = auth.uid()::text AND au.is_active = true
+            WHERE au.id = auth.uid() AND au.is_active = true
         )
     );
 
+DROP POLICY IF EXISTS "admin_audit_logs_insert" ON admin_audit_logs;
 CREATE POLICY "admin_audit_logs_insert" ON admin_audit_logs
     FOR INSERT
     WITH CHECK (
         EXISTS (
             SELECT 1 FROM admin_users au
-            WHERE au.id = auth.uid()::text AND au.is_active = true
+            WHERE au.id = auth.uid() AND au.is_active = true
         ) OR auth.role() = 'service_role'
     );
 
--- 2.3 Sistem Ayarları (system_settings)
+-- 2.3 Sistem Ayarları (system_settings & platform_settings)
+DROP POLICY IF EXISTS "system_settings_read_all" ON system_settings;
 CREATE POLICY "system_settings_read_all" ON system_settings
     FOR SELECT
     USING (true);
 
+DROP POLICY IF EXISTS "system_settings_write_super_admin" ON system_settings;
 CREATE POLICY "system_settings_write_super_admin" ON system_settings
     FOR ALL
     USING (
         EXISTS (
             SELECT 1 FROM admin_users au
-            WHERE au.id = auth.uid()::text AND au.role = 'super_admin' AND au.is_active = true
+            WHERE au.id = auth.uid() AND au.role = 'super_admin' AND au.is_active = true
+        ) OR auth.role() = 'service_role'
+    );
+
+DROP POLICY IF EXISTS "platform_settings_read_all" ON platform_settings;
+CREATE POLICY "platform_settings_read_all" ON platform_settings
+    FOR SELECT
+    USING (true);
+
+DROP POLICY IF EXISTS "platform_settings_write_super_admin" ON platform_settings;
+CREATE POLICY "platform_settings_write_super_admin" ON platform_settings
+    FOR ALL
+    USING (
+        EXISTS (
+            SELECT 1 FROM admin_users au
+            WHERE au.id = auth.uid() AND au.role = 'super_admin' AND au.is_active = true
         ) OR auth.role() = 'service_role'
     );
 
 -- 2.4 Ödeme İşlemleri (payment_transactions)
--- Alıcı kendi ödemesini, firma kendi tahsilatını görebilir. Admin hepsini görebilir.
+DROP POLICY IF EXISTS "payments_party_or_admin_read" ON payment_transactions;
 CREATE POLICY "payments_party_or_admin_read" ON payment_transactions
     FOR SELECT
     USING (
-        buyer_id = auth.uid()::text
+        buyer_id = auth.uid()
         OR EXISTS (
             SELECT 1 FROM bookings b
             JOIN listings l ON l.id = b.listing_id
@@ -1348,16 +1448,18 @@ CREATE POLICY "payments_party_or_admin_read" ON payment_transactions
         )
         OR EXISTS (
             SELECT 1 FROM admin_users au
-            WHERE au.id = auth.uid()::text AND au.is_active = true
+            WHERE au.id = auth.uid() AND au.is_active = true
         )
         OR auth.role() = 'service_role'
     );
 
+DROP POLICY IF EXISTS "payments_insert_service_only" ON payment_transactions;
 CREATE POLICY "payments_insert_service_only" ON payment_transactions
     FOR INSERT
-    WITH CHECK (auth.role() = 'service_role' OR auth.uid()::text = buyer_id);
+    WITH CHECK (auth.role() = 'service_role' OR auth.uid() = buyer_id);
 
 -- 2.5 Firma Üyelikleri (company_subscriptions)
+DROP POLICY IF EXISTS "company_subscriptions_owner_read" ON company_subscriptions;
 CREATE POLICY "company_subscriptions_owner_read" ON company_subscriptions
     FOR SELECT
     USING (
@@ -1367,17 +1469,18 @@ CREATE POLICY "company_subscriptions_owner_read" ON company_subscriptions
         )
         OR EXISTS (
             SELECT 1 FROM admin_users au
-            WHERE au.id = auth.uid()::text AND au.is_active = true
+            WHERE au.id = auth.uid() AND au.is_active = true
         )
         OR auth.role() = 'service_role'
     );
 
 -- 2.6 Reklam Kampanyaları (ad_campaigns)
--- Aktif onaylı reklamlar genel gösterime açık, firma sadece kendi kampanyasını yönetebilir.
+DROP POLICY IF EXISTS "ad_campaigns_public_active_read" ON ad_campaigns;
 CREATE POLICY "ad_campaigns_public_active_read" ON ad_campaigns
     FOR SELECT
     USING (status = 'active' OR auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS "ad_campaigns_owner_all" ON ad_campaigns;
 CREATE POLICY "ad_campaigns_owner_all" ON ad_campaigns
     FOR ALL
     USING (
@@ -1387,25 +1490,28 @@ CREATE POLICY "ad_campaigns_owner_all" ON ad_campaigns
         )
         OR EXISTS (
             SELECT 1 FROM admin_users au
-            WHERE au.id = auth.uid()::text AND au.is_active = true
+            WHERE au.id = auth.uid() AND au.is_active = true
         )
     );
 
 -- 2.7 Analitik (analytics_events & summary)
+DROP POLICY IF EXISTS "analytics_events_insert_anonymized" ON analytics_events;
 CREATE POLICY "analytics_events_insert_anonymized" ON analytics_events
     FOR INSERT
-    WITH CHECK (true); -- Oturum bazlı anonim kayıt
+    WITH CHECK (true);
 
+DROP POLICY IF EXISTS "analytics_events_select_admin" ON analytics_events;
 CREATE POLICY "analytics_events_select_admin" ON analytics_events
     FOR SELECT
     USING (
         EXISTS (
             SELECT 1 FROM admin_users au
-            WHERE au.id = auth.uid()::text AND au.is_active = true
+            WHERE au.id = auth.uid() AND au.is_active = true
         )
         OR auth.role() = 'service_role'
     );
 
+DROP POLICY IF EXISTS "analytics_summary_read_owner" ON analytics_daily_summary;
 CREATE POLICY "analytics_summary_read_owner" ON analytics_daily_summary
     FOR SELECT
     USING (
@@ -1418,54 +1524,48 @@ CREATE POLICY "analytics_summary_read_owner" ON analytics_daily_summary
             WHERE l.id = analytics_daily_summary.target_id AND c.user_id = auth.uid()
         ))
         OR EXISTS (
-            SELECT 1 FROM admin_users au WHERE au.id = auth.uid()::text AND au.is_active = true
+            SELECT 1 FROM admin_users au WHERE au.id = auth.uid() AND au.is_active = true
         )
     );
 
 -- 2.8 Kategori Dinamik Özellikleri (category_attributes)
+DROP POLICY IF EXISTS "category_attributes_read_all" ON category_attributes;
 CREATE POLICY "category_attributes_read_all" ON category_attributes
     FOR SELECT
     USING (true);
 
+DROP POLICY IF EXISTS "category_attributes_write_admin" ON category_attributes;
 CREATE POLICY "category_attributes_write_admin" ON category_attributes
     FOR ALL
     USING (
         EXISTS (
             SELECT 1 FROM admin_users au
-            WHERE au.id = auth.uid()::text AND au.is_active = true
+            WHERE au.id = auth.uid() AND au.is_active = true
         )
         OR auth.role() = 'service_role'
     );
-
 
 -- ==============================================================================
 -- 3. PERFORMANS İNDEKSLERİ (POSTGIS VE BİLEŞİK İNDEKSLER)
 -- ==============================================================================
 
--- PostGIS Coğrafi GIST İndeksi (ST_DWithin ve ST_Distance için zorunlu)
 CREATE INDEX IF NOT EXISTS idx_listings_location_gist 
 ON listings USING GIST (location);
 
--- Kategori, Şehir, Durum ve Tarih Bileşik Arama İndeksi
 CREATE INDEX IF NOT EXISTS idx_listings_search_perf 
 ON listings (status, category_id, city_id, created_at DESC);
 
--- Slug hızlı tekil arama indeksi
 CREATE INDEX IF NOT EXISTS idx_listings_slug_lookup 
 ON listings (slug);
 
--- Teklif Talepleri & Alıcı İndeksi
 CREATE INDEX IF NOT EXISTS idx_quote_requests_perf 
 ON quote_requests (buyer_id, status, created_at DESC);
 
--- Rezervasyon Çakışma ve Takvim Sorgu İndeksi
 CREATE INDEX IF NOT EXISTS idx_bookings_date_conflict 
 ON bookings (listing_id, status, start_date, end_date);
 
--- Mesajlaşma Konuşma İndeksi
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_date 
 ON messages (conversation_id, created_at ASC);
-
 
 -- ==============================================================================
 -- 4. SOFT LAUNCH (KADEMELİ AÇILIŞ) AYARLARI
@@ -1587,24 +1687,28 @@ ALTER TABLE public.password_reset_tokens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.login_security_logs ENABLE ROW LEVEL SECURITY;
 
 -- Phone verifications: only service role can read/insert/update
+DROP POLICY IF EXISTS "Service role manages phone verifications" ON public.phone_verifications;
 CREATE POLICY "Service role manages phone verifications"
     ON public.phone_verifications FOR ALL
     USING (auth.role() = 'service_role')
     WITH CHECK (auth.role() = 'service_role');
 
 -- Email verification tokens: only service role
+DROP POLICY IF EXISTS "Service role manages email tokens" ON public.email_verification_tokens;
 CREATE POLICY "Service role manages email tokens"
     ON public.email_verification_tokens FOR ALL
     USING (auth.role() = 'service_role')
     WITH CHECK (auth.role() = 'service_role');
 
 -- Password reset tokens: only service role
+DROP POLICY IF EXISTS "Service role manages password tokens" ON public.password_reset_tokens;
 CREATE POLICY "Service role manages password tokens"
     ON public.password_reset_tokens FOR ALL
     USING (auth.role() = 'service_role')
     WITH CHECK (auth.role() = 'service_role');
 
 -- Login logs: read by admin, write by service role
+DROP POLICY IF EXISTS "Admins can view login logs" ON public.login_security_logs;
 CREATE POLICY "Admins can view login logs"
     ON public.login_security_logs FOR SELECT
     USING (
@@ -1614,6 +1718,7 @@ CREATE POLICY "Admins can view login logs"
         )
     );
 
+DROP POLICY IF EXISTS "Service role manages login logs" ON public.login_security_logs;
 CREATE POLICY "Service role manages login logs"
     ON public.login_security_logs FOR ALL
     USING (auth.role() = 'service_role')

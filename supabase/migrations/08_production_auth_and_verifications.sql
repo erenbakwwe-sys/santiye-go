@@ -102,24 +102,28 @@ ALTER TABLE public.password_reset_tokens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.login_security_logs ENABLE ROW LEVEL SECURITY;
 
 -- Phone verifications: only service role can read/insert/update
+DROP POLICY IF EXISTS "Service role manages phone verifications" ON public.phone_verifications;
 CREATE POLICY "Service role manages phone verifications"
     ON public.phone_verifications FOR ALL
     USING (auth.role() = 'service_role')
     WITH CHECK (auth.role() = 'service_role');
 
 -- Email verification tokens: only service role
+DROP POLICY IF EXISTS "Service role manages email tokens" ON public.email_verification_tokens;
 CREATE POLICY "Service role manages email tokens"
     ON public.email_verification_tokens FOR ALL
     USING (auth.role() = 'service_role')
     WITH CHECK (auth.role() = 'service_role');
 
 -- Password reset tokens: only service role
+DROP POLICY IF EXISTS "Service role manages password tokens" ON public.password_reset_tokens;
 CREATE POLICY "Service role manages password tokens"
     ON public.password_reset_tokens FOR ALL
     USING (auth.role() = 'service_role')
     WITH CHECK (auth.role() = 'service_role');
 
 -- Login logs: read by admin, write by service role
+DROP POLICY IF EXISTS "Admins can view login logs" ON public.login_security_logs;
 CREATE POLICY "Admins can view login logs"
     ON public.login_security_logs FOR SELECT
     USING (
@@ -129,6 +133,7 @@ CREATE POLICY "Admins can view login logs"
         )
     );
 
+DROP POLICY IF EXISTS "Service role manages login logs" ON public.login_security_logs;
 CREATE POLICY "Service role manages login logs"
     ON public.login_security_logs FOR ALL
     USING (auth.role() = 'service_role')

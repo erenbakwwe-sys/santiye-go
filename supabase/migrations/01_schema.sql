@@ -289,30 +289,59 @@ ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
 
 -- 1. Profiles
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
 CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
 CREATE POLICY "Users can insert their own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
 CREATE POLICY "Users can update their own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 
 -- 2. Companies
+DROP POLICY IF EXISTS "Companies are viewable by everyone" ON companies;
 CREATE POLICY "Companies are viewable by everyone" ON companies FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Company owners can insert their company" ON companies;
 CREATE POLICY "Company owners can insert their company" ON companies FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Company owners can update their company" ON companies;
 CREATE POLICY "Company owners can update their company" ON companies FOR UPDATE USING (auth.uid() = user_id);
 
 -- 3. Categories / Cities / Districts (Read-only for public)
+DROP POLICY IF EXISTS "Categories viewable by everyone" ON categories;
 CREATE POLICY "Categories viewable by everyone" ON categories FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Cities viewable by everyone" ON cities;
 CREATE POLICY "Cities viewable by everyone" ON cities FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Districts viewable by everyone" ON districts;
 CREATE POLICY "Districts viewable by everyone" ON districts FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Neighborhoods viewable by everyone" ON neighborhoods;
 CREATE POLICY "Neighborhoods viewable by everyone" ON neighborhoods FOR SELECT USING (true);
 
 -- 4. Listings
+DROP POLICY IF EXISTS "Active listings viewable by everyone" ON listings;
 CREATE POLICY "Active listings viewable by everyone" ON listings FOR SELECT USING (status = 'active' OR auth.uid() IN (SELECT user_id FROM companies WHERE id = listings.company_id));
+
+DROP POLICY IF EXISTS "Company owners can insert listings" ON listings;
 CREATE POLICY "Company owners can insert listings" ON listings FOR INSERT WITH CHECK (auth.uid() IN (SELECT user_id FROM companies WHERE id = company_id));
+
+DROP POLICY IF EXISTS "Company owners can update their listings" ON listings;
 CREATE POLICY "Company owners can update their listings" ON listings FOR UPDATE USING (auth.uid() IN (SELECT user_id FROM companies WHERE id = listings.company_id));
+
+DROP POLICY IF EXISTS "Company owners can delete their listings" ON listings;
 CREATE POLICY "Company owners can delete their listings" ON listings FOR DELETE USING (auth.uid() IN (SELECT user_id FROM companies WHERE id = listings.company_id));
 
 -- 5. Favorites
+DROP POLICY IF EXISTS "Users can view own favorites" ON favorites;
 CREATE POLICY "Users can view own favorites" ON favorites FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own favorites" ON favorites;
 CREATE POLICY "Users can insert own favorites" ON favorites FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own favorites" ON favorites;
 CREATE POLICY "Users can delete own favorites" ON favorites FOR DELETE USING (auth.uid() = user_id);
 
 -- ==============================================================================
