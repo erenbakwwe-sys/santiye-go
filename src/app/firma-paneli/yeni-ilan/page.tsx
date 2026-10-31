@@ -25,6 +25,8 @@ import { CATEGORIES, CITIES, DISTRICTS } from '@/lib/mock-data';
 import LocationPicker from '@/components/map/LocationPicker';
 import { ListingStatus, ListingType, CategoryAttribute } from '@/types/database';
 import { getCategoryAttributes } from '@/lib/services/attribute-service';
+import { uploadListingPhoto, deleteListingPhoto } from '@/lib/services/storage-service';
+import { createClient } from '@/lib/supabase/client';
 
 export default function NewListingPage() {
   const router = useRouter();
@@ -80,13 +82,14 @@ export default function NewListingPage() {
   });
 
   // Images
-  const [imageUrl, setImageUrl] = useState('');
-  const [images, setImages] = useState<string[]>([
-    'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=800&q=80',
-  ]);
+  const [images, setImages] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const supabase = createClient();
 
   // Determine current category object
   const currentCategory = CATEGORIES.find(
@@ -142,14 +145,43 @@ export default function NewListingPage() {
     }
   };
 
-  const handleAddImage = () => {
-    if (imageUrl.trim()) {
-      setImages([...images, imageUrl.trim()]);
-      setImageUrl('');
+  // Gerçek Dosya Yükleme (Supabase Storage)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImageError('');
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (images.length + files.length > 10) {
+      setImageError('En fazla 10 adet fotoğraf yükleyebilirsiniz.');
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      const newUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const res = await uploadListingPhoto(file);
+        if (!res.success) {
+          throw new Error(res.error || `${file.name} yüklenemedi.`);
+        }
+        if (res.url) {
+          newUrls.push(res.url);
+        }
+      }
+      setImages((prev) => [...prev, ...newUrls]);
+    } catch (err: any) {
+      setImageError(err.message || 'Görsel yüklenirken bir hata oluştu.');
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
     }
   };
 
-  const handleRemoveImage = (index: number) => {
+  const handleRemoveImage = async (index: number) => {
+    const targetUrl = images[index];
+    await deleteListingPhoto(targetUrl);
     setImages(images.filter((_, i) => i !== index));
   };
 
@@ -172,8 +204,61 @@ export default function NewListingPage() {
     setLoading(true);
 
     try {
-      // Simulate save
-      await new Promise((r) => setTimeout(r, 600));
+      const isSupabaseConfigured =
+        process.env.NEXT_PUBLIC_SUPABASE_URL &&
+        !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+      if (isSupabaseConfigured) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        let companyId = 'f0000000-0000-0000-0000-000000000001';
+        if (user) {
+          const { data: company } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (company) {
+            companyId = company.id;
+          }
+        }
+
+        const listingData = {
+          company_id: companyId,
+          category_id: categoryId,
+          listing_type: listingType,
+          title: title.trim(),
+          description: description.trim(),
+          pricing_type: pricingType,
+          price_daily: priceDaily ? Number(priceDaily) : null,
+          price_weekly: priceWeekly ? Number(priceWeekly) : null,
+          price_monthly: priceMonthly ? Number(priceMonthly) : null,
+          price_sale: priceSale ? Number(priceSale) : null,
+          unit_price_rate: priceUnitRate ? Number(priceUnitRate) : null,
+          unit_price_unit: priceUnit || null,
+          min_order_quantity: minOrderQty ? Number(minOrderQty) : null,
+          is_operator_included: isOperatorIncluded,
+          is_fuel_included: isFuelIncluded,
+          is_transport_included: isTransportIncluded,
+          images: images.length > 0 ? images : ['https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=800&q=80'],
+          city_id: cityId ? Number(cityId) : null,
+          district_id: districtId ? Number(districtId) : null,
+          address_detail: addressDetail || null,
+          lat: coords.lat,
+          lng: coords.lng,
+          service_area_type: serviceAreaType,
+          service_radius_km: serviceRadiusKm ? Number(serviceRadiusKm) : 100,
+          status: status,
+          specifications: dynamicSpecs,
+        };
+
+        const { error: insertError } = await supabase.from('listings').insert(listingData);
+        if (insertError) throw insertError;
+      }
+
       setSuccess(true);
       setTimeout(() => {
         router.push('/firma-paneli');
@@ -656,44 +741,73 @@ export default function NewListingPage() {
 
           {/* Section 6: Görseller */}
           <div className="space-y-4">
-            <h3 className="text-sm font-extrabold text-navy-900 border-b border-slate-100 pb-2">
-              6. Fotoğraflar
-            </h3>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="text-sm font-extrabold text-navy-900">
+                6. Gerçek İlan Fotoğrafları *
+              </h3>
+              <span className="text-[11px] font-semibold text-slate-500">
+                {images.length}/10 Fotoğraf Yüklendi
+              </span>
+            </div>
 
-            <div className="flex gap-2">
+            {imageError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+                <span>{imageError}</span>
+              </div>
+            )}
+
+            {/* Dosya Yükleme Alanı */}
+            <label className="border-2 border-dashed border-slate-300 hover:border-orange-500 bg-slate-50 hover:bg-orange-50/30 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition text-center group">
               <input
-                type="url"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="Görsel URL'si yapıştırın (https://...)"
-                className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:border-orange-500 focus:outline-none"
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleFileUpload}
+                disabled={uploadingImage || images.length >= 10}
+                className="hidden"
               />
-              <button
-                type="button"
-                onClick={handleAddImage}
-                className="px-4 py-2.5 bg-navy-900 hover:bg-navy-800 text-white font-bold text-xs rounded-xl"
-              >
-                Görsel Ekle
-              </button>
-            </div>
+              <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-orange-500 flex items-center justify-center mb-3 shadow-sm group-hover:scale-110 transition-transform">
+                {uploadingImage ? (
+                  <span className="w-5 h-5 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+                ) : (
+                  <UploadCloud className="w-6 h-6" />
+                )}
+              </div>
+              <p className="text-xs font-black text-navy-900">
+                {uploadingImage ? 'Fotoğraflar Yükleniyor...' : 'Fotoğrafları Seçin veya Buraya Sürükleyin'}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-1">
+                JPEG, PNG veya WebP formatında, her biri en fazla 5 MB (Maksimum 10 fotoğraf)
+              </p>
+            </label>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-              {images.map((img, i) => (
-                <div
-                  key={i}
-                  className="relative aspect-[16/10] rounded-xl overflow-hidden bg-slate-100 border border-slate-200 group"
-                >
-                  <img src={img} alt="İlan önizleme" className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage(i)}
-                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-600 text-white text-xs font-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+            {/* Yüklenen Fotoğrafların Önizleme Galerisi */}
+            {images.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                {images.map((img, i) => (
+                  <div
+                    key={i}
+                    className="relative aspect-[16/10] rounded-xl overflow-hidden bg-slate-100 border border-slate-200 group shadow-sm"
                   >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <img src={img} alt={`İlan fotoğrafı ${i + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(i)}
+                      className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-red-600/90 hover:bg-red-600 text-white text-xs font-black flex items-center justify-center shadow transition"
+                      title="Fotoğrafı Sil"
+                    >
+                      ✕
+                    </button>
+                    {i === 0 && (
+                      <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-navy-900/80 text-white text-[10px] font-black">
+                        Kapak
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="pt-4 border-t border-slate-200 flex justify-end">

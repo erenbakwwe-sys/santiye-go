@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup:admin": "tsx scripts/setup-admin.ts",
+    "clean:demo": "tsx scripts/clean-demo-data.ts",
+    "test:real": "tsx src/lib/services/__tests__/e2e-real-flow.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

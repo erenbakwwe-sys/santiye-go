@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Building2,
@@ -20,7 +20,9 @@ import {
   FileSpreadsheet,
   Sparkles,
   BarChart3,
+  AlertTriangle,
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -28,8 +30,91 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [twoFactorActive, setTwoFactorActive] = useState(true);
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function verifyAdmin() {
+      const isConfigured =
+        process.env.NEXT_PUBLIC_SUPABASE_URL &&
+        !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+      if (!isConfigured) {
+        setAuthorized(true);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          router.push('/giris?redirect=/admin');
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, two_factor_enabled')
+          .eq('id', user.id)
+          .single();
+
+        if (!profile || (profile.role !== 'admin' && profile.role !== 'super_admin')) {
+          setAuthorized(false);
+          setLoading(false);
+          return;
+        }
+
+        setAuthorized(true);
+      } catch {
+        setAuthorized(false);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    verifyAdmin();
+  }, [router, supabase]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-navy-950 flex flex-col items-center justify-center text-white space-y-4">
+        <div className="w-10 h-10 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+        <p className="text-xs font-bold text-slate-300">Yönetici Yetkileri Doğrulanıyor...</p>
+      </div>
+    );
+  }
+
+  if (authorized === false) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-red-200 shadow-xl text-center space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto border border-red-100">
+            <AlertTriangle className="w-9 h-9" />
+          </div>
+          <h2 className="text-2xl font-black text-navy-900">403 Yetkisiz Erişim</h2>
+          <p className="text-xs text-slate-500">
+            Bu bölüme yalnızca süper yönetici ve yetkili moderatör hesapları erişebilir.
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 py-3 px-6 rounded-xl bg-navy-900 text-white font-bold text-xs"
+            >
+              <span>Ana Sayfaya Dön</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const navItems = [
     { label: 'Gösterge Paneli', href: '/admin', icon: LayoutDashboard },

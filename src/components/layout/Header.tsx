@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Send,
   CheckCheck,
+  LogOut,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Profile, Notification } from '@/types/database';
@@ -43,24 +44,30 @@ export default function Header() {
             .select('*')
             .eq('id', user.id)
             .single();
-          if (data) setProfile(data as Profile);
+          if (data) {
+            setProfile(data as Profile);
+            const userNotifs = await getUserNotifications(user.id);
+            setNotifications(userNotifs);
+          }
+        } else {
+          setProfile(null);
+          setNotifications([]);
         }
       } catch {
-        // demo fallback
+        setProfile(null);
+        setNotifications([]);
       }
     }
     checkAuth();
-
-    getUserNotifications('buyer-demo-001').then((res) => {
-      setNotifications(res);
-    });
   }, [supabase]);
 
   const unreadNotifsCount = notifications.filter((n) => !n.is_read).length;
 
   const handleMarkAllRead = async () => {
-    await markAllNotificationsAsRead('buyer-demo-001');
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    if (profile?.id) {
+      await markAllNotificationsAsRead(profile.id);
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    }
   };
 
   const handleNotificationClick = async (notif: Notification) => {
@@ -69,6 +76,12 @@ export default function Header() {
       prev.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n))
     );
     setNotifDropdownOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setProfile(null);
+    window.location.href = '/';
   };
 
   return (
@@ -212,37 +225,71 @@ export default function Header() {
               <Heart className="w-5 h-5" />
             </Link>
 
-            {/* Role Navigations */}
-            <div className="flex items-center gap-2">
-              <Link
-                href="/alici-paneli/taleplerim"
-                className="hidden xl:flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-navy-800 hover:bg-navy-700 text-slate-200 border border-slate-700 transition"
-              >
-                Taleplerim
-              </Link>
+            {/* Role Navigations or Guest Buttons */}
+            {profile ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/alici-paneli/taleplerim"
+                  className="hidden xl:flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-navy-800 hover:bg-navy-700 text-slate-200 border border-slate-700 transition"
+                >
+                  Taleplerim
+                </Link>
 
-              {profile?.role === 'company' ? (
-                <Link
-                  href="/firma-paneli"
-                  className="flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-navy-800 hover:bg-navy-700 text-white border border-slate-700 transition"
+                {profile?.role === 'admin' || profile?.role === 'super_admin' ? (
+                  <Link
+                    href="/admin"
+                    className="flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg bg-orange-600 hover:bg-orange-700 text-white shadow-sm transition"
+                  >
+                    <HardHat className="w-4 h-4" />
+                    Admin
+                  </Link>
+                ) : profile?.role === 'company' ? (
+                  <Link
+                    href="/firma-paneli"
+                    className="flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-navy-800 hover:bg-navy-700 text-white border border-slate-700 transition"
+                  >
+                    <Building2 className="w-4 h-4 text-orange-500" />
+                    Firma Paneli
+                  </Link>
+                ) : (
+                  <Link
+                    href="/alici-paneli"
+                    className="flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-navy-800 hover:bg-navy-700 text-white border border-slate-700 transition"
+                  >
+                    <User className="w-4 h-4 text-orange-500" />
+                    Hesabım
+                  </Link>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="p-2 text-slate-400 hover:text-red-400 rounded-lg hover:bg-navy-800 transition"
+                  title="Güvenli Çıkış Yap"
                 >
-                  <Building2 className="w-4 h-4 text-orange-500" />
-                  Firma Paneli
-                </Link>
-              ) : (
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
                 <Link
-                  href="/alici-paneli"
-                  className="flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-navy-800 hover:bg-navy-700 text-white border border-slate-700 transition"
+                  href="/giris"
+                  className="px-3.5 py-2 text-xs sm:text-sm font-bold text-slate-200 hover:text-white transition"
                 >
-                  <User className="w-4 h-4 text-orange-500" />
-                  Hesabım
+                  Giriş Yap
                 </Link>
-              )}
-            </div>
+                <Link
+                  href="/kayit"
+                  className="px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg bg-navy-800 hover:bg-navy-700 text-white border border-slate-700 transition"
+                >
+                  Kayıt Ol
+                </Link>
+              </div>
+            )}
 
             {/* Post Ad Button */}
             <Link
-              href={profile?.role === 'company' ? '/firma-paneli/yeni-ilan' : '/firma-paneli'}
+              href={profile?.role === 'company' ? '/firma-paneli/yeni-ilan' : '/giris?redirect=/firma-paneli/yeni-ilan'}
               className="flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-500/25 transition active:scale-95"
             >
               <PlusCircle className="w-4 h-4" />

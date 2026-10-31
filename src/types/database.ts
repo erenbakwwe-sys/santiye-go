@@ -1,4 +1,4 @@
-export type UserRole = 'buyer' | 'company' | 'admin';
+export type UserRole = 'buyer' | 'company' | 'admin' | 'super_admin';
 export type AdminRole = 'super_admin' | 'moderator';
 export type VerificationStatus = 'unverified' | 'pending' | 'approved' | 'rejected';
 export type PaymentStatus = 'pending' | 'paid' | 'transferred' | 'refunded' | 'failed' | 'cancelled';
@@ -30,6 +30,13 @@ export interface Profile {
   phone?: string | null;
   avatar_url?: string | null;
   kvkk_accepted_at: string;
+  kvkk_version?: string;
+  is_email_verified?: boolean;
+  is_phone_verified?: boolean;
+  email_verified_at?: string | null;
+  phone_verified_at?: string | null;
+  two_factor_enabled?: boolean;
+  notification_preferences?: { email: boolean; sms: boolean; push: boolean };
   created_at: string;
   updated_at: string;
 }
@@ -43,6 +50,9 @@ export interface Company {
   legal_type?: 'PRIVATE_COMPANY' | 'LIMITED_OR_JOINT_STOCK_COMPANY' | string;
   tax_plate_url?: string | null;
   signature_circular_url?: string | null;
+  tax_document_url?: string | null;
+  operating_license_url?: string | null;
+  onboarding_step?: string;
   verification_status?: VerificationStatus;
   verification_notes?: string | null;
   verified_at?: string | null;
@@ -742,5 +752,36 @@ export interface CompanyPerformanceStats {
   adImpressions: number;
   adClicks: number;
   adCtr: number; // Click-through rate e.g. 2.8%
+}
+
+export interface PhoneVerification {
+  id: string;
+  phone: string;
+  code_hash: string;
+  attempts: number;
+  max_attempts: number;
+  expires_at: string;
+  verified_at?: string | null;
+  resend_after: string;
+  created_at: string;
+}
+
+export interface EmailVerificationToken {
+  id: string;
+  user_id: string;
+  email: string;
+  token_hash: string;
+  expires_at: string;
+  used_at?: string | null;
+  created_at: string;
+}
+
+export interface PasswordResetToken {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  expires_at: string;
+  used_at?: string | null;
+  created_at: string;
 }
 

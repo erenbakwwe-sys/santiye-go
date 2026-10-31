@@ -154,7 +154,8 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
   // =========================================================================
   // LOCAL POSTGIS / HAVERSINE EMULATION ENGINE (Offline & Demo Reliability)
   // =========================================================================
-  let pool = [...DEMO_LISTINGS];
+  const allowDemo = process.env.NEXT_PUBLIC_SHOW_DEMO_DATA === 'true';
+  let pool = allowDemo ? [...DEMO_LISTINGS] : [];
 
   // 1. Status Filter
   if (status) {
@@ -347,6 +348,7 @@ export async function getListingBySlugOrId(idOrSlug: string): Promise<Listing | 
     // fallback
   }
 
-  const found = DEMO_LISTINGS.find((l) => l.id === idOrSlug || l.slug === idOrSlug);
+  const allowDemo = process.env.NEXT_PUBLIC_SHOW_DEMO_DATA === 'true';
+  const found = allowDemo ? DEMO_LISTINGS.find((l) => l.id === idOrSlug || l.slug === idOrSlug) : null;
   return found || null;
 }
