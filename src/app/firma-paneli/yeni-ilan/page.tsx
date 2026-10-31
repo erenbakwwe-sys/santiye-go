@@ -1,0 +1,719 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  PlusCircle,
+  Building2,
+  UploadCloud,
+  CheckCircle2,
+  AlertCircle,
+  Wrench,
+  Fuel,
+  Truck,
+  Image as ImageIcon,
+  ShieldAlert,
+  MapPin,
+  Layers,
+  FileCheck2,
+  Briefcase,
+  Users,
+} from 'lucide-react';
+import { CATEGORIES, CITIES, DISTRICTS } from '@/lib/mock-data';
+import LocationPicker from '@/components/map/LocationPicker';
+import { ListingStatus, ListingType, CategoryAttribute } from '@/types/database';
+import { getCategoryAttributes } from '@/lib/services/attribute-service';
+
+export default function NewListingPage() {
+  const router = useRouter();
+
+  // Form State
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [listingType, setListingType] = useState<ListingType>('rental');
+
+  // Dynamic Category Attributes
+  const [categoryAttributes, setCategoryAttributes] = useState<CategoryAttribute[]>([]);
+  const [dynamicSpecs, setDynamicSpecs] = useState<Record<string, any>>({});
+
+  // Pricing
+  const [pricingType, setPricingType] = useState<'fixed' | 'custom_quote' | 'unit_rate'>('fixed');
+  const [priceDaily, setPriceDaily] = useState('');
+  const [priceWeekly, setPriceWeekly] = useState('');
+  const [priceMonthly, setPriceMonthly] = useState('');
+  const [priceSale, setPriceSale] = useState('');
+  const [priceUnitRate, setPriceUnitRate] = useState('');
+  const [priceUnit, setPriceUnit] = useState('m² başına');
+
+  // Material Specifics
+  const [minOrderQty, setMinOrderQty] = useState('');
+  const [deliveryAvailable, setDeliveryAvailable] = useState(false);
+  const [deliveryMaxDistance, setDeliveryMaxDistance] = useState('');
+
+  // Service Specifics
+  const [serviceAreaType, setServiceAreaType] = useState<'radius' | 'cities'>('radius');
+  const [serviceRadiusKm, setServiceRadiusKm] = useState('100');
+  const [serviceCityIds, setServiceCityIds] = useState<number[]>([34, 41]);
+  const [scopeDescription, setScopeDescription] = useState('');
+  const [teamSize, setTeamSize] = useState('8');
+  const [experienceYears, setExperienceYears] = useState('10');
+  const [hasLicenseDoc, setHasLicenseDoc] = useState(false);
+
+  // Inclusions
+  const [isOperatorIncluded, setIsOperatorIncluded] = useState(false);
+  const [isFuelIncluded, setIsFuelIncluded] = useState(false);
+  const [isTransportIncluded, setIsTransportIncluded] = useState(false);
+
+  // Status
+  const [status, setStatus] = useState<ListingStatus>('active');
+
+  // Location
+  const [cityId, setCityId] = useState('34'); // Default Istanbul
+  const [districtId, setDistrictId] = useState('104'); // Default Tuzla
+  const [addressDetail, setAddressDetail] = useState('');
+  const [coords, setCoords] = useState<{ lat: number; lng: number }>({
+    lat: 40.8167,
+    lng: 29.3014,
+  });
+
+  // Images
+  const [imageUrl, setImageUrl] = useState('');
+  const [images, setImages] = useState<string[]>([
+    'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=800&q=80',
+  ]);
+
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  // Determine current category object
+  const currentCategory = CATEGORIES.find(
+    (c) => c.id === categoryId || c.subcategories?.some((s) => s.id === categoryId)
+  );
+
+  // Allowed listing types for current category
+  const allowedTypes: ListingType[] = currentCategory?.allowed_listing_types || ['rental', 'sale', 'service'];
+
+  // Handle Category Change & Load Dynamic Attributes
+  const handleCategoryChange = async (catId: string) => {
+    setCategoryId(catId);
+    const cat = CATEGORIES.find((c) => c.id === catId || c.subcategories?.some((s) => s.id === catId));
+    if (cat) {
+      if (cat.slug === 'insaat-hizmetleri') {
+        setListingType('service');
+        setPricingType('custom_quote');
+      } else if (cat.slug === 'yapi-malzemeleri') {
+        setListingType('sale');
+        setPricingType('fixed');
+      }
+
+      const attrs = await getCategoryAttributes(cat.slug);
+      setCategoryAttributes(attrs);
+      // Pre-fill initial dynamic specs
+      const initial: Record<string, any> = {};
+      attrs.forEach((a) => {
+        initial[a.slug] = a.attribute_type === 'boolean' ? false : a.options ? a.options[0] : '';
+      });
+      setDynamicSpecs(initial);
+    }
+  };
+
+  const handleCityChange = (newCityId: string) => {
+    setCityId(newCityId);
+    const firstDistrict = DISTRICTS.find((d) => d.city_id === Number(newCityId));
+    if (firstDistrict) {
+      setDistrictId(String(firstDistrict.id));
+      setCoords({ lat: firstDistrict.lat, lng: firstDistrict.lng });
+    } else {
+      const cityObj = CITIES.find((c) => c.id === Number(newCityId));
+      if (cityObj) {
+        setCoords({ lat: cityObj.lat, lng: cityObj.lng });
+      }
+    }
+  };
+
+  const handleDistrictChange = (newDistId: string) => {
+    setDistrictId(newDistId);
+    const distObj = DISTRICTS.find((d) => d.id === Number(newDistId));
+    if (distObj) {
+      setCoords({ lat: distObj.lat, lng: distObj.lng });
+    }
+  };
+
+  const handleAddImage = () => {
+    if (imageUrl.trim()) {
+      setImages([...images, imageUrl.trim()]);
+      setImageUrl('');
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+
+  const handleDynamicSpecChange = (slug: string, value: any) => {
+    setDynamicSpecs((prev) => ({ ...prev, [slug]: value }));
+  };
+
+  const isSafetyWarningCategory =
+    currentCategory?.slug === 'iskele-kalip' ||
+    currentCategory?.slug === 'asansor-platform' ||
+    currentCategory?.slug === 'is-makineleri';
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !categoryId) {
+      alert('Lütfen zorunlu alanları (Başlık ve Kategori) doldurunuz.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Simulate save
+      await new Promise((r) => setTimeout(r, 600));
+      setSuccess(true);
+      setTimeout(() => {
+        router.push('/firma-paneli');
+      }, 1500);
+    } catch (err: any) {
+      alert(err.message || 'İlan kaydedilemedi.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+      {/* Top Bar */}
+      <div className="flex items-center justify-between">
+        <Link
+          href="/firma-paneli"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-navy-900 transition"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Firma Paneline Dön
+        </Link>
+        <span className="text-xs font-semibold text-slate-400">Yeni İlan Girişi (7 Ana Kategori)</span>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-10 shadow-sm space-y-8">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-navy-900 tracking-tight">
+            Yeni İlan Oluştur
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            İş makinesi, iskele, asansör/platform, şantiye ekipmanı, yapı malzemesi veya inşaat hizmeti ilanı yayınlayın.
+          </p>
+        </div>
+
+        {success && (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>İlanınız başarıyla kaydedildi! Firma paneline yönlendiriliyorsunuz...</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Section 1: Kategori ve Tür */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-extrabold text-navy-900 border-b border-slate-100 pb-2">
+              1. Kategori ve İlan Türü
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Kategori Seçimi *
+                </label>
+                <select
+                  required
+                  value={categoryId}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:border-orange-500 focus:outline-none"
+                >
+                  <option value="">Kategori Seçiniz</option>
+                  {CATEGORIES.map((cat) => (
+                    <optgroup key={cat.id} label={cat.name}>
+                      {cat.subcategories?.map((sub) => (
+                        <option key={sub.id} value={sub.id}>
+                          {cat.name} &gt; {sub.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  İlan Türü *
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    disabled={!allowedTypes.includes('rental')}
+                    onClick={() => {
+                      setListingType('rental');
+                      setPricingType('fixed');
+                    }}
+                    className={`py-2.5 rounded-xl text-xs font-extrabold border transition ${
+                      listingType === 'rental'
+                        ? 'bg-navy-900 text-white border-navy-900'
+                        : 'bg-slate-50 text-slate-700 border-slate-300 disabled:opacity-30'
+                    }`}
+                  >
+                    Kiralık
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!allowedTypes.includes('sale')}
+                    onClick={() => {
+                      setListingType('sale');
+                      setPricingType('fixed');
+                    }}
+                    className={`py-2.5 rounded-xl text-xs font-extrabold border transition ${
+                      listingType === 'sale'
+                        ? 'bg-emerald-700 text-white border-emerald-700'
+                        : 'bg-slate-50 text-slate-700 border-slate-300 disabled:opacity-30'
+                    }`}
+                  >
+                    Satılık
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!allowedTypes.includes('service')}
+                    onClick={() => {
+                      setListingType('service');
+                      setPricingType('custom_quote');
+                    }}
+                    className={`py-2.5 rounded-xl text-xs font-extrabold border transition ${
+                      listingType === 'service'
+                        ? 'bg-orange-600 text-white border-orange-600'
+                        : 'bg-slate-50 text-slate-700 border-slate-300 disabled:opacity-30'
+                    }`}
+                  >
+                    Hizmet
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Safety & Legal Disclaimer for Scaffolding & Lifting */}
+            {isSafetyWarningCategory && (
+              <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-950 flex items-start gap-2.5 shadow-sm">
+                <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <strong>Önemli Güvenlik ve Mevzuat Uyarısı:</strong>
+                  <p className="text-slate-600">
+                    Bu ekipmanların kurulum, kullanım ve periyodik kontrolleri ilgili iş sağlığı ve güvenliği mevzuatına uygun olarak yapılmalıdır. Platform ekipmanların saha uygunluğunu ve periyodik kontrol raporunun hukuki geçerliliğini garanti etmez.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section 2: Başlık ve Açıklama */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-extrabold text-navy-900 border-b border-slate-100 pb-2">
+              2. İlan Detayları
+            </h3>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                İlan Başlığı *
+              </label>
+              <input
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Örn: 24m Eklemli Dizel Manlift Platform veya 1.000 m² Flanşlı Cephe İskelesi"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:border-orange-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                İlan Açıklaması *
+              </label>
+              <textarea
+                required
+                rows={4}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Ekipmanın teknik durumu, şantiye teslimat koşulları, operatör yeterlilikleri ve kurulum detaylarını belirtiniz..."
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:border-orange-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Section 3: Dinamik Kategori Özellikleri */}
+          {categoryAttributes.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <h3 className="text-sm font-extrabold text-navy-900 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-orange-500" />
+                  3. Kategoriye Özel Teknik Özellikler
+                </h3>
+                <span className="text-[11px] text-slate-400">Dinamik Alanlar</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {categoryAttributes.map((attr) => (
+                  <div key={attr.id} className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      {attr.name} {attr.unit ? `(${attr.unit})` : ''} {attr.is_required && '*'}
+                    </label>
+
+                    {attr.attribute_type === 'select' && attr.options ? (
+                      <select
+                        value={dynamicSpecs[attr.slug] || ''}
+                        onChange={(e) => handleDynamicSpecChange(attr.slug, e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:border-orange-500 focus:outline-none"
+                      >
+                        {attr.options.map((opt, i) => (
+                          <option key={i} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                    ) : attr.attribute_type === 'boolean' ? (
+                      <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!!dynamicSpecs[attr.slug]}
+                          onChange={(e) => handleDynamicSpecChange(attr.slug, e.target.checked)}
+                          className="accent-orange-500 w-4 h-4"
+                        />
+                        <span className="text-xs font-bold text-navy-900">Evet, Mevcut</span>
+                      </label>
+                    ) : (
+                      <input
+                        type={attr.attribute_type === 'number' ? 'number' : 'text'}
+                        value={dynamicSpecs[attr.slug] || ''}
+                        onChange={(e) => handleDynamicSpecChange(attr.slug, e.target.value)}
+                        placeholder={`Örn: ${attr.name}`}
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:border-orange-500 focus:outline-none"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Section 4: Fiyatlandırma & Hizmet Seçenekleri */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-extrabold text-navy-900 border-b border-slate-100 pb-2">
+              4. Fiyatlandırma ve Koşullar
+            </h3>
+
+            {listingType === 'service' ? (
+              /* Service Pricing Model */
+              <div className="space-y-4 p-4 rounded-xl bg-orange-50/40 border border-orange-200">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-navy-900 block">Fiyat Modeli</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPricingType('custom_quote')}
+                      className={`p-3 rounded-xl border text-left text-xs font-bold transition ${
+                        pricingType === 'custom_quote'
+                          ? 'border-orange-500 bg-white ring-2 ring-orange-500/20 text-orange-600'
+                          : 'border-slate-200 bg-white text-slate-700'
+                      }`}
+                    >
+                      <div className="font-extrabold">Teklife Göre (Önerilen)</div>
+                      <span className="text-[11px] font-normal text-slate-500 block mt-0.5">
+                        Şantiye keşfi ve metraja göre özel teklif verilir.
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPricingType('unit_rate')}
+                      className={`p-3 rounded-xl border text-left text-xs font-bold transition ${
+                        pricingType === 'unit_rate'
+                          ? 'border-orange-500 bg-white ring-2 ring-orange-500/20 text-orange-600'
+                          : 'border-slate-200 bg-white text-slate-700'
+                      }`}
+                    >
+                      <div className="font-extrabold">Birim / Başlangıç Fiyatı</div>
+                      <span className="text-[11px] font-normal text-slate-500 block mt-0.5">
+                        m², saatlik veya iş başı taban ücret.
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {pricingType === 'unit_rate' && (
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-1">
+                        Birim Fiyat (TL)
+                      </label>
+                      <input
+                        type="number"
+                        value={priceUnitRate}
+                        onChange={(e) => setPriceUnitRate(e.target.value)}
+                        placeholder="Örn: 180"
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-1">
+                        Birim Ölçüsü
+                      </label>
+                      <select
+                        value={priceUnit}
+                        onChange={(e) => setPriceUnit(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold"
+                      >
+                        <option value="m² başına">m² başına</option>
+                        <option value="saatlik">saatlik</option>
+                        <option value="günlük">günlük</option>
+                        <option value="iş / proje başı">iş / proje başı</option>
+                        <option value="ton başına">ton başına</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : listingType === 'rental' ? (
+              /* Rental Pricing */
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Günlük Fiyat (TL) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={priceDaily}
+                    onChange={(e) => setPriceDaily(e.target.value)}
+                    placeholder="Örn: 8500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Haftalık Fiyat (TL)
+                  </label>
+                  <input
+                    type="number"
+                    value={priceWeekly}
+                    onChange={(e) => setPriceWeekly(e.target.value)}
+                    placeholder="Örn: 50000"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Aylık Fiyat (TL)
+                  </label>
+                  <input
+                    type="number"
+                    value={priceMonthly}
+                    onChange={(e) => setPriceMonthly(e.target.value)}
+                    placeholder="Örn: 180000"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Sale Pricing */
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Satış Fiyatı (TL) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={priceSale}
+                    onChange={(e) => setPriceSale(e.target.value)}
+                    placeholder="Örn: 1250000"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Minimum Sipariş Miktarı
+                  </label>
+                  <input
+                    type="number"
+                    value={minOrderQty}
+                    onChange={(e) => setMinOrderQty(e.target.value)}
+                    placeholder="Örn: 10 Palet veya 1 Adet"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Inclusions Checkboxes for equipment/rental */}
+            {listingType !== 'service' && (
+              <div className="grid grid-cols-3 gap-3 pt-2">
+                <label className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isOperatorIncluded}
+                    onChange={(e) => setIsOperatorIncluded(e.target.checked)}
+                    className="accent-orange-500 w-4 h-4"
+                  />
+                  <span className="text-xs font-bold text-navy-900">Operatör Dahil</span>
+                </label>
+                <label className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isFuelIncluded}
+                    onChange={(e) => setIsFuelIncluded(e.target.checked)}
+                    className="accent-orange-500 w-4 h-4"
+                  />
+                  <span className="text-xs font-bold text-navy-900">Yakıt Dahil</span>
+                </label>
+                <label className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isTransportIncluded}
+                    onChange={(e) => setIsTransportIncluded(e.target.checked)}
+                    className="accent-orange-500 w-4 h-4"
+                  />
+                  <span className="text-xs font-bold text-navy-900">Nakliye Dahil</span>
+                </label>
+              </div>
+            )}
+          </div>
+
+          {/* Section 5: Konum ve Hizmet Bölgesi */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-extrabold text-navy-900 border-b border-slate-100 pb-2">
+              5. Konum ve Hizmet Alanı
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">İl *</label>
+                <select
+                  value={cityId}
+                  onChange={(e) => handleCityChange(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold"
+                >
+                  {CITIES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">İlçe *</label>
+                <select
+                  value={districtId}
+                  onChange={(e) => handleDistrictChange(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold"
+                >
+                  {DISTRICTS.filter((d) => d.city_id === Number(cityId)).map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Extended Service Radius for Services */}
+            {listingType === 'service' && (
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                <label className="text-xs font-bold text-navy-900 flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-orange-500" />
+                  Hizmet Verilen Yarıçap (Şantiye Kapsama Alanı)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min="25"
+                    max="300"
+                    step="25"
+                    value={serviceRadiusKm}
+                    onChange={(e) => setServiceRadiusKm(e.target.value)}
+                    className="flex-1 accent-orange-500"
+                  />
+                  <span className="text-xs font-black text-navy-900 bg-white px-3 py-1.5 rounded-lg border">
+                    {serviceRadiusKm} km Yarıçap
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Bu merkezden {serviceRadiusKm} km mesafe içindeki tüm şantiye aramalarında ilanınız hizmet veren olarak listelenecektir.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Section 6: Görseller */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-extrabold text-navy-900 border-b border-slate-100 pb-2">
+              6. Fotoğraflar
+            </h3>
+
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="Görsel URL'si yapıştırın (https://...)"
+                className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:border-orange-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleAddImage}
+                className="px-4 py-2.5 bg-navy-900 hover:bg-navy-800 text-white font-bold text-xs rounded-xl"
+              >
+                Görsel Ekle
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              {images.map((img, i) => (
+                <div
+                  key={i}
+                  className="relative aspect-[16/10] rounded-xl overflow-hidden bg-slate-100 border border-slate-200 group"
+                >
+                  <img src={img} alt="İlan önizleme" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(i)}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-600 text-white text-xs font-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-200 flex justify-end">
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-8 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-sm tracking-wide shadow-lg shadow-orange-500/30 flex items-center gap-2 transition disabled:opacity-50"
+            >
+              {loading ? (
+                <span>Kaydediliyor...</span>
+              ) : (
+                <>
+                  <PlusCircle className="w-5 h-5" />
+                  <span>İLANIMI YAYINA AL</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
