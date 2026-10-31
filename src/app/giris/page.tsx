@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { HardHat, Mail, Lock, AlertCircle, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { checkRateLimit, sanitizeRedirectUrl } from '@/lib/security/rate-limiter';
+import { loginUser } from '@/lib/services/auth-service';
 
 function LoginForm() {
   const router = useRouter();
@@ -42,44 +43,24 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const isSupabaseConfigured =
-        process.env.NEXT_PUBLIC_SUPABASE_URL &&
-        !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+      const res = await loginUser(email, password);
 
-      if (!isSupabaseConfigured) {
-        throw new Error('Veritabanı bağlantısı henüz yapılandırılmamıştır. Lütfen sistem yöneticisiyle iletişime geçin.');
+      if (!res.success) {
+        throw new Error(res.error || 'E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol ediniz.');
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
-      if (error) {
-        // Prompt 8 Kuralı: Kullanıcı var/yok bilgisini sızdırmayan genel Türkçe hata mesajı
-        throw new Error('E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol ediniz.');
+      if (safeRedirect) {
+        window.location.href = safeRedirect;
+        return;
       }
 
-      if (data?.user) {
-        if (safeRedirect) {
-          router.push(safeRedirect);
-          return;
-        }
-
-        // Kullanıcı rolünü sorgula
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single();
-
-        if (profile?.role === 'admin' || profile?.role === 'super_admin') {
-          router.push('/admin');
-        } else if (profile?.role === 'company') {
-          router.push('/firma-paneli');
-        } else {
-          router.push('/alici-paneli');
-        }
+      const role = res.profile?.role || res.user?.role;
+      if (role === 'admin' || role === 'super_admin') {
+        window.location.href = '/admin';
+      } else if (role === 'company') {
+        window.location.href = '/firma-paneli';
+      } else {
+        window.location.href = '/alici-paneli';
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Giriş yapılamadı.';

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Phone, ShieldCheck, AlertCircle, CheckCircle2, RotateCw, ArrowRight } from 'lucide-react';
 import { sendPhoneOtp, verifyPhoneOtp } from '@/lib/services/sms-service';
+import { markPhoneVerified } from '@/lib/services/auth-service';
 
 function PhoneVerificationForm() {
   const router = useRouter();
@@ -93,6 +94,8 @@ function PhoneVerificationForm() {
       if (!result.success) {
         throw new Error(result.message || 'Kod doğrulanamadı.');
       }
+
+      await markPhoneVerified(rawPhone);
 
       setSuccessMsg('Telefon numaranız başarıyla doğrulandı!');
       setTimeout(() => {
@@ -189,6 +192,16 @@ function PhoneVerificationForm() {
             <span className={`font-mono font-black ${timeLeft < 60 ? 'text-red-600' : 'text-slate-700'}`}>
               {formatTimer(timeLeft)}
             </span>
+          </div>
+
+          {/* Test Modu Bilgilendirmesi */}
+          <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-900 text-xs text-center space-y-1">
+            <p className="font-bold">💡 Test / Geliştirme Erişimi</p>
+            <p className="text-amber-800">
+              SMS sağlayıcısı API anahtarlarınız tanımlanana kadar test onay kodu olarak{' '}
+              <span className="font-mono font-bold bg-amber-200 px-1.5 py-0.5 rounded text-amber-950">123456</span>{' '}
+              kullanabilirsiniz.
+            </p>
           </div>
 
           <button

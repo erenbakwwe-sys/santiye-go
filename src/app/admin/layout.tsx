@@ -23,6 +23,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { getActiveProfile } from '@/lib/services/auth-service';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -40,33 +41,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   useEffect(() => {
     async function verifyAdmin() {
-      const isConfigured =
-        process.env.NEXT_PUBLIC_SUPABASE_URL &&
-        !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
-
-      if (!isConfigured) {
-        setAuthorized(true);
-        setLoading(false);
-        return;
-      }
-
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        const profile = await getActiveProfile();
 
-        if (!user) {
+        if (!profile) {
           router.push('/giris?redirect=/admin');
           return;
         }
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, two_factor_enabled')
-          .eq('id', user.id)
-          .single();
-
-        if (!profile || (profile.role !== 'admin' && profile.role !== 'super_admin')) {
+        if (profile.role !== 'admin' && profile.role !== 'super_admin') {
           setAuthorized(false);
           setLoading(false);
           return;
@@ -81,7 +64,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     }
 
     verifyAdmin();
-  }, [router, supabase]);
+  }, [router]);
 
   if (loading) {
     return (

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Profile, Notification } from '@/types/database';
+import { getActiveProfile, logoutUser } from '@/lib/services/auth-service';
 import {
   getUserNotifications,
   markNotificationAsRead,
@@ -35,20 +36,11 @@ export default function Header() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-          if (data) {
-            setProfile(data as Profile);
-            const userNotifs = await getUserNotifications(user.id);
-            setNotifications(userNotifs);
-          }
+        const activeProfile = await getActiveProfile();
+        if (activeProfile) {
+          setProfile(activeProfile);
+          const userNotifs = await getUserNotifications(activeProfile.id);
+          setNotifications(userNotifs);
         } else {
           setProfile(null);
           setNotifications([]);
@@ -59,7 +51,7 @@ export default function Header() {
       }
     }
     checkAuth();
-  }, [supabase]);
+  }, []);
 
   const unreadNotifsCount = notifications.filter((n) => !n.is_read).length;
 
@@ -79,7 +71,7 @@ export default function Header() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await logoutUser();
     setProfile(null);
     window.location.href = '/';
   };

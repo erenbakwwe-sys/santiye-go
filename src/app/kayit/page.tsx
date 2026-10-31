@@ -25,6 +25,7 @@ import { UserRole } from '@/types/database';
 import { normalizeTurkishPhone, sendPhoneOtp } from '@/lib/services/sms-service';
 import { isDisposableEmail, sendEmailVerification } from '@/lib/services/email-service';
 import { checkRateLimit } from '@/lib/security/rate-limiter';
+import { registerUser } from '@/lib/services/auth-service';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -111,83 +112,29 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const isSupabaseConfigured =
-        process.env.NEXT_PUBLIC_SUPABASE_URL &&
-        !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
-
-      if (!isSupabaseConfigured) {
-        throw new Error('Veritabanı bağlantısı yapılandırılmamıştır. Lütfen sistem yöneticisiyle iletişime geçiniz.');
-      }
-
-      // A. Supabase Auth Kaydı
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const res = await registerUser({
         email: email.trim().toLowerCase(),
         password,
-        options: {
-          data: {
-            full_name: fullName.trim(),
-            role: role,
-            phone: phoneCheck.formatted,
-          },
-        },
+        fullName: fullName.trim(),
+        role,
+        phone: phoneCheck.formatted,
+        companyName: role === 'company' ? companyName.trim() : undefined,
+        taxNumber: role === 'company' ? taxNumber.trim() : undefined,
+        taxOffice: role === 'company' ? taxOffice.trim() : undefined,
+        cityId: role === 'company' ? cityId : undefined,
+        districtId: role === 'company' ? districtId : undefined,
       });
 
-      if (authError) {
-        if (authError.message.includes('already registered')) {
-          throw new Error('Bu e-posta adresiyle kayıtlı bir hesap zaten bulunmaktadır. Lütfen giriş yapınız.');
-        }
-        throw authError;
+      if (!res.success) {
+        throw new Error(res.error || 'Kayıt işlemi sırasında bir hata oluştu.');
       }
 
-      if (authData?.user) {
-        const userId = authData.user.id;
-        const nowIso = new Date().toISOString();
-
-        // B. Profiles Tablosu Kaydı (KVKK Sürümü v1.0 ile)
-        const { error: profileError } = await supabase.from('profiles').insert({
-          id: userId,
-          role: role,
-          full_name: fullName.trim(),
-          phone: phoneCheck.formatted,
-          kvkk_accepted_at: nowIso,
-          kvkk_version: 'v1.0',
-          is_email_verified: false,
-          is_phone_verified: false,
-        });
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-        }
-
-        // C. Firma Rolü ise Companies Tablosuna Ekle
-        if (role === 'company') {
-          await supabase.from('companies').insert({
-            user_id: userId,
-            name: companyName.trim(),
-            tax_number: taxNumber.trim(),
-            tax_office: taxOffice.trim() || null,
-            phone: phoneCheck.formatted,
-            city_id: cityId ? Number(cityId) : null,
-            district_id: districtId ? Number(districtId) : null,
-            is_verified: false,
-            is_demo: false,
-            onboarding_step: 'documents_pending',
-          });
-        }
-
-        // D. E-posta ve SMS Doğrulama Kodlarını Tetikle
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-        const verifyEmailLink = `${baseUrl}/dogrula/eposta?userId=${userId}&email=${encodeURIComponent(email.trim())}`;
-        await sendEmailVerification(email.trim(), fullName.trim(), verifyEmailLink);
-        await sendPhoneOtp(phoneCheck.formatted);
-
-        setSuccessMsg('Hesabınız başarıyla oluşturuldu! Telefon doğrulama ekranına yönlendiriliyorsunuz...');
-        setTimeout(() => {
-          router.push(
-            `/dogrula/telefon?phone=${encodeURIComponent(phoneCheck.formatted)}&email=${encodeURIComponent(email.trim())}`
-          );
-        }, 1200);
-      }
+      setSuccessMsg('Hesabınız başarıyla oluşturuldu! Telefon doğrulama ekranına yönlendiriliyorsunuz...');
+      setTimeout(() => {
+        router.push(
+          `/dogrula/telefon?phone=${encodeURIComponent(phoneCheck.formatted)}&email=${encodeURIComponent(email.trim())}`
+        );
+      }, 1000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Kayıt işlemi sırasında bir hata oluştu.';
       setErrorMsg(msg);
