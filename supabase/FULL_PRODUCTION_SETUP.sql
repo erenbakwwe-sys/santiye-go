@@ -1516,12 +1516,12 @@ CREATE POLICY "analytics_summary_read_owner" ON analytics_daily_summary
     FOR SELECT
     USING (
         (target_type = 'company' AND EXISTS (
-            SELECT 1 FROM companies c WHERE c.id = analytics_daily_summary.target_id AND c.user_id = auth.uid()
+            SELECT 1 FROM companies c WHERE c.id::text = analytics_daily_summary.target_id AND c.user_id = auth.uid()
         ))
         OR (target_type = 'listing' AND EXISTS (
             SELECT 1 FROM listings l
             JOIN companies c ON c.id = l.company_id
-            WHERE l.id = analytics_daily_summary.target_id AND c.user_id = auth.uid()
+            WHERE l.id::text = analytics_daily_summary.target_id AND c.user_id = auth.uid()
         ))
         OR EXISTS (
             SELECT 1 FROM admin_users au WHERE au.id = auth.uid() AND au.is_active = true
