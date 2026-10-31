@@ -11,10 +11,18 @@ CREATE EXTENSION IF NOT EXISTS "postgis";
 
 -- 2. TİPLER VE ENUM'LAR
 DO $$ BEGIN
-    CREATE TYPE user_role AS ENUM ('buyer', 'company');
+    CREATE TYPE user_role AS ENUM ('buyer', 'company', 'admin', 'super_admin');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
+
+DO $$ BEGIN
+    ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'admin';
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'super_admin';
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 DO $$ BEGIN
     CREATE TYPE listing_type AS ENUM ('rental', 'sale');
@@ -1713,8 +1721,8 @@ CREATE POLICY "Admins can view login logs"
     ON public.login_security_logs FOR SELECT
     USING (
         EXISTS (
-            SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() AND role IN ('admin', 'super_admin')
+            SELECT 1 FROM public.admin_users
+            WHERE id = auth.uid() AND is_active = true
         )
     );
 

@@ -8,10 +8,18 @@ CREATE EXTENSION IF NOT EXISTS "postgis";
 
 -- 2. TİPLER VE ENUM'LAR
 DO $$ BEGIN
-    CREATE TYPE user_role AS ENUM ('buyer', 'company');
+    CREATE TYPE user_role AS ENUM ('buyer', 'company', 'admin', 'super_admin');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
+
+DO $$ BEGIN
+    ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'admin';
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'super_admin';
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 DO $$ BEGIN
     CREATE TYPE listing_type AS ENUM ('rental', 'sale');
