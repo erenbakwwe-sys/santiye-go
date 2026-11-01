@@ -236,3 +236,34 @@ export async function sendQuoteNotification(
     html,
   });
 }
+
+/**
+ * 4. 6 HANELİ GÜVENLİK ONAY KODU MAİLİ (OTP)
+ */
+export async function sendEmailOtp(
+  to: string,
+  code: string,
+  name?: string
+): Promise<EmailSendResult> {
+  const title = `Doğrulama Kodunuz: ${code}`;
+  const body = `
+    <p>Merhaba <strong>${name || 'Kullanıcımız'}</strong>,</p>
+    <p>Şantiye GO hesabınızı doğrulamak ve güvenle kullanmaya başlamak için aşağıdaki 6 haneli güvenlik kodunu kullanınız:</p>
+    <div style="text-align: center; margin: 28px 0;">
+      <span style="font-size: 32px; font-weight: 900; letter-spacing: 8px; color: #f97316; background: #fff7ed; padding: 14px 28px; border-radius: 12px; border: 2px dashed #f97316; display: inline-block;">
+        ${code}
+      </span>
+    </div>
+    <p style="font-size: 12px; color: #64748b; margin-top: 20px;">
+      Bu kod <strong>5 dakika</strong> boyunca geçerlidir. Güvenliğiniz için bu kodu kimseyle paylaşmayınız.
+    </p>
+  `;
+
+  const html = renderBaseTemplate(title, body);
+
+  return sendEmail({
+    to,
+    subject: `Şantiye GO – Doğrulama Kodunuz: ${code}`,
+    html,
+  });
+}

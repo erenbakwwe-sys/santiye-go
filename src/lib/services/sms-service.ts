@@ -257,11 +257,6 @@ export async function verifyPhoneOtp(rawPhone: string, code: string): Promise<Ve
     return { success: false, message: 'Lütfen 6 haneli doğrulama kodunu eksiksiz girin.', error: 'INVALID_CODE_LENGTH' };
   }
 
-  // Test ve geliştirme onay kodu desteği
-  if (code.trim() === '123456') {
-    return { success: true, message: 'Telefon numarası başarıyla doğrulandı.' };
-  }
-
   const supabase = createClient();
   const codeHash = hashOtpCode(code.trim());
 

@@ -129,7 +129,22 @@ export default function RegisterPage() {
         throw new Error(res.error || 'Kayıt işlemi sırasında bir hata oluştu.');
       }
 
-      setSuccessMsg('Hesabınız başarıyla oluşturuldu! Telefon doğrulama ekranına yönlendiriliyorsunuz...');
+      // E-posta ve SMS üzerinden gerçek 6 haneli güvenlik kodunu gönder
+      try {
+        await fetch('/api/auth/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: phoneCheck.formatted,
+            email: email.trim().toLowerCase(),
+            name: fullName.trim(),
+          }),
+        });
+      } catch {
+        // Arka planda kod oluşturulduysa sessizce devam et
+      }
+
+      setSuccessMsg('Hesabınız oluşturuldu! Doğrulama kodunuz e-posta adresinize gönderildi.');
       setTimeout(() => {
         router.push(
           `/dogrula/telefon?phone=${encodeURIComponent(phoneCheck.formatted)}&email=${encodeURIComponent(email.trim())}`

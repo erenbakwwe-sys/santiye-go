@@ -90,16 +90,27 @@ function PhoneVerificationForm() {
     setLoading(true);
 
     try {
-      const result = await verifyPhoneOtp(rawPhone, fullCode);
-      if (!result.success) {
-        throw new Error(result.message || 'Kod doğrulanamadı.');
+      // 1. API Üzerinden Doğrulama (Resend / Güvenli Oturum / Supabase)
+      const res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: rawPhone, code: fullCode, email }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        // Yedek RPC denemesi
+        const fallback = await verifyPhoneOtp(rawPhone, fullCode);
+        if (!fallback.success) {
+          throw new Error(data.message || fallback.message || 'Girdiğiniz onay kodu hatalı veya süresi dolmuş.');
+        }
       }
 
       await markPhoneVerified(rawPhone);
 
-      setSuccessMsg('Telefon numaranız başarıyla doğrulandı!');
+      setSuccessMsg('Hesabınız başarıyla doğrulandı! Giriş ekranına yönlendiriliyorsunuz...');
       setTimeout(() => {
-        router.push('/giris?verified=phone');
+        router.push('/giris?verified=1');
       }, 1500);
     } catch (err: any) {
       setErrorMsg(err.message || 'Kod doğrulanamadı.');
@@ -115,9 +126,15 @@ function PhoneVerificationForm() {
     setSuccessMsg('');
 
     try {
-      const result = await sendPhoneOtp(rawPhone);
-      if (!result.success) {
-        throw new Error(result.message);
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: rawPhone, email }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.message || 'Yeni kod gönderilemedi.');
       }
 
       setResendCount((prev) => prev + 1);
@@ -125,7 +142,7 @@ function PhoneVerificationForm() {
       setTimeLeft(300);
       setDigits(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
-      setSuccessMsg('Yeni doğrulama kodu SMS ile telefonunuza iletildi.');
+      setSuccessMsg(`Yeni 6 haneli onay kodunuz ${email || rawPhone} adresine iletildi.`);
     } catch (err: any) {
       setErrorMsg(err.message || 'Yeni kod gönderilemedi.');
     }
@@ -145,10 +162,10 @@ function PhoneVerificationForm() {
             <Phone className="w-7 h-7" />
           </div>
           <h2 className="text-2xl font-black text-navy-900 tracking-tight">
-            Telefonunuzu Doğrulayın
+            Hesabınızı Doğrulayın
           </h2>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            <strong className="text-slate-800">{rawPhone || 'Telefon numaranıza'}</strong> gönderilen 6 haneli onay kodunu giriniz.
+            <strong className="text-slate-800">{email || rawPhone || 'Hesabınıza'}</strong> adresine gönderilen 6 haneli onay kodunu giriniz.
           </p>
         </div>
 
@@ -192,16 +209,6 @@ function PhoneVerificationForm() {
             <span className={`font-mono font-black ${timeLeft < 60 ? 'text-red-600' : 'text-slate-700'}`}>
               {formatTimer(timeLeft)}
             </span>
-          </div>
-
-          {/* Test Modu Bilgilendirmesi */}
-          <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-900 text-xs text-center space-y-1">
-            <p className="font-bold">💡 Test / Geliştirme Erişimi</p>
-            <p className="text-amber-800">
-              SMS sağlayıcısı API anahtarlarınız tanımlanana kadar test onay kodu olarak{' '}
-              <span className="font-mono font-bold bg-amber-200 px-1.5 py-0.5 rounded text-amber-950">123456</span>{' '}
-              kullanabilirsiniz.
-            </p>
           </div>
 
           <button
