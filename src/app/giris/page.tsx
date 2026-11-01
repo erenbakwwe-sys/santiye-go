@@ -49,13 +49,27 @@ function LoginForm() {
         throw new Error(res.error || 'E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol ediniz.');
       }
 
+      const role = res.profile?.role || res.user?.role || 'buyer';
+      const isAdmin = role === 'admin' || role === 'super_admin';
+
       if (safeRedirect) {
+        // Güvenlik Koruması: Yetkisiz rolleri /admin rotasına yönlendirme
+        if (safeRedirect.startsWith('/admin') && !isAdmin) {
+          window.location.href = role === 'company' ? '/firma-paneli' : '/alici-paneli';
+          return;
+        }
+
+        // Güvenlik Koruması: Alıcıyı firma paneline yönlendirme
+        if (safeRedirect.startsWith('/firma-paneli') && role === 'buyer') {
+          window.location.href = '/alici-paneli';
+          return;
+        }
+
         window.location.href = safeRedirect;
         return;
       }
 
-      const role = res.profile?.role || res.user?.role;
-      if (role === 'admin' || role === 'super_admin') {
+      if (isAdmin) {
         window.location.href = '/admin';
       } else if (role === 'company') {
         window.location.href = '/firma-paneli';
