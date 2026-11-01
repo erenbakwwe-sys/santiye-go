@@ -132,11 +132,15 @@ export async function registerUser({
   // A. Canlı Supabase Varsa
   if (isSupabaseConfigured) {
     try {
+      const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://santiyego.com').replace(/\/$/, '');
+      const redirectUrl = `${siteUrl}/auth/callback`;
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
         options: {
           data: { full_name: fullName.trim(), role, phone },
+          emailRedirectTo: redirectUrl,
         },
       });
 

@@ -144,10 +144,10 @@ export default function RegisterPage() {
         // Arka planda kod oluşturulduysa sessizce devam et
       }
 
-      setSuccessMsg('Hesabınız oluşturuldu! Doğrulama kodunuz e-posta adresinize gönderildi.');
+      setSuccessMsg('Hesabınız oluşturuldu! Doğrulama e-postanız ve onay kodunuz gönderildi.');
       setTimeout(() => {
         router.push(
-          `/dogrula/telefon?phone=${encodeURIComponent(phoneCheck.formatted)}&email=${encodeURIComponent(email.trim())}`
+          `/dogrula/eposta?email=${encodeURIComponent(email.trim())}&phone=${encodeURIComponent(phoneCheck.formatted)}`
         );
       }, 1000);
     } catch (err: unknown) {
