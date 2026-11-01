@@ -177,26 +177,14 @@ function EmailVerificationContent() {
         });
       }
 
-      // 2. Supabase dahili onay linkini de yeniden tetikle
-      try {
-        const supabase = createClient();
-        await supabase.auth.resend({
-          type: 'signup',
-          email: emailParam,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-          },
-        });
-      } catch {}
-
       setResendCount((prev) => prev + 1);
       setResendCooldown(60);
       setTimeLeft(300);
       setDigits(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
-      setSuccessMsg(`Yeni onay bağlantısı ve 6 haneli kod ${emailParam} adresinize gönderildi.`);
+      setSuccessMsg(`Yeni 6 haneli güvenlik onay kodunuz ${emailParam} adresinize gönderildi.`);
     } catch (err: any) {
-      setErrorMsg(err.message || 'E-posta tekrar gönderilemedi.');
+      setErrorMsg(err.message || 'Yeni kod gönderilemedi.');
     }
   };
 
@@ -280,14 +268,13 @@ function EmailVerificationContent() {
         </div>
 
         {/* Bilgilendirme Kartı */}
-        <div className="p-3.5 bg-blue-50 border border-blue-200/80 rounded-2xl text-blue-900 text-xs space-y-1.5">
-          <p className="font-bold flex items-center gap-1.5 text-blue-950">
-            <span>✉️</span> İki Kolay Doğrulama Yolu:
+        <div className="p-3.5 bg-orange-50/80 border border-orange-200/80 rounded-2xl text-orange-950 text-xs space-y-1">
+          <p className="font-bold flex items-center gap-1.5 text-orange-900">
+            <span>📬</span> 6 Haneli Onay Kodunuz Gönderildi
           </p>
-          <ul className="list-disc list-inside space-y-1 text-[11px] text-blue-900/90 leading-relaxed">
-            <li>Gelen kutunuzdaki <strong>&quot;Hesabımı Doğrula&quot;</strong> butonuna tıklayabilirsiniz.</li>
-            <li>Veya e-postadaki <strong>6 haneli kodu</strong> aşağıdaki alana girebilirsiniz.</li>
-          </ul>
+          <p className="text-[11px] text-orange-800 leading-relaxed">
+            <strong>onay@santiyego.com</strong> adresinden gelen 6 haneli güvenlik kodunu aşağıdaki kutucuklara giriniz. (Gelen kutusunda göremediyseniz spam/gereksiz klasörünü kontrol ediniz).
+          </p>
         </div>
 
         {errorMsg && (
