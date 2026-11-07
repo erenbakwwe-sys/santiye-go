@@ -4,7 +4,7 @@
  * tarafların iletişim kartını açar, doğrular, loglar ve RLS kurallarını yönetir.
  */
 
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '../supabase/client';
 
 export type RevealTriggerType = 'teklif_kabul' | 'odeme' | 'talep_kredisi' | 'numara_goster_butonu';
 

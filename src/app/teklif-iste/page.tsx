@@ -42,6 +42,7 @@ export default function MultiVendorQuotePage() {
   const [needOperator, setNeedOperator] = useState(false);
   const [needFuel, setNeedFuel] = useState(false);
   const [needTransport, setNeedTransport] = useState(false);
+  const [contactConsent, setContactConsent] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -72,6 +73,11 @@ export default function MultiVendorQuotePage() {
       return;
     }
 
+    if (!contactConsent) {
+      setErrorMessage('Lütfen iletişim bilgilerinizin teklif veren onaylı firmalarla paylaşılması onay kutusunu işaretleyin.');
+      return;
+    }
+
     setLoading(true);
     setErrorMessage('');
 
@@ -95,6 +101,8 @@ export default function MultiVendorQuotePage() {
       need_operator: needOperator,
       need_fuel: needFuel,
       need_transport: needTransport,
+      buyer_contact_consent: true,
+      max_quote_slots: 4,
       search_radius_km: Number(searchRadiusKm),
       max_recipients: 10,
     });
@@ -422,6 +430,25 @@ export default function MultiVendorQuotePage() {
                 <span className="text-xs font-bold text-slate-800">Şantiye Nakliyesi Dahil</span>
               </label>
             </div>
+          </div>
+
+          {/* Prompt 9B: İletişim Bilgisi Paylaşım Rızası */}
+          <div className="p-4 bg-orange-50/70 border border-orange-200 rounded-xl space-y-2">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                required
+                checked={contactConsent}
+                onChange={(e) => setContactConsent(e.target.checked)}
+                className="mt-0.5 w-4 h-4 text-orange-600 rounded border-orange-300 focus:ring-orange-500 shrink-0"
+              />
+              <span className="text-xs font-semibold text-slate-800 leading-relaxed">
+                <strong className="text-orange-900">İletişim Bilgisi Açılış Onayı:</strong> İletişim bilgilerimin, bu talebe teklif vermek için teklif kredisi harcayan onaylı tedarikçi firmalarla (en fazla 4 firma kontenjanı) paylaşılmasını kabul ediyorum.
+              </span>
+            </label>
+            <p className="text-[11px] text-slate-500 pl-7 leading-normal">
+              Bu onay, teklif veren firmaların iş detaylarını netleştirmek için güvenli iletişim kartı üzerinden sizinle görüşebilmesi içindir. İletişim bilgileriniz genel internete açık yayınlanmaz.
+            </p>
           </div>
 
           {/* Submit Actions */}

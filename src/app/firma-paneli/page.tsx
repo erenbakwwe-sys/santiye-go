@@ -339,6 +339,21 @@ export default function CompanyDashboardPage() {
         </Link>
 
         <Link
+          href="/firma-paneli/krediler"
+          className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-orange-500 hover:shadow-md transition group space-y-2"
+        >
+          <div className="text-orange-600 font-black text-sm uppercase tracking-wide">
+            Talep Kredisi
+          </div>
+          <h3 className="font-extrabold text-navy-900 text-base group-hover:text-orange-600 transition">
+            Kredi Cüzdanı & Paketler
+          </h3>
+          <p className="text-xs text-slate-500">
+            Taleplere teklif verme bakiyenizi, defter geçmişini ve satın alımları yönetin.
+          </p>
+        </Link>
+
+        <Link
           href="/firma-paneli/uyelik"
           className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-orange-500 hover:shadow-md transition group space-y-2"
         >

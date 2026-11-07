@@ -73,6 +73,14 @@ export interface Company {
   rating_avg?: number;
   review_count?: number;
   weighted_rating?: number;
+  credit_balance?: number;
+  notification_preferences?: {
+    email: boolean;
+    push: boolean;
+    quiet_hours?: { enabled: boolean; start: string; end: string };
+    category_filter?: string[];
+    city_filter?: number[];
+  };
   created_at: string;
   updated_at: string;
   city_name?: string;
@@ -260,6 +268,10 @@ export interface QuoteRequest {
   project_files?: string[];
   estimated_surface_area_m2?: number | null;
   work_duration_estimate?: string | null;
+  buyer_contact_consent?: boolean;
+  max_quote_slots?: number;
+  used_quote_slots?: number;
+  credit_cost?: number;
   expires_at: string;
   is_demo: boolean;
   created_at: string;
@@ -289,6 +301,7 @@ export interface Quote {
   notes?: string | null;
   valid_until: string;
   status: QuoteStatus;
+  outcome_feedback?: 'job_won' | 'job_lost' | 'could_not_reach' | 'unknown';
   is_demo: boolean;
   created_at: string;
   updated_at: string;
@@ -784,4 +797,76 @@ export interface PasswordResetToken {
   used_at?: string | null;
   created_at: string;
 }
+
+// Prompt 9B: Teklif Verme Kredisi, Defter ve Sorunlu Talep Tipleri
+export type CreditTransactionType = 
+  | 'purchase' 
+  | 'spend' 
+  | 'refund' 
+  | 'admin_adjustment' 
+  | 'welcome_bonus' 
+  | 'shadow_spend';
+
+export interface CompanyCreditLedger {
+  id: string;
+  company_id: string;
+  amount: number;
+  balance_after: number;
+  transaction_type: CreditTransactionType;
+  reference_id?: string | null;
+  idempotency_key?: string | null;
+  notes?: string | null;
+  created_at: string;
+  company?: Company;
+}
+
+export interface CreditPackage {
+  id: string;
+  name: string;
+  credits: number;
+  price: number;
+  discount_percentage?: number;
+  is_active: boolean;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type DisputeReason = 
+  | 'unreachable_phone' 
+  | 'fake_request' 
+  | 'wrong_category' 
+  | 'buyer_cancelled';
+
+export type DisputeStatus = 'pending' | 'approved' | 'rejected';
+
+export interface QuoteDispute {
+  id: string;
+  request_id: string;
+  company_id: string;
+  reason: DisputeReason;
+  description?: string | null;
+  status: DisputeStatus;
+  admin_notes?: string | null;
+  reviewed_by?: string | null;
+  refunded_ledger_id?: string | null;
+  created_at: string;
+  resolved_at?: string | null;
+  company?: Company;
+  request?: QuoteRequest;
+}
+
+export type QuoteCreditMode = 'OFF' | 'SHADOW' | 'ACTIVE';
+
+export interface QuoteCreditConfig {
+  mode: QuoteCreditMode;
+  default_max_slots: number;
+  default_credit_cost: number;
+  category_costs?: Record<string, number>;
+  welcome_bonus_credits: number;
+  dispute_window_hours: number;
+  auto_refund_on_buyer_cancel: boolean;
+  exempt_single_listing: boolean;
+}
+
 

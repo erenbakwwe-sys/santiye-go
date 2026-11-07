@@ -53,12 +53,33 @@ export default function TermsPage() {
           </ul>
         </div>
 
-        <h2 className="text-lg font-bold text-navy-900 pt-2">4. Sorumluluk Sınırı</h2>
+        <h2 className="text-lg font-bold text-navy-900 pt-2">4. Teklif Verme Kredisi ve Ön Ödemeli Dijital Haklar</h2>
+        <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+          <p>
+            Tedarikçi firmaların bölgesel veya çoklu iş makinesi taleplerine teklif verebilmesi ve talep sahibinin iletişim bilgilerine erişebilmesi için platform üzerinden "Teklif Verme Kredisi" tahsis edilir.
+          </p>
+          <ul className="list-disc pl-5 space-y-1.5">
+            <li>
+              <strong>Ön Ödemeli Dijital Hizmet:</strong> Satın alınan kredi paketleri, firmaya talep havuzundaki iş fırsatlarına erişim sağlayan ön ödemeli bir dijital hizmettir.
+            </li>
+            <li>
+              <strong>Slot (Kontenjan) Sınırlaması:</strong> Alıcıları spam tekliflerden korumak ve firmalar arasında adil rekabet sağlamak amacıyla her talebe en fazla 4 firma teklif verebilir. Kontenjan dolduğunda talep diğer tedarikçilere kapanır.
+            </li>
+            <li>
+              <strong>İade Güvencesi ve İtiraz:</strong> Kredi harcanan bir talepte telefon numarasının yanlış veya kapalı çıkması, talebin sahte olması veya alıcının talebi erkenden iptal etmesi halinde firma, harcama tarihinden itibaren 48 saat içerisinde "Sorunlu Talep" bildirimi yapabilir. Moderasyon incelemesiyle onaylanan itirazlarda kullanılan kredi eksiksiz olarak firma defterine iade edilir.
+            </li>
+            <li>
+              <strong>Alıcı Açık Rızası:</strong> Talep açan alıcı kullanıcılar, taleplerine teklif vermek amacıyla kredi kullanan onaylı tedarikçilerle iletişim bilgilerinin paylaşılmasını talep formundaki onay kutusu ile peşinen kabul eder.
+            </li>
+          </ul>
+        </div>
+
+        <h2 className="text-lg font-bold text-navy-900 pt-2">5. Sorumluluk Sınırı</h2>
         <p>
           Alıcı ve satıcı firma arasında mutabık kalınan saha operasyonları, makine teslim tutanakları ve saha güvenlik önlemleri tarafların kendi aralarındaki hukuki ve cezai sorumluluğundadır. ŞANTİYE GO, tarafların platform kurallarına uygun işlem yapmasını gözetir.
         </p>
 
-        <h2 className="text-lg font-bold text-navy-900 pt-2">5. Uyuşmazlıkların Çözümü</h2>
+        <h2 className="text-lg font-bold text-navy-900 pt-2">6. Uyuşmazlıkların Çözümü</h2>
         <p>
           Taraflar arasındaki uyuşmazlıklarda platform üzerinden kayıt altına alınan onaylı teklifler, onay zaman damgaları ve sistem kayıtları delil niteliği taşır.
         </p>

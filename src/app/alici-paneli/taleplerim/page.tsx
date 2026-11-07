@@ -167,6 +167,12 @@ export default function BuyerQuoteRequestsPage() {
                             : 'Firma Yanıtı Bekleniyor'}
                         </span>
 
+                        {req.request_type !== 'single_listing' && (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            Kontenjan: {req.used_quote_slots || quotes.length}/{req.max_quote_slots || 4} Firma
+                          </span>
+                        )}
+
                         <span className="text-xs text-slate-400">
                           {new Date(req.created_at).toLocaleDateString('tr-TR')}
                         </span>
