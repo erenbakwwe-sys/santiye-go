@@ -19,13 +19,41 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
 
       if (user) {
+        const meta = (user.user_metadata || {}) as Record<string, any>;
+        const metaRole = meta.role || 'buyer';
+
         await supabase
           .from('profiles')
-          .update({
+          .upsert({
+            id: user.id,
+            role: metaRole,
+            full_name: meta.full_name || user.email?.split('@')[0] || 'Kullanıcı',
+            phone: meta.phone || null,
             is_email_verified: true,
             email_verified_at: new Date().toISOString(),
-          })
-          .eq('id', user.id);
+          });
+
+        if (metaRole === 'company') {
+          const { data: comp } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (!comp) {
+            await supabase.from('companies').upsert({
+              user_id: user.id,
+              name: meta.company_name || meta.full_name || 'Firma Hesabı',
+              tax_number: meta.tax_number || null,
+              tax_office: meta.tax_office || null,
+              phone: meta.phone || '',
+              city_id: meta.city_id ? Number(meta.city_id) : null,
+              district_id: meta.district_id ? Number(meta.district_id) : null,
+              is_verified: false,
+              is_demo: false,
+            });
+          }
+        }
       }
 
       return NextResponse.redirect(`${origin}${next}`);
@@ -45,13 +73,41 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
 
       if (user) {
+        const meta = (user.user_metadata || {}) as Record<string, any>;
+        const metaRole = meta.role || 'buyer';
+
         await supabase
           .from('profiles')
-          .update({
+          .upsert({
+            id: user.id,
+            role: metaRole,
+            full_name: meta.full_name || user.email?.split('@')[0] || 'Kullanıcı',
+            phone: meta.phone || null,
             is_email_verified: true,
             email_verified_at: new Date().toISOString(),
-          })
-          .eq('id', user.id);
+          });
+
+        if (metaRole === 'company') {
+          const { data: comp } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (!comp) {
+            await supabase.from('companies').upsert({
+              user_id: user.id,
+              name: meta.company_name || meta.full_name || 'Firma Hesabı',
+              tax_number: meta.tax_number || null,
+              tax_office: meta.tax_office || null,
+              phone: meta.phone || '',
+              city_id: meta.city_id ? Number(meta.city_id) : null,
+              district_id: meta.district_id ? Number(meta.district_id) : null,
+              is_verified: false,
+              is_demo: false,
+            });
+          }
+        }
       }
 
       return NextResponse.redirect(`${origin}${next}`);

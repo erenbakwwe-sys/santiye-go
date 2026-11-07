@@ -139,7 +139,16 @@ export async function registerUser({
         email: cleanEmail,
         password,
         options: {
-          data: { full_name: fullName.trim(), role, phone },
+          data: {
+            full_name: fullName.trim(),
+            role,
+            phone,
+            company_name: role === 'company' ? (companyName?.trim() || fullName.trim()) : undefined,
+            tax_number: role === 'company' ? taxNumber?.trim() : undefined,
+            tax_office: role === 'company' ? taxOffice?.trim() : undefined,
+            city_id: role === 'company' && cityId ? Number(cityId) : null,
+            district_id: role === 'company' && districtId ? Number(districtId) : null,
+          },
           emailRedirectTo: redirectUrl,
         },
       });
@@ -150,29 +159,34 @@ export async function registerUser({
         const userId = authData.user.id;
         const nowIso = new Date().toISOString();
 
-        await supabase.from('profiles').insert({
-          id: userId,
-          role,
-          full_name: fullName.trim(),
-          phone,
-          kvkk_accepted_at: nowIso,
-          kvkk_version: 'v1.0',
-          is_email_verified: false,
-          is_phone_verified: false,
-        });
-
-        if (role === 'company') {
-          await supabase.from('companies').insert({
-            user_id: userId,
-            name: companyName?.trim() || fullName.trim(),
-            tax_number: taxNumber?.trim() || null,
-            tax_office: taxOffice?.trim() || null,
+        // İstemci tarafı kayıt (Veritabanı tetikleyicisi yoksa veya oturum açılmışsa çalışır)
+        try {
+          await supabase.from('profiles').upsert({
+            id: userId,
+            role,
+            full_name: fullName.trim(),
             phone,
-            city_id: cityId ? Number(cityId) : null,
-            district_id: districtId ? Number(districtId) : null,
-            is_verified: false,
-            is_demo: false,
+            kvkk_accepted_at: nowIso,
+            kvkk_version: 'v1.0',
+            is_email_verified: false,
+            is_phone_verified: false,
           });
+
+          if (role === 'company') {
+            await supabase.from('companies').upsert({
+              user_id: userId,
+              name: companyName?.trim() || fullName.trim(),
+              tax_number: taxNumber?.trim() || null,
+              tax_office: taxOffice?.trim() || null,
+              phone,
+              city_id: cityId ? Number(cityId) : null,
+              district_id: districtId ? Number(districtId) : null,
+              is_verified: false,
+              is_demo: false,
+            });
+          }
+        } catch {
+          // Anonim RLS kısıtlaması durumunda veritabanı tetikleyicisi ve giriş anındaki otomatik onarım devreye girer
         }
 
         const otpRes = await sendPhoneOtp(phone);
@@ -261,13 +275,101 @@ export async function loginUser(
       }
 
       if (data?.user) {
-        const { data: profile } = await supabase
+        let { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', data.user.id)
-          .single();
+          .maybeSingle();
 
-        return { success: true, profile: profile as Profile };
+        const meta = (data.user.user_metadata || {}) as Record<string, any>;
+        const metaRole = (meta.role as UserRole) || 'buyer';
+
+        // 1. Profil yoksa: Kullanıcı authenticated olduğundan RLS'e takılmadan otomatik oluştur
+        if (!profile) {
+          const newProfile = {
+            id: data.user.id,
+            role: metaRole,
+            full_name: meta.full_name || cleanEmail.split('@')[0],
+            phone: meta.phone || null,
+            kvkk_accepted_at: new Date().toISOString(),
+            kvkk_version: 'v1.0',
+            is_email_verified: !!data.user.email_confirmed_at,
+            is_phone_verified: !!data.user.phone_confirmed_at,
+          };
+          const { data: createdProf } = await supabase
+            .from('profiles')
+            .upsert(newProfile)
+            .select()
+            .maybeSingle();
+
+          profile = (createdProf || newProfile) as Profile;
+        } else if (profile.role === 'buyer' && metaRole === 'company') {
+          // Eğer profil buyer olarak kalmış ama kayıt company ise role güncelle
+          const { data: updatedProf } = await supabase
+            .from('profiles')
+            .update({ role: 'company' })
+            .eq('id', data.user.id)
+            .select()
+            .maybeSingle();
+          if (updatedProf) profile = updatedProf as Profile;
+        }
+
+        const effectiveRole: UserRole = (profile?.role || metaRole) as UserRole;
+
+        // 2. Eğer rol 'company' ise ve companies tablosunda kayıt yoksa oluştur
+        if (effectiveRole === 'company') {
+          const { data: existingCompany } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('user_id', data.user.id)
+            .maybeSingle();
+
+          if (!existingCompany) {
+            await supabase.from('companies').upsert({
+              user_id: data.user.id,
+              name: meta.company_name || meta.full_name || profile.full_name || 'Firma Hesabı',
+              tax_number: meta.tax_number || null,
+              tax_office: meta.tax_office || null,
+              phone: meta.phone || profile.phone || '',
+              city_id: meta.city_id ? Number(meta.city_id) : null,
+              district_id: meta.district_id ? Number(meta.district_id) : null,
+              is_verified: false,
+              is_demo: false,
+            });
+          }
+        }
+
+        // 3. Cookie & Local Storage senkronizasyonu
+        if (typeof window !== 'undefined') {
+          const sessionUser: LocalAuthUser = {
+            id: profile.id,
+            email: cleanEmail,
+            passwordHash: '***',
+            role: effectiveRole,
+            full_name: profile.full_name,
+            phone: profile.phone || '',
+            is_email_verified: profile.is_email_verified,
+            is_phone_verified: profile.is_phone_verified,
+          };
+          localStorage.setItem(STORAGE_CURRENT_USER_KEY, JSON.stringify(sessionUser));
+          document.cookie = `santiyego_auth=true; path=/; max-age=86400; SameSite=Lax`;
+          document.cookie = `santiyego_role=${effectiveRole}; path=/; max-age=86400; SameSite=Lax`;
+        }
+
+        return {
+          success: true,
+          profile: { ...profile, role: effectiveRole } as Profile,
+          user: {
+            id: profile.id,
+            email: cleanEmail,
+            passwordHash: '***',
+            role: effectiveRole,
+            full_name: profile.full_name,
+            phone: profile.phone || '',
+            is_email_verified: profile.is_email_verified,
+            is_phone_verified: profile.is_phone_verified,
+          },
+        };
       }
     } catch {
       return { success: false, error: 'Giriş yapılamadı. Lütfen tekrar deneyiniz.' };
@@ -329,13 +431,50 @@ export async function getActiveProfile(): Promise<Profile | null> {
       } = await supabase.auth.getUser();
 
       if (user) {
-        const { data } = await supabase
+        let { data } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .maybeSingle();
 
-        if (data) return data as Profile;
+        const meta = (user.user_metadata || {}) as Record<string, any>;
+        const metaRole = (meta.role as UserRole) || 'buyer';
+
+        // Profil yoksa veya buyer kalmış ama kullanıcı company ise düzelt
+        if (!data) {
+          const newProfile = {
+            id: user.id,
+            role: metaRole,
+            full_name: meta.full_name || user.email?.split('@')[0] || 'Kullanıcı',
+            phone: meta.phone || null,
+            kvkk_accepted_at: new Date().toISOString(),
+            kvkk_version: 'v1.0',
+            is_email_verified: !!user.email_confirmed_at,
+            is_phone_verified: !!user.phone_confirmed_at,
+          };
+          const { data: created } = await supabase
+            .from('profiles')
+            .upsert(newProfile)
+            .select()
+            .maybeSingle();
+          data = created || (newProfile as Profile);
+        } else if (data.role === 'buyer' && metaRole === 'company') {
+          const { data: updated } = await supabase
+            .from('profiles')
+            .update({ role: 'company' })
+            .eq('id', user.id)
+            .select()
+            .maybeSingle();
+          if (updated) data = updated;
+        }
+
+        if (data) {
+          if (typeof window !== 'undefined') {
+            document.cookie = `santiyego_auth=true; path=/; max-age=86400; SameSite=Lax`;
+            document.cookie = `santiyego_role=${data.role}; path=/; max-age=86400; SameSite=Lax`;
+          }
+          return data as Profile;
+        }
       }
     } catch {
       // fallback
