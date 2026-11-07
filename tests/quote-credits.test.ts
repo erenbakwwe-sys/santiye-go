@@ -28,6 +28,7 @@ import {
   DEMO_DISPUTES,
 } from '../src/lib/services/credit-service.ts';
 import { sanitizeContent } from '../src/lib/security/contact-masker.ts';
+import { createClient } from '../src/lib/supabase/client.ts';
 
 let passCount = 0;
 let failCount = 0;
@@ -186,6 +187,48 @@ async function runTests() {
     calculatedSum === balanceFromService,
     `Defter toplamı (${calculatedSum}) ile bakiye (${balanceFromService}) tam olarak eşleşiyor.`
   );
+
+  // --- SENARYO 9: Gerçek Supabase Bulut Veritabanı ve RPC Doğrulaması ---
+  console.log('\nTest 9: Canlı Supabase Bulut Veritabanı ve spend_quote_credit RPC Doğrulaması');
+  try {
+    const supabase = createClient();
+    const isCloudConfigured =
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+    if (isCloudConfigured) {
+      // 1. Kredi paketleri tablosu ve 'credits' kolonu kontrolü
+      const { data: pkgs, error: pkgErr } = await supabase
+        .from('credit_packages')
+        .select('id, name, credits, price')
+        .order('sort_order', { ascending: true });
+
+      assert(!pkgErr && Array.isArray(pkgs) && pkgs.length > 0, `Supabase credit_packages tablosu ve paketler mevcut (Paket sayısı: ${pkgs?.length || 0}).`);
+      assert(pkgs && typeof pkgs[0]?.credits === 'number', `credit_packages tablosunda 'credits' kolonu ve veri tipi doğru.`);
+
+      // 2. Sistem ayarları tablosu kontrolü
+      const { data: settings, error: setErr } = await supabase
+        .from('system_settings')
+        .select('*')
+        .eq('key', 'quote_credit_config')
+        .maybeSingle();
+
+      assert(!setErr && !!settings, 'Supabase system_settings quote_credit_config konfigürasyon kaydı mevcut.');
+
+      // 3. PostgreSQL spend_quote_credit RPC fonksiyonu canlı çağrı kontrolü
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('spend_quote_credit', {
+        p_company_id: '2e3d787a-f4bc-431a-ad41-c15c2cf51850',
+        p_request_id: '00000000-0000-0000-0000-000000000000',
+        p_idempotency_key: `live-test-${Date.now()}`
+      });
+
+      assert(!rpcErr && rpcRes && rpcRes.success === false, `PostgreSQL spend_quote_credit RPC fonksiyonu canlı Supabase üzerinde başarıyla çalışıyor ve yanıt üretiyor.`);
+    } else {
+      console.log('  ⚠️ Supabase URL yapılandırılmadığı için bulut RPC doğrulaması atlandı.');
+    }
+  } catch (err: any) {
+    assert(false, `Canlı Supabase RPC çağrısı başarısız: ${err?.message}`);
+  }
 
   console.log('\n================================================================');
   console.log(` Toplam Test: ${passCount + failCount}`);
