@@ -262,11 +262,37 @@ export async function getBuyerQuoteRequests(buyerId: string): Promise<QuoteReque
 }
 
 export async function getCompanyQuoteRequests(companyId: string): Promise<QuoteRequest[]> {
-  // In demo mode return requests matching company location / category
-  return DEMO_QUOTE_REQUESTS.map((req) => ({
-    ...req,
-    quotes: DEMO_QUOTES.filter((q) => q.request_id === req.id && q.company_id === companyId),
-  }));
+  try {
+    const supabase = createClient();
+    const isSupabaseConfigured =
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('quote_requests')
+        .select(`
+          *,
+          quotes:quotes(*),
+          city:cities(name),
+          district:districts(name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        return data.map((d: any) => ({
+          ...d,
+          city_name: d.city?.name,
+          district_name: d.district?.name,
+          quotes: (d.quotes || []).filter((q: any) => q.company_id === companyId),
+        })) as QuoteRequest[];
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  return [];
 }
 
 export async function submitQuote(

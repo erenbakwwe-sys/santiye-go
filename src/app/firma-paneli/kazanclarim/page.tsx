@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   CreditCard,
@@ -14,21 +14,57 @@ import {
   AlertCircle,
   HelpCircle,
 } from 'lucide-react';
-import { DEMO_TRANSACTIONS } from '@/lib/services/payment-service';
+import { createClient } from '@/lib/supabase/client';
 import { formatCentsToTRY } from '@/lib/services/commission-service';
 
 export default function CompanyEarningsPage() {
-  const companyId = 'f0000000-0000-0000-0000-000000000001';
-  const companyTransactions = DEMO_TRANSACTIONS.filter((t) => t.company_id === companyId);
+  const [loading, setLoading] = useState(true);
+  const [companyTransactions, setCompanyTransactions] = useState<any[]>([]);
 
-  const totalVolumeCents = companyTransactions.reduce((acc, t) => acc + t.amount_cents, 0);
-  const totalCommissionCents = companyTransactions.reduce((acc, t) => acc + t.commission_amount_cents, 0);
+  useEffect(() => {
+    async function loadFinances() {
+      try {
+        setLoading(true);
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          const { data: comp } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (comp) {
+            const { data } = await supabase
+              .from('payments')
+              .select('*')
+              .eq('company_id', comp.id)
+              .order('created_at', { ascending: false });
+
+            if (data) {
+              setCompanyTransactions(data);
+            }
+          }
+        }
+      } catch {
+        setCompanyTransactions([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadFinances();
+  }, []);
+
+  const totalVolumeCents = companyTransactions.reduce((acc, t) => acc + (t.amount_cents || 0), 0);
+  const totalCommissionCents = companyTransactions.reduce((acc, t) => acc + (t.commission_amount_cents || 0), 0);
   const transferredCents = companyTransactions
     .filter((t) => t.status === 'transferred')
-    .reduce((acc, t) => acc + t.net_company_amount_cents, 0);
+    .reduce((acc, t) => acc + (t.net_company_amount_cents || 0), 0);
   const pendingCents = companyTransactions
-    .filter((t) => t.status === 'paid')
-    .reduce((acc, t) => acc + t.net_company_amount_cents, 0);
+    .filter((t) => t.status === 'paid' || t.status === 'pending')
+    .reduce((acc, t) => acc + (t.net_company_amount_cents || 0), 0);
 
   return (
     <div className="bg-slate-50 min-h-screen py-8 sm:py-10">
@@ -130,8 +166,17 @@ export default function CompanyEarningsPage() {
             Hakediş Hareketleri ({companyTransactions.length})
           </h2>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          {companyTransactions.length === 0 ? (
+            <div className="p-8 text-center space-y-2">
+              <CreditCard className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="text-sm font-bold text-navy-900">Henüz Tamamlanan Bir Finansal Hareket Yok</p>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Kiralama rezervasyonları tamamlandığında ve hakediş ödemeleri gerçekleştiğinde tüm hesap dökümleriniz burada listelenecektir.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 font-extrabold uppercase tracking-wider border-b border-slate-200 text-[10px]">
                 <tr>
                   <th className="py-3 px-4">İşlem & Tarih</th>
@@ -188,6 +233,7 @@ export default function CompanyEarningsPage() {
               </tbody>
             </table>
           </div>
+          )}
         </div>
       </div>
     </div>

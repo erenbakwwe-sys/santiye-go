@@ -14,7 +14,8 @@ import {
   ArrowLeft,
   Save,
 } from 'lucide-react';
-import { DEMO_LISTINGS } from '@/lib/mock-data';
+import { Listing } from '@/types/database';
+import { createClient } from '@/lib/supabase/client';
 import {
   getListingAvailability,
   setBatchAvailability,
@@ -22,15 +23,11 @@ import {
 } from '@/lib/services/calendar-service';
 
 export default function CompanyCalendarPage() {
-  const companyListings = DEMO_LISTINGS.filter(
-    (l) => l.company_id === 'f0000000-0000-0000-0000-000000000001'
-  );
+  const [companyListings, setCompanyListings] = useState<Listing[]>([]);
+  const [selectedListingId, setSelectedListingId] = useState<string>('');
+  const [loadingListings, setLoadingListings] = useState(true);
 
-  const [selectedListingId, setSelectedListingId] = useState<string>(
-    companyListings[0]?.id || '10000000-0000-0000-0000-000000000001'
-  );
-
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 10, 1)); // November 2026
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [dayStatuses, setDayStatuses] = useState<CalendarDayStatus[]>([]);
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [targetStatus, setTargetStatus] = useState<'available' | 'booked' | 'maintenance'>('booked');
@@ -41,14 +38,57 @@ export default function CompanyCalendarPage() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1; // 1-12
 
+  // Firmanın gerçek makinelerini yükle
+  useEffect(() => {
+    async function loadListings() {
+      try {
+        setLoadingListings(true);
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          const { data: comp } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (comp) {
+            const { data } = await supabase
+              .from('listings')
+              .select('*')
+              .eq('company_id', comp.id)
+              .order('created_at', { ascending: false });
+
+            if (data && data.length > 0) {
+              setCompanyListings(data as Listing[]);
+              setSelectedListingId(data[0].id);
+            } else {
+              setCompanyListings([]);
+            }
+          }
+        }
+      } catch {
+        setCompanyListings([]);
+      } finally {
+        setLoadingListings(false);
+      }
+    }
+
+    loadListings();
+  }, []);
+
   const loadCalendar = async () => {
+    if (!selectedListingId) return;
     const data = await getListingAvailability(selectedListingId, year, month);
     setDayStatuses(data);
   };
 
   useEffect(() => {
-    loadCalendar();
-    setSelectedDates([]);
+    if (selectedListingId) {
+      loadCalendar();
+      setSelectedDates([]);
+    }
   }, [selectedListingId, currentDate]);
 
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -136,6 +176,27 @@ export default function CompanyCalendarPage() {
             </select>
           </div>
         </div>
+
+        {!loadingListings && companyListings.length === 0 && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center space-y-4 shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 mx-auto flex items-center justify-center">
+              <CalendarIcon className="w-7 h-7" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-black text-navy-900">Müsaitlik Takvimi İçin İlan Ekleyin</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Makinelerinizin kirada, müsait veya bakımda olduğu günleri takvim üzerinden yönetebilmek için
+                önce en az bir makine ilanı yayınlamalısınız.
+              </p>
+            </div>
+            <Link
+              href="/firma-paneli/yeni-ilan"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-black transition shadow-lg shadow-orange-500/25"
+            >
+              <span>+ Yeni İlan Ekle</span>
+            </Link>
+          </div>
+        )}
 
         {saveSuccess && (
           <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-2 text-sm shadow-sm">

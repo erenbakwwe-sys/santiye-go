@@ -40,9 +40,29 @@ export default function CompanyQuoteRequestsPage() {
 
   const loadRequests = async () => {
     setLoading(true);
-    const data = await getCompanyQuoteRequests('f0000000-0000-0000-0000-000000000001');
-    setRequests(data);
-    setLoading(false);
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: comp } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const activeCompanyId = comp?.id || user.id;
+        const data = await getCompanyQuoteRequests(activeCompanyId);
+        setRequests(data);
+      } else {
+        setRequests([]);
+      }
+    } catch {
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

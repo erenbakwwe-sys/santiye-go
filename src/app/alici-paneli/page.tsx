@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   User,
@@ -15,16 +15,32 @@ import {
   FileText,
   Plus,
 } from 'lucide-react';
-import { DEMO_LISTINGS } from '@/lib/mock-data';
+import { Listing } from '@/types/database';
 import ListingCard from '@/components/listings/ListingCard';
 
 export default function BuyerDashboardPage() {
-  const [favorites, setFavorites] = useState(DEMO_LISTINGS.slice(0, 2));
+  const [favorites, setFavorites] = useState<Listing[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('santiyego_favorites');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setFavorites(parsed);
+        }
+      }
+    } catch {}
+  }, []);
 
   const handleFavoriteToggle = (id: string, isFav: boolean) => {
-    if (!isFav) {
-      setFavorites((prev) => prev.filter((l) => l.id !== id));
-    }
+    setFavorites((prev) => {
+      const updated = isFav ? prev : prev.filter((l) => l.id !== id);
+      try {
+        localStorage.setItem('santiyego_favorites', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
   return (

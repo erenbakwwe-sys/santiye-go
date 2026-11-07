@@ -30,9 +30,29 @@ export default function CompanyBookingsPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const data = await getCompanyBookings('f0000000-0000-0000-0000-000000000001');
-    setBookings(data);
-    setLoading(false);
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: comp } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const activeCompanyId = comp?.id || user.id;
+        const data = await getCompanyBookings(activeCompanyId);
+        setBookings(data);
+      } else {
+        setBookings([]);
+      }
+    } catch {
+      setBookings([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

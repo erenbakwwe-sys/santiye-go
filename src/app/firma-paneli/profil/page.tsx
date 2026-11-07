@@ -64,20 +64,41 @@ export default function CompanyProfilePage() {
         } = await supabase.auth.getUser();
 
         if (user) {
-          const { data: comp } = await supabase
+          let { data: comp } = await supabase
             .from('companies')
             .select('*')
             .eq('user_id', user.id)
             .maybeSingle();
 
+          const meta = user.user_metadata || {};
+
+          if (!comp) {
+            const { data: newComp } = await supabase
+              .from('companies')
+              .insert({
+                user_id: user.id,
+                name: meta.company_name || meta.full_name || 'Firma Hesabı',
+                phone: meta.phone || '',
+                tax_number: meta.tax_number || null,
+                tax_office: meta.tax_office || null,
+                city_id: meta.city_id ? Number(meta.city_id) : 34,
+                district_id: meta.district_id ? Number(meta.district_id) : null,
+                is_verified: false,
+                is_demo: false,
+              })
+              .select('*')
+              .maybeSingle();
+            comp = newComp;
+          }
+
           if (comp) {
-            setName(comp.name || '');
-            setPhone(comp.phone || '');
+            setName(comp.name || meta.company_name || '');
+            setPhone(comp.phone || meta.phone || '');
             setWhatsapp(comp.whatsapp || '');
             setCityId(comp.city_id ? String(comp.city_id) : '34');
             setAddress(comp.address || '');
-            setTaxNumber(comp.tax_number || '');
-            setTaxOffice(comp.tax_office || '');
+            setTaxNumber(comp.tax_number || meta.tax_number || '');
+            setTaxOffice(comp.tax_office || meta.tax_office || '');
             setTaxPlateUrl(comp.tax_plate_url || comp.tax_document_url || '');
             setSignatureCircularUrl(comp.signature_circular_url || '');
             setVerificationStatus(comp.verification_status || (comp.is_verified ? 'approved' : 'unverified'));

@@ -153,8 +153,35 @@ export async function getBuyerBookings(buyerId: string): Promise<BookingWithDeta
 }
 
 export async function getCompanyBookings(companyId: string): Promise<BookingWithDetails[]> {
-  checkAutoExpiration();
-  return DEMO_BOOKINGS.filter((b) => b.company_id === companyId);
+  try {
+    const supabase = createClient();
+    const isSupabaseConfigured =
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          listing:listings(*),
+          buyer:profiles!bookings_buyer_id_fkey(full_name, phone)
+        `)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        return data.map((b: any) => ({
+          ...b,
+          buyer_name: b.buyer?.full_name || 'Alıcı / Müteahhit',
+        })) as BookingWithDetails[];
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  return [];
 }
 
 export async function approveBooking(bookingId: string): Promise<{ success: boolean }> {
