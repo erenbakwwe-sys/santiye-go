@@ -27,6 +27,10 @@ export default function AdminListingsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('fotografta_iletisim');
+  const [customReason, setCustomReason] = useState('');
 
   const loadData = async () => {
     setLoading(true);
@@ -254,7 +258,10 @@ export default function AdminListingsPage() {
                         {l.status === 'active' ? (
                           <button
                             type="button"
-                            onClick={() => handleAction(l.id, 'remove', 'Moderatör kararı')}
+                            onClick={() => {
+                              setRejectTargetId(l.id);
+                              setRejectModalOpen(true);
+                            }}
                             className="px-2.5 py-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold"
                           >
                             Kaldır
@@ -277,6 +284,81 @@ export default function AdminListingsPage() {
           </table>
         </div>
       </div>
+
+      {/* Moderation Rejection Modal */}
+      {rejectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/75 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-extrabold text-navy-900 text-sm flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-600" />
+                İlanı Yayından Kaldır / Reddet
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRejectModalOpen(false)}
+                className="p-1 rounded text-slate-400 hover:text-navy-900"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-slate-700">
+                Kaldırma / Red Gerekçesi (Prompt 9A):
+              </label>
+              <select
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="fotografta_iletisim">Fotoğrafta telefon / iletişim bilgisi var</option>
+                <option value="iletisim_paylasimi">Başlık veya açıklamada telefon / e-posta / link yazılmış</option>
+                <option value="fiyat_tutarsizligi">Gerçeğe aykırı veya aldatıcı fiyatlandırma</option>
+                <option value="yaniltici_ozellik">Hatalı veya sahte makine teknik özellikleri</option>
+                <option value="diger">Diğer</option>
+              </select>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Firmaya İletilecek Ek Açıklama:
+                </label>
+                <textarea
+                  rows={3}
+                  value={customReason}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                  placeholder="İlan fotoğraflarındaki telefon numaralarını silip tekrar yükleyiniz."
+                  className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <button
+                  type="button"
+                  onClick={() => setRejectModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border text-xs font-bold text-slate-600 hover:bg-slate-50"
+                >
+                  Vazgeç
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (rejectTargetId) {
+                      const finalReason = `${rejectReason}: ${customReason || 'Açıklama belirtilmedi'}`;
+                      handleAction(rejectTargetId, 'remove', finalReason);
+                      setRejectModalOpen(false);
+                      setCustomReason('');
+                    }
+                  }}
+                  className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm"
+                >
+                  İlanı Kaldır
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

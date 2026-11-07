@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import { Conversation, Message } from '@/types/database';
+import { sanitizeContent, MaskDetectedType } from '@/lib/security/contact-masker';
 
 export interface DemoConversation extends Conversation {
   other_user_name: string;
@@ -155,27 +156,95 @@ export async function sendMessage(
   senderId: string,
   body: string,
   attachmentUrl?: string | null
-): Promise<{ success: boolean; message?: Message; error?: string }> {
+): Promise<{
+  success: boolean;
+  message?: Message;
+  error?: string;
+  isMasked?: boolean;
+  detectedTypes?: MaskDetectedType[];
+  infoNotice?: string;
+  logId?: string;
+}> {
   if (!body.trim() && !attachmentUrl) {
     return { success: false, error: 'Mesaj içeriği boş olamaz.' };
+  }
+
+  const supabase = createClient();
+  const isSupabaseConfigured =
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+  let allowContact = false;
+
+  // İki taraf arasında onaylanmış iletişim kartı veya onaylı anlaşma var mı kontrol et
+  if (isSupabaseConfigured) {
+    try {
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('buyer_id, company_id')
+        .eq('id', conversationId)
+        .maybeSingle();
+
+      if (conv) {
+        const { data: reveal } = await supabase
+          .from('contact_reveals')
+          .select('id')
+          .eq('buyer_id', conv.buyer_id)
+          .eq('company_id', conv.company_id)
+          .maybeSingle();
+
+        if (reveal) {
+          allowContact = true;
+        }
+      }
+    } catch {
+      // sessizce devam et
+    }
+  }
+
+  // Merkezi Güvenli İçerik Tarayıcısı
+  const maskRes = sanitizeContent(body.trim(), { allowContact });
+  const finalBody = maskRes.sanitizedText;
+  let complianceLogId = `log-${Date.now()}`;
+
+  // Eğer maskeleme yapıldıysa KVKK uyumlu log tut (Asla ham telefon/mail saklanmaz!)
+  if (maskRes.isMasked && isSupabaseConfigured) {
+    try {
+      const { data: logData } = await supabase
+        .from('compliance_mask_logs')
+        .insert({
+          user_id: senderId.includes('demo') ? null : senderId,
+          entity_type: 'message',
+          entity_id: conversationId,
+          detected_types: maskRes.detectedTypes,
+        })
+        .select('id')
+        .maybeSingle();
+
+      if (logData?.id) {
+        complianceLogId = logData.id;
+      }
+
+      // Kullanıcının profilindeki ihlal sayacını artır
+      if (!senderId.includes('demo')) {
+        await supabase.rpc('increment_profile_mask_count', { p_user_id: senderId });
+      }
+    } catch {
+      // loglama sessiz devam eder
+    }
   }
 
   const newMsg: Message = {
     id: `msg-${Date.now()}`,
     conversation_id: conversationId,
     sender_id: senderId,
-    body: body.trim(),
+    body: finalBody,
     attachment_url: attachmentUrl || null,
     is_read: false,
     created_at: new Date().toISOString(),
   };
 
   try {
-    const supabase = createClient();
-    const isSupabaseConfigured =
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
-
     if (isSupabaseConfigured) {
       const { data, error } = await supabase.from('messages').insert(newMsg).select().single();
       if (!error && data) {
@@ -183,7 +252,14 @@ export async function sendMessage(
           .from('conversations')
           .update({ updated_at: new Date().toISOString() })
           .eq('id', conversationId);
-        return { success: true, message: data as Message };
+        return {
+          success: true,
+          message: data as Message,
+          isMasked: maskRes.isMasked,
+          detectedTypes: maskRes.detectedTypes,
+          infoNotice: maskRes.infoNotice,
+          logId: complianceLogId,
+        };
       }
     }
   } catch {
@@ -201,7 +277,14 @@ export async function sendMessage(
     conv.last_message_at = newMsg.created_at;
   }
 
-  return { success: true, message: newMsg };
+  return {
+    success: true,
+    message: newMsg,
+    isMasked: maskRes.isMasked,
+    detectedTypes: maskRes.detectedTypes,
+    infoNotice: maskRes.infoNotice,
+    logId: complianceLogId,
+  };
 }
 
 export async function markConversationAsRead(

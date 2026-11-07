@@ -93,7 +93,6 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
               <MapPin className="w-3.5 h-3.5 text-orange-500" />
               {listing.city_name || 'Türkiye'}
               {listing.district_name ? `, ${listing.district_name}` : ''}
-              {listing.address_detail ? ` (${listing.address_detail})` : ''}
             </span>
           </div>
 

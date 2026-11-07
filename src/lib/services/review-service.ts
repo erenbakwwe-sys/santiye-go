@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Review } from '@/types/database';
 import { DEMO_BOOKINGS } from './booking-service';
 import { DEMO_QUOTES } from './quote-service';
+import { sanitizeContent } from '@/lib/security/contact-masker';
 
 export interface VerifiedReviewWithUser extends Review {
   buyer_name: string;
@@ -153,6 +154,8 @@ export async function addReview(data: {
     ((data.rating_quality + data.rating_timing + data.rating_communication) / 3).toFixed(1)
   );
 
+  const sanitizedComment = data.comment ? sanitizeContent(data.comment).maskedText : '';
+
   const newReview: VerifiedReviewWithUser = {
     id: `rev-${Date.now()}`,
     company_id: data.company_id,
@@ -163,7 +166,7 @@ export async function addReview(data: {
     rating_quality: data.rating_quality,
     rating_timing: data.rating_timing,
     rating_communication: data.rating_communication,
-    comment: data.comment,
+    comment: sanitizedComment,
     company_reply: null,
     company_reply_at: null,
     is_verified: true,
@@ -187,7 +190,9 @@ export async function addCompanyReply(
     return { success: false, error: 'Bu değerlendirmeye zaten bir yanıt verilmiş.' };
   }
 
-  review.company_reply = replyText;
+  const sanitizedReply = replyText ? sanitizeContent(replyText).maskedText : '';
+
+  review.company_reply = sanitizedReply;
   review.company_reply_at = new Date().toISOString();
   return { success: true };
 }

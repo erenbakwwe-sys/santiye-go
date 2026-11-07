@@ -27,6 +27,7 @@ import { ListingStatus, ListingType, CategoryAttribute } from '@/types/database'
 import { getCategoryAttributes } from '@/lib/services/attribute-service';
 import { uploadListingPhoto, deleteListingPhoto } from '@/lib/services/storage-service';
 import { createClient } from '@/lib/supabase/client';
+import { sanitizeContent } from '@/lib/security/contact-masker';
 
 export default function NewListingPage() {
   const router = useRouter();
@@ -230,8 +231,8 @@ export default function NewListingPage() {
           company_id: companyId,
           category_id: categoryId,
           listing_type: listingType,
-          title: title.trim(),
-          description: description.trim(),
+          title: sanitizeContent(title.trim()).maskedText,
+          description: sanitizeContent(description.trim()).maskedText,
           pricing_type: pricingType,
           price_daily: priceDaily ? Number(priceDaily) : null,
           price_weekly: priceWeekly ? Number(priceWeekly) : null,

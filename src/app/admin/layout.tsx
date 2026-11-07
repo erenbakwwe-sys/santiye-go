@@ -107,6 +107,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { label: 'Bölgesel Analiz', href: '/admin/analiz', icon: BarChart3 },
     { label: 'Kategori Yönetimi', href: '/admin/kategoriler', icon: FolderTree },
     { label: 'Şikayet Masası', href: '/admin/sikayetler', icon: ShieldAlert },
+    { label: 'İletişim Güvenliği & Denetim', href: '/admin/guvenlik', icon: ShieldCheck },
     { label: 'Ödemeler & Raporlar', href: '/admin/odemeler', icon: CreditCard },
     { label: 'Sistem Ayarları', href: '/admin/ayarlar', icon: Settings },
   ];

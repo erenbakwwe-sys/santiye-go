@@ -523,7 +523,7 @@ export interface AdminAuditLog {
   id: string;
   admin_id: string;
   action: string;
-  target_type: 'user' | 'company' | 'listing' | 'category' | 'setting' | 'payment' | 'subscription';
+  target_type: 'user' | 'company' | 'listing' | 'category' | 'setting' | 'payment' | 'subscription' | 'compliance_log' | 'profile';
   target_id?: string | null;
   ip_address?: string | null;
   details?: Record<string, any> | null;

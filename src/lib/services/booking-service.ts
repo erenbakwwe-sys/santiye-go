@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/client';
 import { Booking, Listing } from '@/types/database';
 import { DEMO_LISTINGS } from '@/lib/mock-data';
 import { checkDateRangeAvailable, setBatchAvailability } from './calendar-service';
+import { sanitizeContent } from '@/lib/security/contact-masker';
+import { triggerControlledReveal } from './reveal-service';
 
 export interface BookingWithDetails extends Booking {
   listing?: Listing;
@@ -91,6 +93,8 @@ export async function createBookingRequest(data: {
     };
   }
 
+  const sanitizedNotes = data.notes ? sanitizeContent(data.notes).maskedText : null;
+
   const newBooking: BookingWithDetails = {
     id: `book-${Date.now()}`,
     listing_id: data.listing_id,
@@ -107,7 +111,7 @@ export async function createBookingRequest(data: {
     fuel_included: data.fuel_included,
     transport_included: data.transport_included,
     site_address: data.site_address,
-    notes: data.notes || null,
+    notes: sanitizedNotes,
     expires_at: new Date(Date.now() + 48 * 3600000).toISOString(), // 48 hours auto-expiration
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -185,10 +189,50 @@ export async function getCompanyBookings(companyId: string): Promise<BookingWith
 }
 
 export async function approveBooking(bookingId: string): Promise<{ success: boolean }> {
+  try {
+    const supabase = createClient();
+    const isSupabaseConfigured =
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+    if (isSupabaseConfigured) {
+      const { data: dbBooking } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('id', bookingId)
+        .maybeSingle();
+
+      if (dbBooking) {
+        await supabase
+          .from('bookings')
+          .update({ status: 'approved', updated_at: new Date().toISOString() })
+          .eq('id', bookingId);
+
+        // Prompt 9A: Trigger controlled contact reveal on offer/booking approval
+        await triggerControlledReveal({
+          buyerId: dbBooking.buyer_id,
+          companyId: dbBooking.company_id,
+          bookingId: dbBooking.id,
+          triggerType: 'teklif_kabul',
+        });
+      }
+    }
+  } catch {
+    // fallback
+  }
+
   const booking = DEMO_BOOKINGS.find((b) => b.id === bookingId);
   if (booking) {
     booking.status = 'approved';
     booking.updated_at = new Date().toISOString();
+
+    // Trigger controlled reveal for demo / in-memory store
+    await triggerControlledReveal({
+      buyerId: booking.buyer_id,
+      companyId: booking.company_id,
+      bookingId: booking.id,
+      triggerType: 'teklif_kabul',
+    });
 
     // Automatically fill the availability calendar for the booked dates
     const start = new Date(booking.start_date);

@@ -11,11 +11,15 @@ import {
   CheckCheck,
   MoreVertical,
   ShieldAlert,
+  ShieldCheck,
   Ban,
   ArrowLeft,
   X,
   Image as ImageIcon,
   AlertCircle,
+  Eye,
+  Info,
+  Lock,
 } from 'lucide-react';
 import {
   DemoConversation,
@@ -26,7 +30,16 @@ import {
   reportMessage,
   blockUser,
 } from '@/lib/services/message-service';
+import {
+  checkRevealStatus,
+  reportFalsePositive,
+  canRevealByPhoneNumber,
+  logPhoneReveal,
+  RevealedContactDetails,
+} from '@/lib/services/reveal-service';
+import RevealedContactCard from '@/components/common/RevealedContactCard';
 import { Message } from '@/types/database';
+import { createClient } from '@/lib/supabase/client';
 
 export default function MessagesPage() {
   const [conversations, setConversations] = useState<DemoConversation[]>([]);
@@ -36,16 +49,48 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // Controlled Reveal State
+  const [revealedDetails, setRevealedDetails] = useState<RevealedContactDetails | null>(null);
+  const [checkingReveal, setCheckingReveal] = useState(false);
+  const [softQuota, setSoftQuota] = useState<{ allowed: boolean; remaining: number }>({
+    allowed: true,
+    remaining: 3,
+  });
+
   // Attachment & Report modals
   const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
-  const [reportReason, setReportReason] = useState('');
+  const [reportReason, setReportReason] = useState('iletisim_paylasimi');
+  const [reportDetails, setReportDetails] = useState('');
   const [targetMsgId, setTargetMsgId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [actionNotice, setActionNotice] = useState('');
 
+  // False positive dispute modal
+  const [disputeModalOpen, setDisputeModalOpen] = useState(false);
+  const [disputeTargetLogId, setDisputeTargetLogId] = useState<string>('comp-log-dispute');
+  const [disputeNote, setDisputeNote] = useState('');
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const currentUserId = 'buyer-demo-001';
+  const [currentUserId, setCurrentUserId] = useState('buyer-demo-001');
+
+  // Load real authenticated user if available, fallback to demo
+  useEffect(() => {
+    async function initUser() {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          setCurrentUserId(user.id);
+        }
+      } catch {
+        // fallback to default demo user
+      }
+    }
+    initUser();
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -59,16 +104,33 @@ export default function MessagesPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentUserId]);
 
+  const activeConv = conversations.find((c) => c.id === selectedConvId);
+
+  // Load messages and check contact reveal status whenever active conversation changes
   useEffect(() => {
-    if (selectedConvId) {
+    if (selectedConvId && activeConv) {
       getMessages(selectedConvId).then((msgs) => {
         setMessages(msgs);
         markConversationAsRead(selectedConvId, currentUserId);
       });
+
+      setCheckingReveal(true);
+      checkRevealStatus(activeConv.buyer_id, activeConv.company_id).then((status) => {
+        if (status.revealed && status.details) {
+          setRevealedDetails(status.details);
+        } else {
+          setRevealedDetails(null);
+        }
+        setCheckingReveal(false);
+      });
+
+      canRevealByPhoneNumber(currentUserId).then((res) => {
+        setSoftQuota({ allowed: res.allowed, remaining: res.remainingDaily });
+      });
     }
-  }, [selectedConvId]);
+  }, [selectedConvId, activeConv, currentUserId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -89,6 +151,15 @@ export default function MessagesPage() {
       setMessages((prev) => [...prev, res.message!]);
       setInputText('');
       setAttachmentPreview(null);
+
+      // If message contained unapproved contact details and was masked
+      if (res.isMasked) {
+        setActionNotice(
+          res.infoNotice ||
+            'İletişim bilgisi tespit edildi ve maskelendi. Teklif onaylandıktan sonra bilgiler her iki tarafa otomatik açılacaktır.'
+        );
+        setTimeout(() => setActionNotice(''), 5000);
+      }
     }
   };
 
@@ -119,15 +190,45 @@ export default function MessagesPage() {
 
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!targetMsgId || !reportReason) return;
-    await reportMessage(targetMsgId, currentUserId, reportReason);
+    if (!targetMsgId) return;
+    const fullReason = `${reportReason}: ${reportDetails || 'Açıklama belirtilmedi'}`;
+    await reportMessage(targetMsgId, currentUserId, fullReason);
     setReportModalOpen(false);
-    setReportReason('');
-    setActionNotice('Şikayetiniz inceleme ekibimize iletildi.');
-    setTimeout(() => setActionNotice(''), 3000);
+    setReportDetails('');
+    setActionNotice('Şikayetiniz inceleme ekibimize başarıyla iletildi.');
+    setTimeout(() => setActionNotice(''), 3500);
   };
 
-  const activeConv = conversations.find((c) => c.id === selectedConvId);
+  const handleDisputeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await reportFalsePositive(
+      disputeTargetLogId,
+      disputeNote || 'Bu bir iletişim bilgisi değildir (Fiyat / Tonaj / Model kodu vb.)'
+    );
+    setDisputeModalOpen(false);
+    setDisputeNote('');
+    setActionNotice('İtirazınız admin moderasyon kuyruğuna iletildi. İnceleme sonrası düzeltilecektir.');
+    setTimeout(() => setActionNotice(''), 4500);
+  };
+
+  const handleSoftModeReveal = async () => {
+    if (!activeConv) return;
+    if (!confirm('Firmanın iletişim bilgilerini görüntülemek istiyor musunuz? (Bugün kalan hakkınız düşülecektir)')) return;
+
+    const res = await logPhoneReveal(currentUserId, activeConv.company_id, activeConv.listing_title || '');
+    if (!res.success) {
+      alert(res.error || 'Numara görüntüleme kotanız doldu.');
+      return;
+    }
+
+    const status = await checkRevealStatus(activeConv.buyer_id, activeConv.company_id);
+    if (status.revealed && status.details) {
+      setRevealedDetails(status.details);
+    }
+    setSoftQuota((prev) => ({ ...prev, remaining: prev.remaining - 1 }));
+    setActionNotice(`İletişim bilgileri açıldı. Bugün kalan hakkınız: ${softQuota.remaining - 1}`);
+    setTimeout(() => setActionNotice(''), 4000);
+  };
 
   const filteredConversations = conversations.filter((c) => {
     if (!searchQuery) return true;
@@ -142,7 +243,7 @@ export default function MessagesPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Notice alert */}
         {actionNotice && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-300 text-amber-900 rounded-xl text-xs font-bold flex items-center gap-2">
+          <div className="mb-4 p-3.5 bg-amber-50 border border-amber-300 text-amber-900 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm animate-fade-in">
             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
             <span>{actionNotice}</span>
           </div>
@@ -267,7 +368,20 @@ export default function MessagesPage() {
                   </div>
 
                   {/* Actions Dropdown */}
-                  <div className="relative">
+                  <div className="relative flex items-center gap-2">
+                    {/* Soft Mode "Numarayı Göster" button if available and not yet revealed */}
+                    {!revealedDetails && softQuota.allowed && (
+                      <button
+                        type="button"
+                        onClick={handleSoftModeReveal}
+                        title={`Bugün kalan hak: ${softQuota.remaining}`}
+                        className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 text-[11px] font-bold hover:bg-emerald-100 transition"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Numarayı Göster ({softQuota.remaining})</span>
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => setMenuOpen(!menuOpen)}
@@ -277,7 +391,7 @@ export default function MessagesPage() {
                     </button>
 
                     {menuOpen && (
-                      <div className="absolute right-0 top-10 w-44 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 z-20 text-xs">
+                      <div className="absolute right-0 top-10 w-48 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 z-20 text-xs">
                         <button
                           type="button"
                           onClick={handleBlockUser}
@@ -291,6 +405,25 @@ export default function MessagesPage() {
                   </div>
                 </div>
 
+                {/* Top Safety Banner / Revealed Contact Card */}
+                {revealedDetails ? (
+                  <div className="p-3 bg-slate-100 border-b border-slate-200">
+                    <RevealedContactCard details={revealedDetails} />
+                  </div>
+                ) : (
+                  <div className="bg-amber-50/90 border-b border-amber-200 px-4 py-2 text-xs text-amber-900 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="text-[11px] font-medium leading-tight">
+                        <strong>İletişim Bilgileri Korumalı:</strong> Telefon ve açık adres, teklif veya rezervasyon kabul edildikten sonra otomatik açılır.
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full font-bold shrink-0">
+                      Güvenli Mesajlaşma
+                    </span>
+                  </div>
+                )}
+
                 {/* Messages Body */}
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
                   {messages.length === 0 ? (
@@ -300,6 +433,7 @@ export default function MessagesPage() {
                   ) : (
                     messages.map((m) => {
                       const isMe = m.sender_id === currentUserId;
+                      const isMaskedMessage = (m.body || '').includes('[iletişim bilgisi gizlendi]');
 
                       return (
                         <div
@@ -324,6 +458,30 @@ export default function MessagesPage() {
                             )}
 
                             <p className="leading-relaxed whitespace-pre-wrap">{m.body}</p>
+
+                            {/* Masked Content Notice & False Positive Dispute Button */}
+                            {isMaskedMessage && (
+                              <div className="mt-2 pt-2 border-t border-slate-200/40 text-[10px] flex flex-wrap items-center justify-between gap-2">
+                                <span className={`${isMe ? 'text-amber-300' : 'text-amber-700'} font-semibold flex items-center gap-1`}>
+                                  <Lock className="w-3 h-3 shrink-0" />
+                                  İletişim bilgisi güvenlik gereği maskelendi.
+                                </span>
+                                {isMe && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDisputeTargetLogId(`log-msg-${m.id}`);
+                                      setDisputeModalOpen(true);
+                                    }}
+                                    className={`underline font-bold transition ${
+                                      isMe ? 'text-slate-200 hover:text-white' : 'text-slate-500 hover:text-navy-900'
+                                    }`}
+                                  >
+                                    Bu bir iletişim bilgisi değil
+                                  </button>
+                                )}
+                              </div>
+                            )}
 
                             <div
                               className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${
@@ -408,7 +566,7 @@ export default function MessagesPage() {
                     type="text"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
-                    placeholder="Mesajınızı yazın..."
+                    placeholder="Mesajınızı yazın... (Teklif onayına kadar telefon/IBAN maskelenir)"
                     className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 bg-slate-50"
                   />
 
@@ -435,11 +593,11 @@ export default function MessagesPage() {
         {/* Report Modal */}
         {reportModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/75 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 space-y-4">
-              <div className="flex items-center justify-between border-b pb-2">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+              <div className="flex items-center justify-between border-b pb-3">
                 <h3 className="font-extrabold text-navy-900 text-sm flex items-center gap-2">
                   <ShieldAlert className="w-4 h-4 text-red-600" />
-                  Mesajı Şikayet Et
+                  Mesajı / Kullanıcıyı Şikayet Et
                 </h3>
                 <button
                   type="button"
@@ -450,32 +608,108 @@ export default function MessagesPage() {
                 </button>
               </div>
 
-              <form onSubmit={handleReportSubmit} className="space-y-3">
-                <label className="block text-xs font-semibold text-slate-700">
-                  Şikayet Sebebi:
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  value={reportReason}
-                  onChange={(e) => setReportReason(e.target.value)}
-                  placeholder="Kural dışı teklif, hakaret, spam vb."
-                  className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500"
-                />
+              <form onSubmit={handleReportSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Şikayet Nedeni:
+                  </label>
+                  <select
+                    value={reportReason}
+                    onChange={(e) => setReportReason(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="iletisim_paylasimi">Telefon / E-posta / Harici İletişim Paylaşma Çabası</option>
+                    <option value="fotografta_iletisim">Fotoğrafta Telefon / İletişim Bilgisi Var</option>
+                    <option value="harici_odeme">Platform Dışı Elden Anlaşma / Kaparo Talebi</option>
+                    <option value="kural_disi">Kural Dışı Teklif veya Fiyat Uyuşmazlığı</option>
+                    <option value="uygunsuz_dil">Hakaret / Tehdit / Uygunsuz Dil</option>
+                    <option value="diger">Diğer</option>
+                  </select>
+                </div>
 
-                <div className="flex justify-end gap-2 pt-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Ek Açıklama (İsteğe Bağlı):
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={reportDetails}
+                    onChange={(e) => setReportDetails(e.target.value)}
+                    placeholder="Durumu kısaca açıklayınız..."
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t">
                   <button
                     type="button"
                     onClick={() => setReportModalOpen(false)}
-                    className="px-3 py-1.5 rounded-lg border text-xs font-bold text-slate-600"
+                    className="px-4 py-2 rounded-xl border text-xs font-bold text-slate-600 hover:bg-slate-50"
                   >
                     Vazgeç
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold"
+                    className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm"
                   >
-                    Şikayeti Gönder
+                    Şikayeti İlet
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* False Positive Dispute Modal ("Bu bir iletişim bilgisi değil") */}
+        {disputeModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/75 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+              <div className="flex items-center justify-between border-b pb-3">
+                <h3 className="font-extrabold text-navy-900 text-sm flex items-center gap-2">
+                  <Info className="w-4 h-4 text-orange-500" />
+                  Hatalı Maskeleme Bildirimi
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setDisputeModalOpen(false)}
+                  className="p-1 rounded text-slate-400 hover:text-navy-900"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Yazdığınız mesajda fiyat, metraj, tonaj veya makine parça kodu yanlışlıkla iletişim bilgisi gibi algılandıysa bize bildirebilirsiniz. Moderatörlerimiz güvenlik algoritmasını hızla düzeltecektir.
+              </p>
+
+              <form onSubmit={handleDisputeSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    İtiraz Notunuz:
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={disputeNote}
+                    onChange={(e) => setDisputeNote(e.target.value)}
+                    placeholder="Örnek: '320D bir CAT ekskavatör model kodudur, telefon numarası değildir.'"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setDisputeModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border text-xs font-bold text-slate-600 hover:bg-slate-50"
+                  >
+                    Vazgeç
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-bold shadow-sm"
+                  >
+                    İnceleme Talep Et
                   </button>
                 </div>
               </form>

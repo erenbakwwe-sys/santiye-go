@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/client';
 import { QuoteRequest, Quote, Listing } from '@/types/database';
 import { DEMO_LISTINGS } from '@/lib/mock-data';
 import { calculateDistanceKm } from '@/lib/geo';
+import { sanitizeContent } from '@/lib/security/contact-masker';
+import { triggerControlledReveal } from './reveal-service';
 
 // In-Memory store for offline/demo operation
 export const DEMO_QUOTE_REQUESTS: QuoteRequest[] = [
@@ -162,14 +164,17 @@ export async function createQuoteRequest(
     };
   }
 
+  const sanitizedTitle = data.title ? sanitizeContent(data.title).maskedText : 'Şantiye İhtiyacı Teklif Talebi';
+  const sanitizedDesc = data.description ? sanitizeContent(data.description).maskedText : '';
+
   const newRequest: QuoteRequest = {
     id: `qr-${Date.now()}`,
     buyer_id: buyerId,
     request_type: data.request_type || 'single_listing',
     listing_id: data.listing_id || null,
     category_id: data.category_id || 'b0000000-0000-0000-0000-000000000001',
-    title: data.title || 'Şantiye İhtiyacı Teklif Talebi',
-    description: data.description || '',
+    title: sanitizedTitle,
+    description: sanitizedDesc,
     quantity: data.quantity || 1,
     start_date: data.start_date || new Date().toISOString().split('T')[0],
     end_date: data.end_date || null,
@@ -298,6 +303,8 @@ export async function getCompanyQuoteRequests(companyId: string): Promise<QuoteR
 export async function submitQuote(
   quoteData: Partial<Quote>
 ): Promise<{ success: boolean; quote?: Quote; error?: string }> {
+  const sanitizedNotes = quoteData.notes ? sanitizeContent(quoteData.notes).maskedText : '';
+
   const newQuote: Quote = {
     id: `quote-${Date.now()}`,
     request_id: quoteData.request_id!,
@@ -309,7 +316,7 @@ export async function submitQuote(
     is_operator_included: quoteData.is_operator_included ?? false,
     is_fuel_included: quoteData.is_fuel_included ?? false,
     is_transport_included: quoteData.is_transport_included ?? false,
-    notes: quoteData.notes || '',
+    notes: sanitizedNotes,
     valid_until: new Date(Date.now() + 86400000 * 3).toISOString(),
     status: 'submitted',
     is_demo: true,
@@ -352,15 +359,62 @@ export async function acceptQuote(
   quoteId: string,
   requestId: string
 ): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createClient();
+    const isSupabaseConfigured =
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+    if (isSupabaseConfigured) {
+      await supabase.from('quotes').update({ status: 'accepted', updated_at: new Date().toISOString() }).eq('id', quoteId);
+      await supabase.from('quote_requests').update({ status: 'accepted', updated_at: new Date().toISOString() }).eq('id', requestId);
+
+      const { data: dbQuote } = await supabase
+        .from('quotes')
+        .select(`
+          id,
+          company_id,
+          request:quote_requests(buyer_id)
+        `)
+        .eq('id', quoteId)
+        .maybeSingle();
+
+      if (dbQuote) {
+        const buyerId = (dbQuote.request as any)?.buyer_id || 'buyer-demo-001';
+        // Prompt 9A: Trigger controlled reveal upon quote acceptance
+        await triggerControlledReveal({
+          buyerId,
+          companyId: dbQuote.company_id,
+          quoteId: dbQuote.id,
+          triggerType: 'teklif_kabul',
+        });
+      }
+    }
+  } catch {
+    // fallback
+  }
+
   // Update quote status to accepted, reject others
   const quote = DEMO_QUOTES.find((q) => q.id === quoteId);
   if (quote) {
     quote.status = 'accepted';
+    quote.updated_at = new Date().toISOString();
   }
   const req = DEMO_QUOTE_REQUESTS.find((r) => r.id === requestId);
   if (req) {
     req.status = 'accepted';
+    req.updated_at = new Date().toISOString();
   }
+
+  if (quote && req) {
+    await triggerControlledReveal({
+      buyerId: req.buyer_id,
+      companyId: quote.company_id,
+      quoteId: quote.id,
+      triggerType: 'teklif_kabul',
+    });
+  }
+
   return { success: true };
 }
 
