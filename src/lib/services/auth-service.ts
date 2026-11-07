@@ -153,7 +153,12 @@ export async function registerUser({
         },
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        if (authError.message?.toLowerCase().includes('rate limit')) {
+          throw new Error('Supabase varsayılan e-posta gönderim sınırına ulaşıldı. Lütfen Supabase Dashboard > Authentication > Providers > Email altındaki "Confirm email" ayarını kapatınız (Zaten Resend OTP sistemi aktiftir).');
+        }
+        throw authError;
+      }
 
       if (authData.user) {
         const userId = authData.user.id;
