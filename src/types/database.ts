@@ -552,12 +552,22 @@ export interface PlatformSetting {
   updated_at: string;
 }
 
+export interface CommissionTier {
+  min_amount_cents: number;
+  max_amount_cents?: number | null; // null = sınırsız
+  rate_percent: number;
+}
+
 export interface CommissionRule {
   id: string;
   rule_type: 'global' | 'category' | 'company';
   category_id?: string | null;
   company_id?: string | null;
   rate_percent: number;
+  cap_amount_cents?: number | null; // Azami komisyon tutarı (tavan, kuruş)
+  min_amount_cents?: number | null; // Asgari komisyon tutarı (taban, kuruş)
+  tiers?: CommissionTier[];         // Kademe tablosu
+  exempt_if_quote_credit_used?: boolean; // 9B Kredi kullanıldıysa komisyon yok
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -590,6 +600,12 @@ export interface PaymentTransaction {
   card_type?: string | null;
   card_last_four?: string | null;
   raw_provider_response?: Record<string, any> | null;
+  commission_base_rate?: number;
+  commission_cap_cents?: number | null;
+  is_commission_capped?: boolean;
+  capped_commission_savings_cents?: number;
+  commission_tier_applied?: CommissionTier | null;
+  credit_exemption_applied?: boolean;
   is_demo: boolean;
   created_at: string;
   updated_at: string;
@@ -868,5 +884,117 @@ export interface QuoteCreditConfig {
   auto_refund_on_buyer_cancel: boolean;
   exempt_single_listing: boolean;
 }
+
+// -----------------------------------------------------------------------------
+// PROMPT 9C: SÖZLEŞME VE SÜRÜMLEME TİPLERİ
+// -----------------------------------------------------------------------------
+export type ContractType = 'rental' | 'service';
+export type ContractStatus = 
+  | 'draft' 
+  | 'pending_approval' 
+  | 'mutual_approved' 
+  | 'revision_requested' 
+  | 'superseded' 
+  | 'cancelled';
+
+export interface ContractTemplate {
+  id: string;
+  template_type: ContractType;
+  version: number;
+  title: string;
+  standard_terms: string;
+  is_active: boolean;
+  created_by?: string | null;
+  created_at?: string;
+}
+
+export interface ContractPartyCompany {
+  id: string;
+  name: string;
+  tax_office?: string | null;
+  tax_number?: string | null;
+  legal_type?: string | null;
+  address?: string | null;
+  city?: string | null;
+  district?: string | null;
+  authorized_person?: string | null;
+  phone?: string | null;
+}
+
+export interface ContractPartyBuyer {
+  id: string;
+  full_name: string;
+  legal_type?: 'individual' | 'company';
+  company_name?: string | null;
+  tax_office?: string | null;
+  tax_number?: string | null; // Tüzel kişiyse vergi no; T.C. Kimlik No ASLA İSTENMEZ
+  address?: string | null;
+  phone?: string | null;
+}
+
+export interface ContractSubject {
+  title: string;
+  category_name?: string;
+  start_date: string;
+  end_date?: string | null;
+  worksite_address: string;
+  city_name?: string;
+  district_name?: string;
+  details?: Record<string, any>;
+  need_operator?: boolean;
+  need_fuel?: boolean;
+  need_transport?: boolean;
+}
+
+export interface ContractPricing {
+  unit_price: number;
+  total_price: number;
+  currency: string;
+  vat_included: boolean;
+  payment_method: 'platform' | 'direct';
+}
+
+export interface ContractSnapshot {
+  contract_number: string;
+  contract_type: ContractType;
+  template_version: number;
+  created_at: string;
+  company: ContractPartyCompany;
+  buyer: ContractPartyBuyer;
+  subject: ContractSubject;
+  pricing: ContractPricing;
+  standard_terms: string;
+}
+
+export interface Contract {
+  id: string;
+  contract_number: string;
+  contract_type: ContractType;
+  booking_id?: string | null;
+  quote_id?: string | null;
+  company_id: string;
+  buyer_id: string;
+  template_id?: string | null;
+  template_version: number;
+  data_snapshot: ContractSnapshot;
+  pdf_sha256: string;
+  pdf_storage_path?: string | null;
+  status: ContractStatus;
+  company_approved_at?: string | null;
+  buyer_approved_at?: string | null;
+  company_approved_ip?: string | null;
+  buyer_approved_ip?: string | null;
+  revision_notes?: string | null;
+  signed_copy_url?: string | null;
+  signed_uploaded_by?: string | null;
+  signed_uploaded_at?: string | null;
+  created_at: string;
+  updated_at: string;
+
+  company?: Company;
+  buyer?: Profile;
+  booking?: Booking;
+}
+
 
 

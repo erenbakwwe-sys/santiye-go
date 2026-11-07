@@ -38,6 +38,8 @@ export default function AdminPaymentsPage() {
       'Komisyon Orani (%)',
       'Komisyon Tutari (TL)',
       'Komisyon KDV (TL)',
+      'Tavan Uygulandi mi',
+      'Tavanla Kirpilan Komisyon (TL)',
       'Net Satici Hakedis (TL)',
       'Durum',
       'Aktarim Durumu',
@@ -54,6 +56,8 @@ export default function AdminPaymentsPage() {
       t.commission_rate_percent,
       (t.commission_amount_cents / 100).toFixed(2),
       (t.vat_amount_cents / 100).toFixed(2),
+      t.is_commission_capped ? 'Evet' : 'Hayir',
+      ((t.capped_commission_savings_cents || 0) / 100).toFixed(2),
       (t.net_company_amount_cents / 100).toFixed(2),
       t.status,
       t.is_transferred_to_submerchant ? 'Aktarildi' : 'Havuzda',
@@ -181,6 +185,7 @@ export default function AdminPaymentsPage() {
                 <th className="py-3 px-4">Alıcı / Tedarikçi</th>
                 <th className="py-3 px-4">Toplam Tutar</th>
                 <th className="py-3 px-4">Komisyon (%)</th>
+                <th className="py-3 px-4">Tavan & Kırpılan</th>
                 <th className="py-3 px-4">Net Satıcı Tutarı</th>
                 <th className="py-3 px-4">Durum</th>
                 <th className="py-3 px-4">Aktarım</th>
@@ -212,6 +217,21 @@ export default function AdminPaymentsPage() {
                     <div className="text-[10px] text-slate-400">
                       %{t.commission_rate_percent} (KDV: {formatCents(t.vat_amount_cents)})
                     </div>
+                  </td>
+
+                  <td className="py-3 px-4">
+                    {t.is_commission_capped ? (
+                      <div>
+                        <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
+                          Tavan Uygulandı
+                        </span>
+                        <div className="text-[10px] text-emerald-600 font-semibold mt-0.5">
+                          Kırpılan: {formatCents(t.capped_commission_savings_cents || 0)}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-slate-400 text-[10px]">Tavan Yok</span>
+                    )}
                   </td>
 
                   <td className="py-3 px-4 font-bold text-emerald-700">

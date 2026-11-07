@@ -76,7 +76,12 @@ export default function KvkkPage() {
             Veritabanımızda uygulanan Row Level Security mimarisi gereğince, açılan iletişim kartları ve özel mesajlaşmalar yalnızca ilgili alıcı ve onaylı tedarikçi tarafından görüntülenebilir. Üçüncü şahısların bu verilere erişimi kriptografik ve yetkilendirme düzeyinde engellenmiştir.
           </p>
 
-          <h2 className="text-lg font-bold text-navy-900 pt-2">6. Haklarınız</h2>
+          <h2 className="text-lg font-bold text-navy-900 pt-2">6. Sözleşme Verilerinin İşlenmesi ve 10 Yıllık Saklama Süresi</h2>
+          <p>
+            Onaylanan rezervasyon ve teklifler neticesinde üretilen sözleşmelerdeki taraf bilgileri (unvan, vergi no, şantiye adresi) Türk Borçlar Kanunu ve Türk Ticaret Kanunu zamanaşımı hükümleri uyarınca en az 10 yıl süreyle dondurulmuş arşivde saklanmaktadır. Bireysel müşterilerden T.C. Kimlik Numarası talep edilmez ve işlenmez.
+          </p>
+
+          <h2 className="text-lg font-bold text-navy-900 pt-2">7. Haklarınız</h2>
           <p>
             KVKK 11. maddesi uyarınca dilediğiniz zaman destek@santiyego.com adresi üzerinden verilerinizin durumunu sorgulayabilir, yanlış verilerin düzeltilmesini veya sistemden tamamen silinmesini talep edebilirsiniz.
           </p>

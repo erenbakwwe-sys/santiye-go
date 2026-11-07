@@ -354,6 +354,21 @@ export default function CompanyDashboardPage() {
         </Link>
 
         <Link
+          href="/firma-paneli/sozlesmeler"
+          className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-amber-500 hover:shadow-md transition group space-y-2"
+        >
+          <div className="text-amber-600 font-black text-sm uppercase tracking-wide">
+            Otomatik PDF
+          </div>
+          <h3 className="font-extrabold text-navy-900 text-base group-hover:text-amber-600 transition">
+            Sözleşmelerim (PDF)
+          </h3>
+          <p className="text-xs text-slate-500">
+            Onaylanan kiralama ve nakliye sözleşmelerini inceleyin, onaylayın veya revizyon talep edin.
+          </p>
+        </Link>
+
+        <Link
           href="/firma-paneli/uyelik"
           className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-orange-500 hover:shadow-md transition group space-y-2"
         >

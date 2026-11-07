@@ -65,6 +65,10 @@ export default function CompanyEarningsPage() {
   const pendingCents = companyTransactions
     .filter((t) => t.status === 'paid' || t.status === 'pending')
     .reduce((acc, t) => acc + (t.net_company_amount_cents || 0), 0);
+  const totalCappedSavingsCents = companyTransactions.reduce(
+    (acc, t) => acc + (t.capped_commission_savings_cents || 0),
+    0
+  );
 
   return (
     <div className="bg-slate-50 min-h-screen py-8 sm:py-10">
@@ -211,6 +215,18 @@ export default function CompanyEarningsPage() {
                         -{formatCentsToTRY(t.commission_amount_cents)}
                       </div>
                       <div className="text-[10px] text-slate-400">%{t.commission_rate_percent}</div>
+                      {t.is_commission_capped && (
+                        <div className="mt-1">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800">
+                            Tavan Uygulandı
+                          </span>
+                          {t.capped_commission_savings_cents > 0 && (
+                            <div className="text-[10px] text-emerald-600 font-bold">
+                              +{formatCentsToTRY(t.capped_commission_savings_cents)} Tasarruf
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </td>
 
                     <td className="py-3 px-4 font-black text-emerald-700 text-sm">

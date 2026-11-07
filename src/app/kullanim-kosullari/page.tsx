@@ -74,7 +74,28 @@ export default function TermsPage() {
           </ul>
         </div>
 
-        <h2 className="text-lg font-bold text-navy-900 pt-2">5. Sorumluluk Sınırı</h2>
+        <h2 className="text-lg font-bold text-navy-900 pt-2">5. Otomatik Sözleşmeler, Tavan Komisyon ve Yasal Saklama</h2>
+        <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+          <p>
+            Platform üzerinden rezervasyon veya teklif kabul edildiğinde sistem otomatik olarak kiralama veya hizmet sözleşmesi üretir.
+          </p>
+          <ul className="list-disc pl-5 space-y-1.5">
+            <li>
+              <strong>Dondurulmuş Anlık Görüntü (Snapshot):</strong> Üretilen sözleşmede tarafların unvan, adres, vergi dairesi/no, ilan ve bedel bilgileri anlık dondurulur ve SHA-256 kriptografik özeti saklanır.
+            </li>
+            <li>
+              <strong>Platformun Aracı Konumu:</strong> ŞantiyeGO 6563 sayılı Kanun uyarınca Aracı Hizmet Sağlayıcıdır; sözleşmenin tarafı, garantörü veya kefili değildir. Platform komisyonu sözleşme metninde yer almaz.
+            </li>
+            <li>
+              <strong>Tavan Komisyon:</strong> Yüksek tutarlı işlerde tedarikçi firmayı korumak adına kategori veya firma bazlı azami komisyon tavanı (cap) uygulanabilir.
+            </li>
+            <li>
+              <strong>10 Yıl Yasal Saklama (TBK):</strong> Türk Borçlar Kanunu zamanaşımı hükümleri uyarınca karşılıklı onaylanmış sözleşme kayıtları sistemde en az 10 yıl süreyle arşivlenir.
+            </li>
+          </ul>
+        </div>
+
+        <h2 className="text-lg font-bold text-navy-900 pt-2">6. Sorumluluk Sınırı</h2>
         <p>
           Alıcı ve satıcı firma arasında mutabık kalınan saha operasyonları, makine teslim tutanakları ve saha güvenlik önlemleri tarafların kendi aralarındaki hukuki ve cezai sorumluluğundadır. ŞANTİYE GO, tarafların platform kurallarına uygun işlem yapmasını gözetir.
         </p>

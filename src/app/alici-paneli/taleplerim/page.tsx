@@ -85,6 +85,13 @@ export default function BuyerQuoteRequestsPage() {
 
           <div className="flex items-center gap-3">
             <Link
+              href="/alici-paneli/sozlesmeler"
+              className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition flex items-center gap-1.5"
+            >
+              <FileText className="w-4 h-4 text-blue-600" />
+              SÖZLEŞMELERİM
+            </Link>
+            <Link
               href="/teklif-iste"
               className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-xs shadow-md shadow-orange-500/20 transition flex items-center gap-1.5"
             >
