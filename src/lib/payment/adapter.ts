@@ -56,6 +56,42 @@ export interface RefundResult {
   error?: string;
 }
 
+export interface SubMerchantCreationParams {
+  externalId: string;
+  subMerchantType: 'PRIVATE_COMPANY' | 'LIMITED_OR_JOINT_STOCK_COMPANY';
+  name: string;
+  legalCompanyTitle: string;
+  taxOffice: string;
+  taxNumber: string;
+  email: string;
+  gsmNumber: string;
+  address: string;
+  iban: string;
+  currency?: string;
+}
+
+export interface SubMerchantCreationResult {
+  success: boolean;
+  subMerchantKey?: string;
+  error?: string;
+}
+
+export interface ReconciliationReportResult {
+  success: boolean;
+  date: string;
+  totalTransactions: number;
+  totalAmountCents: number;
+  records: Array<{
+    providerPaymentId: string;
+    paymentTransactionId?: string;
+    amountCents: number;
+    subMerchantPriceCents?: number;
+    status: 'paid' | 'transferred' | 'refunded' | 'disputed';
+    date: string;
+  }>;
+  error?: string;
+}
+
 /**
  * Universal Payment Gateway Adapter Interface
  * Allows seamless switching between iyzico, PayTR, or local Mock provider.
@@ -65,14 +101,20 @@ export interface PaymentGatewayAdapter {
 
   initiateCheckout(params: InitiateCheckoutParams): Promise<CheckoutResult>;
   verifyWebhook(headers: Record<string, string>, body: any): Promise<WebhookVerificationResult>;
+  createSubMerchant(params: SubMerchantCreationParams): Promise<SubMerchantCreationResult>;
   approveTransferToSubMerchant(params: {
     paymentTransactionId: string;
     subMerchantKey: string;
     amountCents: number;
   }): Promise<TransferResult>;
+  disapproveTransfer(params: {
+    paymentTransactionId: string;
+  }): Promise<{ success: boolean; error?: string }>;
   refundTransaction(params: {
     providerPaymentId: string;
+    paymentTransactionId?: string;
     amountCents: number;
     reason?: string;
   }): Promise<RefundResult>;
+  getDailyReconciliationReport(date: string): Promise<ReconciliationReportResult>;
 }

@@ -71,17 +71,32 @@ export let DEMO_COMMISSION_RULES: CommissionRule[] = [
  * 5. Tavan (Cap) ve Asgari (Min) Sınır EN SONDA Uygulanır
  * 6. Kuruş Cinsinden Tamsayı + %20 KDV Ayrımı
  */
-export function computeCommissionMath(params: {
-  amountCents: number;
-  baseRatePercent: number;
-  discountRatePercent?: number;
-  capAmountCents?: number | null;
-  minAmountCents?: number | null;
-  appliedTier?: CommissionTier | null;
-  ruleSource?: 'company' | 'category' | 'global';
-  isCreditExempt?: boolean;
-  isDirectPayment?: boolean;
-}): CommissionCalculationResult {
+export function computeCommissionMath(
+  paramsOrAmount:
+    | number
+    | {
+        amountCents: number;
+        baseRatePercent: number;
+        discountRatePercent?: number;
+        capAmountCents?: number | null;
+        minAmountCents?: number | null;
+        appliedTier?: CommissionTier | null;
+        ruleSource?: 'company' | 'category' | 'global';
+        isCreditExempt?: boolean;
+        isDirectPayment?: boolean;
+      },
+  legacyBaseRate?: number,
+  legacyDiscountRate?: number
+): CommissionCalculationResult {
+  const params =
+    typeof paramsOrAmount === 'number'
+      ? {
+          amountCents: paramsOrAmount,
+          baseRatePercent: legacyBaseRate ?? 0,
+          discountRatePercent: legacyDiscountRate ?? 0,
+        }
+      : paramsOrAmount;
+
   const {
     amountCents,
     baseRatePercent,

@@ -33,6 +33,11 @@ export async function generateContractPdf(snapshot: ContractSnapshot): Promise<G
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
 
+  // Belge oluşturma tarihini snapshot zamanına sabitle (Deterministik SHA-256)
+  const docDate = snapshot.created_at ? new Date(snapshot.created_at) : new Date(0);
+  doc.setCreationDate(docDate);
+  doc.setModificationDate(docDate);
+
   // Türkçe karakter destekli font yükle
   let customFont: any;
   try {

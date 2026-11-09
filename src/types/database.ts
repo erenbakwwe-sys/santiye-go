@@ -1,7 +1,16 @@
 export type UserRole = 'buyer' | 'company' | 'admin' | 'super_admin';
 export type AdminRole = 'super_admin' | 'moderator';
 export type VerificationStatus = 'unverified' | 'pending' | 'approved' | 'rejected';
-export type PaymentStatus = 'pending' | 'paid' | 'transferred' | 'refunded' | 'failed' | 'cancelled';
+export type PaymentStatus =
+  | 'pending'
+  | 'paid'
+  | 'paid_escrow'
+  | 'releasable'
+  | 'transferred'
+  | 'refunded'
+  | 'failed'
+  | 'cancelled'
+  | 'disputed';
 export type ListingType = 'rental' | 'sale' | 'service';
 export type ListingStatus = 'active' | 'inactive' | 'reserved' | 'maintenance' | 'draft';
 
@@ -60,6 +69,12 @@ export interface Company {
   sub_merchant_key?: string | null;
   iban?: string | null;
   accept_online_payments?: boolean;
+  accept_platform_escrow?: boolean;
+  sub_merchant_status?: 'unregistered' | 'pending' | 'approved' | 'rejected';
+  iban_last4?: string | null;
+  sub_merchant_external_id?: string | null;
+  sub_merchant_registered_at?: string | null;
+  legal_company_title?: string | null;
   phone: string;
   whatsapp?: string | null;
   logo_url?: string | null;
@@ -606,6 +621,19 @@ export interface PaymentTransaction {
   capped_commission_savings_cents?: number;
   commission_tier_applied?: CommissionTier | null;
   credit_exemption_applied?: boolean;
+  payment_mode?: 'external' | 'platform';
+  buyer_confirmed_at?: string | null;
+  auto_release_at?: string | null;
+  disputed_at?: string | null;
+  dispute_status?: 'none' | 'opened' | 'under_review' | 'resolved_transferred' | 'resolved_refunded' | 'resolved_split';
+  dispute_reason?: string | null;
+  dispute_resolution_notes?: string | null;
+  dispute_resolved_at?: string | null;
+  dispute_resolved_by?: string | null;
+  provider_submerchant_price_cents?: number | null;
+  provider_transaction_id?: string | null;
+  split_buyer_amount_cents?: number;
+  split_company_amount_cents?: number;
   is_demo: boolean;
   created_at: string;
   updated_at: string;
@@ -613,6 +641,42 @@ export interface PaymentTransaction {
   buyer?: Profile;
   company?: Company;
   booking?: Booking;
+}
+
+export interface PaymentEvent {
+  id: string;
+  payment_id: string;
+  from_status: string;
+  to_status: string;
+  triggered_by: string;
+  actor_id?: string | null;
+  actor_role: 'buyer' | 'company' | 'admin' | 'system';
+  reason?: string | null;
+  metadata?: Record<string, any>;
+  created_at: string;
+}
+
+export interface PaymentDispute {
+  id: string;
+  payment_id: string;
+  buyer_id: string;
+  company_id: string;
+  reason: string;
+  buyer_notes?: string | null;
+  company_notes?: string | null;
+  company_responded_at?: string | null;
+  status: 'opened' | 'under_review' | 'resolved_transferred' | 'resolved_refunded' | 'resolved_split';
+  resolution_type?: 'transfer_to_company' | 'full_refund_to_buyer' | 'split' | null;
+  buyer_refund_cents?: number;
+  company_transfer_cents?: number;
+  admin_notes?: string | null;
+  admin_id?: string | null;
+  requires_2fa?: boolean;
+  two_factor_verified_at?: string | null;
+  resolved_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  payment?: PaymentTransaction;
 }
 
 export interface MembershipPlan {

@@ -36,7 +36,7 @@ CREATE INDEX IF NOT EXISTS idx_contract_templates_type_v ON public.contract_temp
 -- Başlangıç Şablonları (Sürüm 1)
 INSERT INTO public.contract_templates (template_type, version, title, standard_terms)
 VALUES
-    ('rental', 1, 'İş Makineleri ve Ekipman Kiralama Sözleşmesi', '1. TARAFLAR: İşbu sözleşme ŞantiyeGO platformu üzerinden anlaşan Kiralayan (Firma) ile Kiracı (Alıcı) arasında akdedilmiştir.
+    ('rental', 1, 'İş Makineleri ve Ekipman Kiralama Sözleşmesi', $$1. TARAFLAR: İşbu sözleşme ŞantiyeGO platformu üzerinden anlaşan Kiralayan (Firma) ile Kiracı (Alıcı) arasında akdedilmiştir.
 2. SÖZLEŞMENİN KONUSU: İlanda ve sipariş dökümünde dinamik özellikleri belirtilen ekipmanın, belirtilen süre ve şantiye adresinde kiralanmasıdır.
 3. PLATFORMUN KONUMU: ŞantiyeGO (Platform), 6563 sayılı Kanun kapsamında Aracı Hizmet Sağlayıcıdır; sözleşmenin tarafı, garantörü veya kefili değildir.
 4. TESLİM VE İADE: Ekipman eksiksiz ve çalışır vaziyette tutanakla teslim edilir ve iade alınır.
@@ -46,9 +46,9 @@ VALUES
 8. MÜCBİR SEBEPLER: Tarafların kontrolü dışındaki doğal afet, yangın, salgın vb. durumlarda yükümlülükler askıya alınır.
 9. GİZLİLİK VE KVKK: Taraflar paylaşılan bilgileri işbu sözleşme haricinde kullanamaz.
 10. UYUŞMAZLIKLARIN ÇÖZÜMÜ: Uyuşmazlıklarda yetkili icra daireleri ve mahkemeler hukukçular tarafından belirlenecektir.
-NOT: İşbu metin TASLAK niteliğinde olup hukuki incelemeden geçirilmelidir.'),
+NOT: İşbu metin TASLAK niteliğinde olup hukuki incelemeden geçirilmelidir.$$),
 
-    ('service', 1, 'Ağır Nakliye ve İnşaat Hizmeti Sözleşmesi', '1. TARAFLAR: İşbu sözleşme ŞantiyeGO platformu üzerinden anlaşan Hizmet Sağlayıcı (Firma) ile Hizmet Alan (Alıcı) arasında akdedilmiştir.
+    ('service', 1, 'Ağır Nakliye ve İnşaat Hizmeti Sözleşmesi', $$1. TARAFLAR: İşbu sözleşme ŞantiyeGO platformu üzerinden anlaşan Hizmet Sağlayıcı (Firma) ile Hizmet Alan (Alıcı) arasında akdedilmiştir.
 2. SÖZLEŞMENİN KONUSU: İlanda belirtilen nakliye/hizmetin, belirtilen güzergah veya şantiye sahasında ifa edilmesidir.
 3. PLATFORMUN KONUMU: ŞantiyeGO Aracı Hizmet Sağlayıcıdır; hizmetin doğrudan ifacısı veya tarafı değildir.
 4. YÜK VE SAHA SORUMLULUĞU: Hizmet alan, yükün niteliği ve yol/saha koşulları hakkında doğru bilgi vermekle yükümlüdür.
@@ -56,7 +56,7 @@ NOT: İşbu metin TASLAK niteliğinde olup hukuki incelemeden geçirilmelidir.')
 6. İPTAL KOŞULLARI: ŞantiyeGO hizmet iptal politikası geçerlidir.
 7. GİZLİLİK: Ticari bilgiler gizli tutulacaktır.
 8. UYUŞMAZLIKLAR: Yetkili mahkeme alanı taraflarca belirlenecektir.
-NOT: İşbu metin TASLAK niteliğinde olup hukuki incelemeden geçirilmelidir.')
+NOT: İşbu metin TASLAK niteliğinde olup hukuki incelemeden geçirilmelidir.$$)
 ON CONFLICT (template_type, version) DO NOTHING;
 
 -- 4. ÜRETİLEN SÖZLEŞMELER TABLOSU (DONDURULMUŞ SNAPSHOT VE SHA-256)

@@ -39,3 +39,7 @@ next-env.d.ts
 Thumbs.db
 *.swp
 *.swo
+
+# Worktrees / Nested clones
+santiye-go/
+

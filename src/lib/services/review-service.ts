@@ -196,3 +196,50 @@ export async function addCompanyReply(
   review.company_reply_at = new Date().toISOString();
   return { success: true };
 }
+
+/**
+ * -----------------------------------------------------------------------------
+ * GÜVEN SİSTEMİ VE ALICI ONAYI METRİKLERİ (PROMPT 9D & 9E ENTEGRASYONU)
+ * -----------------------------------------------------------------------------
+ * Platform ödemeli ve alıcı onaylı iş "en güçlü kanıt" ağırlığıyla (2.0x) sayılır.
+ * İade edilen veya alıcı lehine uyuşmazlıkla sonuçlanan işler skordan çıkarılır,
+ * şikayet ve itiraz oranına dahil edilir.
+ */
+export function calculateCompanyTrustScore(params: {
+  completedEscrowJobsCount: number; // Platform ödemeli ve alıcı onaylı
+  standardJobsCount: number;        // Doğrudan ödemeli veya onaylı
+  disputedLossCount: number;        // Alıcı lehine sonuçlanan itiraz / iade
+  bayesianRating: number | null;    // 1 - 5 arası
+}): {
+  trustScore: number;
+  badge: 'ELITE' | 'TRUSTED' | 'STANDARD' | 'WARNING';
+  disputeRatePercent: number;
+} {
+  const { completedEscrowJobsCount, standardJobsCount, disputedLossCount, bayesianRating } = params;
+
+  // Ağırlıklı tamamlanmış iş hacmi (Escrow: 2.0x, Standart: 1.0x)
+  const weightedSuccess = (completedEscrowJobsCount * 2.0) + standardJobsCount;
+  const totalAttempted = weightedSuccess + (disputedLossCount * 2.0);
+
+  const disputeRatePercent = totalAttempted > 0
+    ? Number(((disputedLossCount / (completedEscrowJobsCount + standardJobsCount + disputedLossCount)) * 100).toFixed(1))
+    : 0.0;
+
+  // Taban puan (100 üzerinden)
+  const ratingFactor = bayesianRating ? (bayesianRating / 5.0) * 50 : 35; // max 50 puan
+  const volumeFactor = Math.min(40, weightedSuccess * 5); // max 40 puan
+  const disputePenalty = Math.min(50, disputedLossCount * 15); // itiraz cezası
+
+  let trustScore = Math.max(0, Math.min(100, Math.round(ratingFactor + volumeFactor - disputePenalty + 10)));
+
+  let badge: 'ELITE' | 'TRUSTED' | 'STANDARD' | 'WARNING' = 'STANDARD';
+  if (disputeRatePercent > 10.0 || trustScore < 40) {
+    badge = 'WARNING';
+  } else if (trustScore >= 85 && completedEscrowJobsCount >= 3) {
+    badge = 'ELITE';
+  } else if (trustScore >= 70) {
+    badge = 'TRUSTED';
+  }
+
+  return { trustScore, badge, disputeRatePercent };
+}
