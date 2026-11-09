@@ -73,14 +73,6 @@ export interface Company {
   rating_avg?: number;
   review_count?: number;
   weighted_rating?: number;
-  credit_balance?: number;
-  notification_preferences?: {
-    email: boolean;
-    push: boolean;
-    quiet_hours?: { enabled: boolean; start: string; end: string };
-    category_filter?: string[];
-    city_filter?: number[];
-  };
   created_at: string;
   updated_at: string;
   city_name?: string;
@@ -268,10 +260,6 @@ export interface QuoteRequest {
   project_files?: string[];
   estimated_surface_area_m2?: number | null;
   work_duration_estimate?: string | null;
-  buyer_contact_consent?: boolean;
-  max_quote_slots?: number;
-  used_quote_slots?: number;
-  credit_cost?: number;
   expires_at: string;
   is_demo: boolean;
   created_at: string;
@@ -301,7 +289,6 @@ export interface Quote {
   notes?: string | null;
   valid_until: string;
   status: QuoteStatus;
-  outcome_feedback?: 'job_won' | 'job_lost' | 'could_not_reach' | 'unknown';
   is_demo: boolean;
   created_at: string;
   updated_at: string;
@@ -552,22 +539,12 @@ export interface PlatformSetting {
   updated_at: string;
 }
 
-export interface CommissionTier {
-  min_amount_cents: number;
-  max_amount_cents?: number | null; // null = sınırsız
-  rate_percent: number;
-}
-
 export interface CommissionRule {
   id: string;
   rule_type: 'global' | 'category' | 'company';
   category_id?: string | null;
   company_id?: string | null;
   rate_percent: number;
-  cap_amount_cents?: number | null; // Azami komisyon tutarı (tavan, kuruş)
-  min_amount_cents?: number | null; // Asgari komisyon tutarı (taban, kuruş)
-  tiers?: CommissionTier[];         // Kademe tablosu
-  exempt_if_quote_credit_used?: boolean; // 9B Kredi kullanıldıysa komisyon yok
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -592,6 +569,15 @@ export interface PaymentTransaction {
   net_company_amount_cents: number;
   currency: string;
   status: PaymentStatus;
+  escrow_status?: 'pending' | 'paid_held' | 'releasable' | 'transferred' | 'disputed' | 'refunded' | 'cancelled';
+  held_at?: string | null;
+  delivered_at?: string | null;
+  auto_release_at?: string | null;
+  released_at?: string | null;
+  disputed_at?: string | null;
+  dispute_reason?: string | null;
+  sub_merchant_key?: string | null;
+  iyzico_item_id?: string | null;
   is_transferred_to_submerchant: boolean;
   transferred_at?: string | null;
   refund_amount_cents: number;
@@ -600,12 +586,6 @@ export interface PaymentTransaction {
   card_type?: string | null;
   card_last_four?: string | null;
   raw_provider_response?: Record<string, any> | null;
-  commission_base_rate?: number;
-  commission_cap_cents?: number | null;
-  is_commission_capped?: boolean;
-  capped_commission_savings_cents?: number;
-  commission_tier_applied?: CommissionTier | null;
-  credit_exemption_applied?: boolean;
   is_demo: boolean;
   created_at: string;
   updated_at: string;
@@ -814,187 +794,118 @@ export interface PasswordResetToken {
   created_at: string;
 }
 
-// Prompt 9B: Teklif Verme Kredisi, Defter ve Sorunlu Talep Tipleri
-export type CreditTransactionType = 
-  | 'purchase' 
-  | 'spend' 
-  | 'refund' 
-  | 'admin_adjustment' 
-  | 'welcome_bonus' 
+// ==============================================================================
+// PROMPT 9B: TEKLİF VERME KREDİSİ & ATOMİK SLOT TİPLERİ
+// ==============================================================================
+
+export type CreditSystemMode = 'disabled' | 'shadow' | 'active';
+export type CreditLedgerEntryType =
+  | 'topup'
+  | 'spend'
+  | 'refund'
+  | 'expire'
+  | 'admin_adjustment'
+  | 'welcome_grant'
   | 'shadow_spend';
 
-export interface CompanyCreditLedger {
+export type UnlockOutcomeStatus = 'work_won' | 'work_lost' | 'unreachable' | 'undecided';
+
+export interface CreditSystemSettings {
+  id: number;
+  system_mode: CreditSystemMode;
+  default_credits_per_quote: number;
+  max_bidding_slots: number;
+  welcome_credits: number;
+  credit_validity_days?: number | null;
+  refund_window_hours: number;
+  auto_refund_on_buyer_cancel: boolean;
+  refund_reopens_slot: boolean;
+  category_overrides?: Record<string, { credits?: number; waive_commission?: boolean }>;
+  updated_at?: string;
+}
+
+export interface CompanyCreditBalance {
+  company_id: string;
+  current_balance: number;
+  lifetime_purchased: number;
+  lifetime_spent: number;
+  has_received_welcome_grant: boolean;
+  updated_at: string;
+}
+
+export interface CompanyCreditLedgerEntry {
   id: string;
   company_id: string;
   amount: number;
+  entry_type: CreditLedgerEntryType;
   balance_after: number;
-  transaction_type: CreditTransactionType;
   reference_id?: string | null;
   idempotency_key?: string | null;
-  notes?: string | null;
+  description: string;
+  metadata?: Record<string, any>;
   created_at: string;
-  company?: Company;
 }
 
 export interface CreditPackage {
   id: string;
   name: string;
-  credits: number;
-  price: number;
-  discount_percentage?: number;
+  credit_amount: number;
+  price_cents: number;
+  vat_percent: number;
+  badge_text?: string | null;
   is_active: boolean;
-  sort_order: number;
+  order_index: number;
   created_at?: string;
   updated_at?: string;
 }
 
-export type DisputeReason = 
-  | 'unreachable_phone' 
-  | 'fake_request' 
-  | 'wrong_category' 
-  | 'buyer_cancelled';
-
-export type DisputeStatus = 'pending' | 'approved' | 'rejected';
-
-export interface QuoteDispute {
+export interface QuoteRequestUnlock {
   id: string;
   request_id: string;
   company_id: string;
-  reason: DisputeReason;
-  description?: string | null;
-  status: DisputeStatus;
+  credits_spent: number;
+  is_shadow: boolean;
+  slot_number: number;
+  status: 'unlocked' | 'bid_submitted' | 'refunded';
+  outcome_status: UnlockOutcomeStatus;
+  outcome_notes?: string | null;
+  outcome_reported_at?: string | null;
+  created_at: string;
+
+  // Joined relations
+  request?: QuoteRequest;
+  company?: Company;
+}
+
+export interface CreditRefundRequest {
+  id: string;
+  unlock_id: string;
+  company_id: string;
+  request_id: string;
+  reason: 'unreachable_phone' | 'fake_request' | 'out_of_category' | 'buyer_cancelled';
+  details: string;
+  status: 'pending' | 'approved' | 'rejected';
   admin_notes?: string | null;
-  reviewed_by?: string | null;
-  refunded_ledger_id?: string | null;
+  resolved_by?: string | null;
   created_at: string;
   resolved_at?: string | null;
+
+  // Joined relations
   company?: Company;
   request?: QuoteRequest;
 }
 
-export type QuoteCreditMode = 'OFF' | 'SHADOW' | 'ACTIVE';
-
-export interface QuoteCreditConfig {
-  mode: QuoteCreditMode;
-  default_max_slots: number;
-  default_credit_cost: number;
-  category_costs?: Record<string, number>;
-  welcome_bonus_credits: number;
-  dispute_window_hours: number;
-  auto_refund_on_buyer_cancel: boolean;
-  exempt_single_listing: boolean;
-}
-
-// -----------------------------------------------------------------------------
-// PROMPT 9C: SÖZLEŞME VE SÜRÜMLEME TİPLERİ
-// -----------------------------------------------------------------------------
-export type ContractType = 'rental' | 'service';
-export type ContractStatus = 
-  | 'draft' 
-  | 'pending_approval' 
-  | 'mutual_approved' 
-  | 'revision_requested' 
-  | 'superseded' 
-  | 'cancelled';
-
-export interface ContractTemplate {
-  id: string;
-  template_type: ContractType;
-  version: number;
-  title: string;
-  standard_terms: string;
-  is_active: boolean;
-  created_by?: string | null;
-  created_at?: string;
-}
-
-export interface ContractPartyCompany {
-  id: string;
-  name: string;
-  tax_office?: string | null;
-  tax_number?: string | null;
-  legal_type?: string | null;
-  address?: string | null;
-  city?: string | null;
-  district?: string | null;
-  authorized_person?: string | null;
-  phone?: string | null;
-}
-
-export interface ContractPartyBuyer {
-  id: string;
-  full_name: string;
-  legal_type?: 'individual' | 'company';
-  company_name?: string | null;
-  tax_office?: string | null;
-  tax_number?: string | null; // Tüzel kişiyse vergi no; T.C. Kimlik No ASLA İSTENMEZ
-  address?: string | null;
-  phone?: string | null;
-}
-
-export interface ContractSubject {
-  title: string;
-  category_name?: string;
-  start_date: string;
-  end_date?: string | null;
-  worksite_address: string;
-  city_name?: string;
-  district_name?: string;
-  details?: Record<string, any>;
-  need_operator?: boolean;
-  need_fuel?: boolean;
-  need_transport?: boolean;
-}
-
-export interface ContractPricing {
-  unit_price: number;
-  total_price: number;
-  currency: string;
-  vat_included: boolean;
-  payment_method: 'platform' | 'direct';
-}
-
-export interface ContractSnapshot {
-  contract_number: string;
-  contract_type: ContractType;
-  template_version: number;
-  created_at: string;
-  company: ContractPartyCompany;
-  buyer: ContractPartyBuyer;
-  subject: ContractSubject;
-  pricing: ContractPricing;
-  standard_terms: string;
-}
-
-export interface Contract {
-  id: string;
-  contract_number: string;
-  contract_type: ContractType;
-  booking_id?: string | null;
-  quote_id?: string | null;
+export interface CompanyNotificationPreferences {
   company_id: string;
-  buyer_id: string;
-  template_id?: string | null;
-  template_version: number;
-  data_snapshot: ContractSnapshot;
-  pdf_sha256: string;
-  pdf_storage_path?: string | null;
-  status: ContractStatus;
-  company_approved_at?: string | null;
-  buyer_approved_at?: string | null;
-  company_approved_ip?: string | null;
-  buyer_approved_ip?: string | null;
-  revision_notes?: string | null;
-  signed_copy_url?: string | null;
-  signed_uploaded_by?: string | null;
-  signed_uploaded_at?: string | null;
-  created_at: string;
-  updated_at: string;
-
-  company?: Company;
-  buyer?: Profile;
-  booking?: Booking;
+  in_app_enabled: boolean;
+  email_enabled: boolean;
+  push_enabled: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_start_time?: string;
+  quiet_end_time?: string;
+  category_filter_ids?: string[] | null;
+  city_filter_ids?: number[] | null;
+  updated_at?: string;
 }
-
 
 

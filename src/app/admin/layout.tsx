@@ -21,7 +21,6 @@ import {
   Sparkles,
   BarChart3,
   AlertTriangle,
-  Coins,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { getActiveProfile } from '@/lib/services/auth-service';
@@ -109,8 +108,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { label: 'Kategori Yönetimi', href: '/admin/kategoriler', icon: FolderTree },
     { label: 'Şikayet Masası', href: '/admin/sikayetler', icon: ShieldAlert },
     { label: 'İletişim Güvenliği & Denetim', href: '/admin/guvenlik', icon: ShieldCheck },
-    { label: 'Teklif Kredisi & Gelir', href: '/admin/krediler', icon: Coins },
-    { label: 'Sözleşmeler (PDF)', href: '/admin/sozlesmeler', icon: FileSpreadsheet },
     { label: 'Ödemeler & Raporlar', href: '/admin/odemeler', icon: CreditCard },
     { label: 'Sistem Ayarları', href: '/admin/ayarlar', icon: Settings },
   ];

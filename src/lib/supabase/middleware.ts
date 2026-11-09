@@ -46,13 +46,12 @@ export async function updateSession(request: NextRequest) {
   const url = request.nextUrl.clone();
   const path = url.pathname;
 
-  // Security Headers Injection
+  // Security Headers Injection (permit iframe embedding in AI Studio preview)
   supabaseResponse.headers.set(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://*.tile.openstreetmap.org; frame-ancestors 'none';"
+    "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://*.tile.openstreetmap.org; frame-ancestors *;"
   );
   supabaseResponse.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
-  supabaseResponse.headers.set('X-Frame-Options', 'DENY');
   supabaseResponse.headers.set('X-Content-Type-Options', 'nosniff');
   supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');

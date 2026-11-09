@@ -17,42 +17,17 @@ import {
   MessageSquare,
   ArrowRight,
   Filter,
-  Coins,
-  ShieldCheck,
-  Flag,
-  UserCheck,
-  HelpCircle,
 } from 'lucide-react';
-import { QuoteRequest, Quote, QuoteCreditConfig, DisputeReason } from '@/types/database';
+import { QuoteRequest, Quote } from '@/types/database';
 import { getCompanyQuoteRequests, submitQuote } from '@/lib/services/quote-service';
-import {
-  getCompanyCreditBalance,
-  getCreditConfig,
-  spendQuoteCredit,
-  createQuoteDispute,
-  submitQuoteOutcome,
-} from '@/lib/services/credit-service';
-import { checkRevealStatus, ContactCardDetails } from '@/lib/services/reveal-service';
-import RevealedContactCard from '@/components/common/RevealedContactCard';
 
 export default function CompanyQuoteRequestsPage() {
   const [requests, setRequests] = useState<QuoteRequest[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [loading, setLoading] = useState(true);
-  const [companyId, setCompanyId] = useState('f0000000-0000-0000-0000-000000000001');
-
-  // Credit & Config State
-  const [creditBalance, setCreditBalance] = useState<number>(0);
-  const [creditConfig, setCreditConfig] = useState<QuoteCreditConfig | null>(null);
-
-  // Credit Confirmation Modal State
-  const [confirmingReq, setConfirmingReq] = useState<QuoteRequest | null>(null);
-  const [spendingCredit, setSpendingCredit] = useState(false);
-  const [spendError, setSpendError] = useState('');
 
   // Quote Submission Modal State
   const [activeRequest, setActiveRequest] = useState<QuoteRequest | null>(null);
-  const [revealedDetails, setRevealedDetails] = useState<ContactCardDetails | null>(null);
   const [priceTotal, setPriceTotal] = useState<number>(0);
   const [priceUnit, setPriceUnit] = useState<number>(0);
   const [isOperatorIncluded, setIsOperatorIncluded] = useState(true);
@@ -63,27 +38,13 @@ export default function CompanyQuoteRequestsPage() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  // Dispute (Sorunlu Talep) Modal State
-  const [disputeTargetReq, setDisputeTargetReq] = useState<QuoteRequest | null>(null);
-  const [disputeReason, setDisputeReason] = useState<DisputeReason>('unreachable_phone');
-  const [disputeDesc, setDisputeDesc] = useState('');
-  const [disputeSubmitting, setDisputeSubmitting] = useState(false);
-  const [disputeSuccess, setDisputeSuccess] = useState(false);
-  const [disputeError, setDisputeError] = useState('');
-
-  // Action Notice Toast
-  const [actionNotice, setActionNotice] = useState('');
-
   const loadRequests = async () => {
     setLoading(true);
     try {
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
 
-      let activeCompId = companyId;
       if (user) {
         const { data: comp } = await supabase
           .from('companies')
@@ -91,19 +52,12 @@ export default function CompanyQuoteRequestsPage() {
           .eq('user_id', user.id)
           .maybeSingle();
 
-        activeCompId = comp?.id || user.id;
-        setCompanyId(activeCompId);
+        const activeCompanyId = comp?.id || user.id;
+        const data = await getCompanyQuoteRequests(activeCompanyId);
+        setRequests(data);
+      } else {
+        setRequests([]);
       }
-
-      const [reqData, bal, cfg] = await Promise.all([
-        getCompanyQuoteRequests(activeCompId),
-        getCompanyCreditBalance(activeCompId),
-        getCreditConfig(),
-      ]);
-
-      setRequests(reqData);
-      setCreditBalance(bal);
-      setCreditConfig(cfg);
     } catch {
       setRequests([]);
     } finally {
@@ -115,71 +69,7 @@ export default function CompanyQuoteRequestsPage() {
     loadRequests();
   }, []);
 
-  // When clicking "TEKLİF VER":
-  const handleInitiateQuote = async (req: QuoteRequest) => {
-    // Check if direct single_listing request (exempt from credits)
-    const isExempt = req.request_type === 'single_listing' && creditConfig?.exempt_single_listing;
-
-    // Check if contact is already revealed
-    const revealCheck = await checkRevealStatus(req.buyer_id, companyId);
-    if (revealCheck.revealed && revealCheck.details) {
-      setRevealedDetails(revealCheck.details);
-      openQuoteForm(req);
-      return;
-    }
-
-    if (isExempt || creditConfig?.mode === 'OFF') {
-      // Free direct open
-      openQuoteForm(req);
-      return;
-    }
-
-    // Otherwise show credit confirmation dialog
-    setConfirmingReq(req);
-    setSpendError('');
-  };
-
-  // Confirming spending credit
-  const handleConfirmSpendCredit = async () => {
-    if (!confirmingReq) return;
-    setSpendingCredit(true);
-    setSpendError('');
-
-    const res = await spendQuoteCredit(
-      companyId,
-      confirmingReq.id,
-      confirmingReq.buyer_id
-    );
-
-    setSpendingCredit(false);
-
-    if (res.success) {
-      setCreditBalance(res.remainingBalance);
-      setConfirmingReq(null);
-
-      // Check revealed details
-      const revealCheck = await checkRevealStatus(confirmingReq.buyer_id, companyId);
-      if (revealCheck.revealed && revealCheck.details) {
-        setRevealedDetails(revealCheck.details);
-      }
-
-      setActionNotice(
-        res.mode === 'SHADOW'
-          ? 'Gölge Mod: Simüle edilen teklif kontenjanı ayrıldı ve iletişim kartı açıldı!'
-          : 'Teklif kredisi başarıyla kullanıldı! İletişim bilgileri açıldı.'
-      );
-      setTimeout(() => setActionNotice(''), 4500);
-
-      // Open the quote form
-      openQuoteForm(confirmingReq);
-      // Reload request slots
-      loadRequests();
-    } else {
-      setSpendError(res.error || 'Kredi harcama işlemi gerçekleştirilemedi.');
-    }
-  };
-
-  const openQuoteForm = (req: QuoteRequest) => {
+  const openQuoteModal = (req: QuoteRequest) => {
     setActiveRequest(req);
     setIsOperatorIncluded(req.need_operator);
     setIsFuelIncluded(req.need_fuel);
@@ -204,13 +94,10 @@ export default function CompanyQuoteRequestsPage() {
 
     const res = await submitQuote({
       request_id: activeRequest.id,
-      company_id: companyId,
+      company_id: 'f0000000-0000-0000-0000-000000000001',
       listing_id: activeRequest.listing_id || null,
       price_total: Number(priceTotal),
-      price_unit:
-        priceUnit > 0
-          ? Number(priceUnit)
-          : Math.round(Number(priceTotal) / (activeRequest.quantity || 1)),
+      price_unit: priceUnit > 0 ? Number(priceUnit) : Math.round(Number(priceTotal) / (activeRequest.quantity || 1)),
       currency: 'TRY',
       is_operator_included: isOperatorIncluded,
       is_fuel_included: isFuelIncluded,
@@ -224,53 +111,10 @@ export default function CompanyQuoteRequestsPage() {
       setSubmitSuccess(true);
       setTimeout(() => {
         setActiveRequest(null);
-        setRevealedDetails(null);
         loadRequests();
       }, 1500);
     } else {
       setSubmitError(res.error || 'Teklif iletilemedi.');
-    }
-  };
-
-  const handleOutcomeChange = async (
-    quoteId: string,
-    outcome: 'job_won' | 'job_lost' | 'could_not_reach' | 'unknown'
-  ) => {
-    await submitQuoteOutcome(quoteId, outcome);
-    setActionNotice('Teklif sonucu kaydedildi. Katkınız için teşekkürler!');
-    setTimeout(() => setActionNotice(''), 3000);
-    loadRequests();
-  };
-
-  const handleDisputeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!disputeTargetReq) return;
-    if (!disputeDesc.trim()) {
-      setDisputeError('Lütfen sorunu açıklayınız.');
-      return;
-    }
-
-    setDisputeSubmitting(true);
-    setDisputeError('');
-
-    const res = await createQuoteDispute(
-      companyId,
-      disputeTargetReq.id,
-      disputeReason,
-      disputeDesc.trim()
-    );
-
-    setDisputeSubmitting(false);
-
-    if (res.success) {
-      setDisputeSuccess(true);
-      setTimeout(() => {
-        setDisputeSuccess(false);
-        setDisputeTargetReq(null);
-        setDisputeDesc('');
-      }, 1600);
-    } else {
-      setDisputeError(res.error || 'İtiraz iletilemedi.');
     }
   };
 
@@ -284,19 +128,6 @@ export default function CompanyQuoteRequestsPage() {
   return (
     <div className="bg-slate-50 min-h-screen py-8 sm:py-10">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6">
-        {/* Notice alert */}
-        {actionNotice && (
-          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between shadow-sm animate-fade-in">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>{actionNotice}</span>
-            </div>
-            <button onClick={() => setActionNotice('')} className="text-emerald-600 hover:underline">
-              Kapat
-            </button>
-          </div>
-        )}
-
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div>
@@ -311,29 +142,23 @@ export default function CompanyQuoteRequestsPage() {
               Gelen Teklif Talepleri & İş Fırsatları
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
-              Bölgenizdeki şantiyelerden açılan talepler. En fazla 4 firma kontenjanı ile sınırlıdır.
+              Bölgenizdeki şantiyelerden ilanlarınıza veya makine parkınıza gelen teklif talepleri.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Credit Balance Badge & Top-up */}
-            <div className="p-2.5 px-4 rounded-xl bg-navy-900 text-white flex items-center gap-3 shadow-sm">
-              <div>
-                <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">
-                  Kredi Bakiyeniz
-                </span>
-                <span className="text-base font-black text-orange-400 flex items-center gap-1">
-                  <Coins className="w-4 h-4 text-orange-400" />
-                  {creditBalance} <span className="text-xs text-slate-300 font-normal">Kredi</span>
-                </span>
-              </div>
-              <Link
-                href="/firma-paneli/krediler"
-                className="px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-black text-xs transition shadow-sm"
-              >
-                Yükle
-              </Link>
-            </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/firma-paneli"
+              className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition"
+            >
+              Panoya Dön
+            </Link>
+            <Link
+              href="/firma-paneli/takvim"
+              className="px-4 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-bold transition"
+            >
+              Müsaitlik Takvimi
+            </Link>
           </div>
         </div>
 
@@ -389,9 +214,6 @@ export default function CompanyQuoteRequestsPage() {
             {filteredRequests.map((req) => {
               const myQuote = req.quotes?.[0];
               const isResponded = Boolean(myQuote);
-              const usedSlots = req.used_quote_slots || (req.quotes_count ?? 0);
-              const maxSlots = req.max_quote_slots || 4;
-              const isSlotsFull = usedSlots >= maxSlots;
 
               return (
                 <div
@@ -400,7 +222,7 @@ export default function CompanyQuoteRequestsPage() {
                 >
                   {/* Top Bar of Request */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2">
                       <span
                         className={`px-2.5 py-0.5 rounded text-[11px] font-black uppercase ${
                           req.request_type === 'single_listing'
@@ -409,23 +231,9 @@ export default function CompanyQuoteRequestsPage() {
                         }`}
                       >
                         {req.request_type === 'single_listing'
-                          ? 'İlana Özel Talep (Ücretsiz)'
+                          ? 'İlana Özel Talep'
                           : 'Bölgesel Çoklu Talep'}
                       </span>
-
-                      {/* Slot Badge */}
-                      {req.request_type !== 'single_listing' && (
-                        <span
-                          className={`px-2.5 py-0.5 rounded text-[11px] font-black ${
-                            isSlotsFull
-                              ? 'bg-red-100 text-red-800 border border-red-200'
-                              : 'bg-amber-100 text-amber-900 border border-amber-200'
-                          }`}
-                        >
-                          Kontenjan: {usedSlots}/{maxSlots} Firma Teklif Verdi
-                        </span>
-                      )}
-
                       <span className="text-xs text-slate-400 font-semibold flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
                         {new Date(req.created_at).toLocaleDateString('tr-TR', {
@@ -442,10 +250,6 @@ export default function CompanyQuoteRequestsPage() {
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Teklifiniz İletildi ({myQuote.price_total.toLocaleString('tr-TR')} ₺)
-                        </span>
-                      ) : isSlotsFull ? (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-bold border border-red-200">
-                          Kontenjan Doldu (Kapandı)
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-50 text-orange-700 text-xs font-bold border border-orange-200">
@@ -472,15 +276,49 @@ export default function CompanyQuoteRequestsPage() {
                           <MapPin className="w-3.5 h-3.5 text-orange-500" />
                           {req.city_name || 'İstanbul'}
                           {req.district_name ? `, ${req.district_name}` : ''}
+                          {req.address_detail ? ` (${req.address_detail})` : ''}
                         </span>
 
-                        <span className="flex items-center gap-1 font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md">
+                        <span className="flex items-center gap-1 font-semibold bg-slate-100 px-2.5 py-1 rounded-md">
                           <Calendar className="w-3.5 h-3.5 text-navy-600" />
-                          Başlangıç: {new Date(req.start_date).toLocaleDateString('tr-TR')}
+                          {req.start_date}
+                          {req.end_date ? ` → ${req.end_date}` : ' (Tek Gün/Teslim)'}
                         </span>
 
-                        <span className="font-semibold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md">
+                        <span className="font-bold text-navy-900 bg-slate-100 px-2.5 py-1 rounded-md">
                           Miktar: {req.quantity} Adet
+                        </span>
+                      </div>
+
+                      {/* Inclusions Requested */}
+                      <div className="flex items-center gap-2 pt-2 text-[11px] font-bold">
+                        <span className="text-slate-400">İstenen:</span>
+                        <span
+                          className={`px-2 py-0.5 rounded ${
+                            req.need_operator
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-slate-100 text-slate-400 line-through'
+                          }`}
+                        >
+                          Operatör
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded ${
+                            req.need_fuel
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-slate-100 text-slate-400 line-through'
+                          }`}
+                        >
+                          Yakıt
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded ${
+                            req.need_transport
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-slate-100 text-slate-400 line-through'
+                          }`}
+                        >
+                          Şantiye Nakliyesi
                         </span>
                       </div>
                     </div>
@@ -488,59 +326,25 @@ export default function CompanyQuoteRequestsPage() {
                     {/* Right Action Column */}
                     <div className="lg:col-span-4 flex flex-col justify-center gap-2.5 lg:border-l lg:border-slate-100 lg:pl-5">
                       {myQuote ? (
-                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
                           <div className="font-extrabold text-navy-900">
                             Verilen Teklif: {myQuote.price_total.toLocaleString('tr-TR')} ₺
                           </div>
-
-                          {/* Outcome Feedback Selector */}
-                          <div className="pt-2 border-t border-slate-200/80">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
-                              Sonuç Bildir (Raporlama):
-                            </span>
-                            <select
-                              value={myQuote.outcome_feedback || 'unknown'}
-                              onChange={(e) =>
-                                handleOutcomeChange(myQuote.id, e.target.value as any)
-                              }
-                              className="w-full text-xs p-1.5 rounded-lg border border-slate-300 bg-white font-semibold text-slate-700"
-                            >
-                              <option value="unknown">Henüz Belli Değil</option>
-                              <option value="job_won">🎉 İşi Ben Aldım</option>
-                              <option value="job_lost">❌ İş Başkasına Gitti</option>
-                              <option value="could_not_reach">📞 Müşteriye Ulaşılamadı</option>
-                            </select>
+                          <div className="text-[11px] text-slate-500">
+                            {myQuote.notes || 'Açıklama belirtilmedi.'}
                           </div>
-
-                          {/* Problematic request dispute trigger */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDisputeTargetReq(req);
-                              setDisputeError('');
-                            }}
-                            className="text-[11px] text-red-600 hover:text-red-700 font-bold flex items-center gap-1 pt-1"
-                          >
-                            <Flag className="w-3 h-3" />
-                            Sorunlu Talep / İade Bildir
-                          </button>
+                          <div className="text-[10px] text-emerald-600 font-bold">
+                            Durum: {myQuote.status === 'accepted' ? 'KABUL EDİLDİ' : 'Alıcı Değerlendiriyor'}
+                          </div>
                         </div>
-                      ) : isSlotsFull ? (
-                        <button
-                          type="button"
-                          disabled
-                          className="w-full py-2.5 px-4 rounded-xl bg-slate-200 text-slate-500 font-bold text-xs cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                          Kontenjan Doldu (Teklife Kapalı)
-                        </button>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => handleInitiateQuote(req)}
+                          onClick={() => openQuoteModal(req)}
                           className="w-full py-2.5 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-xs shadow-md shadow-orange-500/20 transition flex items-center justify-center gap-2"
                         >
-                          <Coins className="w-4 h-4" />
-                          TEKLİF VER {req.request_type !== 'single_listing' ? '(1 Kredi)' : ''}
+                          <Send className="w-4 h-4" />
+                          TEKLİF VER
                         </button>
                       )}
 
@@ -559,85 +363,14 @@ export default function CompanyQuoteRequestsPage() {
           </div>
         )}
 
-        {/* 1. Credit Confirmation Modal */}
-        {confirmingReq && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/75 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <Coins className="w-5 h-5 text-orange-500" />
-                  <h3 className="text-base font-black text-navy-900">
-                    Teklif Kredisi & İletişim Açılışı
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setConfirmingReq(null)}
-                  className="text-slate-400 hover:text-slate-600 font-bold text-sm"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
-                <div className="font-bold text-navy-900">{confirmingReq.title}</div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Maliyet:</span>
-                  <strong className="text-orange-600">1 Teklif Kredisi</strong>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Mevcut Bakiyeniz:</span>
-                  <strong className="text-navy-900">{creditBalance} Kredi</strong>
-                </div>
-              </div>
-
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-[11px] text-blue-900 leading-relaxed">
-                {creditConfig?.mode === 'SHADOW' ? (
-                  <span>
-                    <strong>Gölge Mod Aktif:</strong> Platform şu anda deneme modundadır. Bakiyenizden kredi <strong>DÜŞMEYECEKTİR</strong>; sistem teklif hacmini kaydedecektir.
-                  </span>
-                ) : (
-                  <span>
-                    Krediniz kullanıldığında bu talep için kontenjan ayrılır ve müşterinin doğrulanmış iletişim bilgileri (telefon, WhatsApp, şantiye açık adresi) anında size açılır.
-                  </span>
-                )}
-              </div>
-
-              {spendError && (
-                <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{spendError}</span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setConfirmingReq(null)}
-                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 font-bold text-xs hover:bg-slate-100"
-                >
-                  Vazgeç
-                </button>
-                <button
-                  type="button"
-                  disabled={spendingCredit}
-                  onClick={handleConfirmSpendCredit}
-                  className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-xs shadow-md transition disabled:opacity-50"
-                >
-                  {spendingCredit ? 'İşleniyor...' : 'Onayla ve İletişimi Aç'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 2. Quote Submission Form Modal (With Revealed Contact Card if available) */}
+        {/* Quote Modal */}
         {activeRequest && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/75 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
               <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                 <div>
                   <span className="text-[10px] font-bold uppercase text-orange-600 tracking-wider">
-                    Teklif Formu & İletişim Detayı
+                    Teklif Formu
                   </span>
                   <h3 className="font-black text-navy-900 text-base line-clamp-1">
                     {activeRequest.title}
@@ -645,10 +378,7 @@ export default function CompanyQuoteRequestsPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveRequest(null);
-                    setRevealedDetails(null);
-                  }}
+                  onClick={() => setActiveRequest(null)}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900 hover:bg-slate-200 transition"
                 >
                   <X className="w-5 h-5" />
@@ -656,14 +386,6 @@ export default function CompanyQuoteRequestsPage() {
               </div>
 
               <form onSubmit={handleQuoteSubmit} className="p-5 overflow-y-auto space-y-4 text-xs sm:text-sm">
-                {/* Revealed Contact Card Component */}
-                {revealedDetails && (
-                  <RevealedContactCard
-                    details={revealedDetails}
-                    roleLabel="Müşteri İletişim Kartı (Doğrulanmış)"
-                  />
-                )}
-
                 {submitSuccess && (
                   <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -681,7 +403,7 @@ export default function CompanyQuoteRequestsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Toplam Teklif Fiyatı (₺) *
+                      Toplam Fiyat (₺) *
                     </label>
                     <input
                       type="number"
@@ -759,10 +481,7 @@ export default function CompanyQuoteRequestsPage() {
                 <div className="pt-2 flex items-center justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setActiveRequest(null);
-                      setRevealedDetails(null);
-                    }}
+                    onClick={() => setActiveRequest(null)}
                     className="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 font-bold text-xs"
                   >
                     Vazgeç
@@ -776,95 +495,6 @@ export default function CompanyQuoteRequestsPage() {
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
-
-        {/* 3. Dispute (Sorunlu Talep İtirazı) Modal */}
-        {disputeTargetReq && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/75 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <Flag className="w-5 h-5 text-red-600" />
-                  <h3 className="text-base font-black text-navy-900">
-                    Sorunlu Talep / Kredi İadesi Bildirimi
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setDisputeTargetReq(null)}
-                  className="text-slate-400 hover:text-slate-600 font-bold text-sm"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {disputeSuccess ? (
-                <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                  <span>İtirazınız admin masasına iletildi. İncelenip krediniz iade edilecektir.</span>
-                </div>
-              ) : (
-                <form onSubmit={handleDisputeSubmit} className="space-y-3 text-xs">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Sorun Nedeni *
-                    </label>
-                    <select
-                      value={disputeReason}
-                      onChange={(e) => setDisputeReason(e.target.value as DisputeReason)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold"
-                    >
-                      <option value="unreachable_phone">Telefona Ulaşılamıyor / Yanlış Numara</option>
-                      <option value="fake_request">Talep Sahte veya Anlamsız</option>
-                      <option value="wrong_category">Kategori Dışı Talep</option>
-                      <option value="buyer_cancelled">Alıcı Talebi İptal Etti</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Açıklama & Kanıt *
-                    </label>
-                    <textarea
-                      rows={3}
-                      required
-                      value={disputeDesc}
-                      onChange={(e) => setDisputeDesc(e.target.value)}
-                      placeholder="Müşteriyi kaç kez aradınız, ne yanıt aldınız? Lütfen kısaca belirtin..."
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300"
-                    />
-                  </div>
-
-                  <p className="text-[11px] text-slate-500">
-                    Admin moderatörü itirazı inceleyerek onayladığında 1 teklif kredisi otomatik olarak cüzdanınıza iade edilir.
-                  </p>
-
-                  {disputeError && (
-                    <div className="p-3 bg-red-50 text-red-700 rounded-xl text-xs flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{disputeError}</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-end gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setDisputeTargetReq(null)}
-                      className="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 font-bold hover:bg-slate-100"
-                    >
-                      Vazgeç
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={disputeSubmitting}
-                      className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black shadow-md transition disabled:opacity-50"
-                    >
-                      {disputeSubmitting ? 'İletiliyor...' : 'İade Talebi Gönder'}
-                    </button>
-                  </div>
-                </form>
-              )}
             </div>
           </div>
         )}

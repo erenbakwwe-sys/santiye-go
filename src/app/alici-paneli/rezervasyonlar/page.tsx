@@ -9,19 +9,24 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Building2,
   ArrowLeft,
   X,
-  PhoneCall,
   MessageSquare,
   CreditCard,
+  ShieldCheck,
+  AlertTriangle,
+  Timer,
 } from 'lucide-react';
 import { BookingWithDetails, getBuyerBookings, cancelBooking } from '@/lib/services/booking-service';
+import { buyerApproveEscrow, buyerDisputeEscrow } from '@/lib/services/escrow-service';
 
 export default function BuyerBookingsPage() {
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionNotice, setActionNotice] = useState('');
+  const [disputeBookingId, setDisputeBookingId] = useState<string | null>(null);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputeSubmitting, setDisputeSubmitting] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -43,6 +48,61 @@ export default function BuyerBookingsPage() {
     }
   };
 
+  const handleApproveEscrow = async (bookingId: string) => {
+    if (confirm('Hizmeti/makineyi sorunsuz teslim aldığınızı ve ödemenin tedarikçi firmaya aktarılmasını onaylıyor musunuz?')) {
+      try {
+        const res = await buyerApproveEscrow(`pay-${bookingId}`);
+        if (res.success) {
+          setActionNotice('✅ Teslimat onaylandı! Ödeme tedarikçi firmanın hesabına aktarılmak üzere iyzico tarafından işleme alındı.');
+        } else {
+          setActionNotice(`⚠️ ${res.error || 'İşlem gerçekleştirilemedi.'}`);
+        }
+      } catch (err: any) {
+        setActionNotice(`Hata: ${err.message}`);
+      }
+      loadData();
+      setTimeout(() => setActionNotice(''), 5000);
+    }
+  };
+
+  const handleSubmitDispute = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!disputeBookingId || !disputeReason.trim()) return;
+
+    setDisputeSubmitting(true);
+    try {
+      const res = await buyerDisputeEscrow(`pay-${disputeBookingId}`, disputeReason.trim());
+      if (res.success) {
+        setActionNotice('🛑 İtirazınız kaydedildi! Ödeme aktarımı durduruldu ve inceleme için Şantiye Go İtiraz Masasına iletildi.');
+        setDisputeBookingId(null);
+        setDisputeReason('');
+      } else {
+        setActionNotice(`⚠️ ${res.error || 'İtiraz açılamadı.'}`);
+      }
+    } catch (err: any) {
+      setActionNotice(`Hata: ${err.message}`);
+    } finally {
+      setDisputeSubmitting(false);
+      loadData();
+      setTimeout(() => setActionNotice(''), 5000);
+    }
+  };
+
+  /**
+   * Calculates remaining dispute window countdown (72 hours from delivery)
+   */
+  const getDisputeCountdown = (createdAt: string) => {
+    // 72 hours window from delivery/creation
+    const created = new Date(createdAt).getTime();
+    const expires = created + 72 * 60 * 60 * 1000;
+    const diffMs = expires - Date.now();
+    if (diffMs <= 0) return 'Süre doldu (Otomatik aktarım sürecinde)';
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    const remHours = hours % 24;
+    return `${days > 0 ? `${days} gün ` : ''}${remHours} saat kaldı`;
+  };
+
   return (
     <div className="bg-slate-50 min-h-screen py-8 sm:py-10">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-6">
@@ -55,12 +115,20 @@ export default function BuyerBookingsPage() {
             <ArrowLeft className="w-4 h-4" />
             Alıcı Paneline Dön
           </Link>
-          <Link
-            href="/alici-paneli/taleplerim"
-            className="text-xs font-bold text-orange-600 hover:underline"
-          >
-            Teklif Taleplerime Git →
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/odeme-guvencesi-ve-itiraz-kosullari"
+              className="text-xs font-bold text-slate-500 hover:text-navy-900 underline"
+            >
+              Ödeme Güvencesi Koşulları
+            </Link>
+            <Link
+              href="/alici-paneli/taleplerim"
+              className="text-xs font-bold text-orange-600 hover:underline"
+            >
+              Teklif Taleplerime Git →
+            </Link>
+          </div>
         </div>
 
         {/* Header */}
@@ -73,7 +141,7 @@ export default function BuyerBookingsPage() {
               Rezervasyon Taleplerim
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              İlanlardan oluşturduğunuz kiralama tarih rezervasyonları ve firma onay durumları.
+              İlanlardan oluşturduğunuz kiralama tarih rezervasyonları, ödeme modları ve onay süreçleri.
             </p>
           </div>
         </div>
@@ -99,6 +167,9 @@ export default function BuyerBookingsPage() {
         ) : (
           <div className="space-y-4">
             {bookings.map((b) => {
+              const isPlatformEscrowMode = (b as any).payment_mode === 'platform';
+              const isPaid = b.payment_status === 'paid';
+
               const statusBadges = {
                 pending: {
                   label: 'Firma Onayı Bekleniyor (48 Saate Kadar)',
@@ -144,6 +215,18 @@ export default function BuyerBookingsPage() {
                       <span className="text-xs text-slate-500 font-semibold">
                         Talep Tarihi: {new Date(b.created_at).toLocaleDateString('tr-TR')}
                       </span>
+
+                      {/* Ödeme Modu Rozeti */}
+                      {isPlatformEscrowMode ? (
+                        <span className="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-black uppercase flex items-center gap-1">
+                          <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                          Platform Ödeme Güvencesi
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-bold">
+                          Doğrudan Firma Mutabakatı (Harici)
+                        </span>
+                      )}
                     </div>
 
                     <span
@@ -175,20 +258,21 @@ export default function BuyerBookingsPage() {
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2 pt-1 text-[11px] font-semibold">
-                        <span className="text-slate-400">Kapsam:</span>
-                        <span className={b.operator_included ? 'text-emerald-700' : 'text-slate-400 line-through'}>
-                          Operatör {b.operator_included ? 'Dahil' : 'Hariç'}
-                        </span>
-                        <span>•</span>
-                        <span className={b.fuel_included ? 'text-emerald-700' : 'text-slate-400 line-through'}>
-                          Yakıt {b.fuel_included ? 'Dahil' : 'Hariç'}
-                        </span>
-                        <span>•</span>
-                        <span className={b.transport_included ? 'text-emerald-700' : 'text-slate-400 line-through'}>
-                          Nakliye {b.transport_included ? 'Dahil' : 'Hariç'}
-                        </span>
-                      </div>
+                      {/* İtiraz Süresi Sayacı (Teslim Edilen ve Platform Modundaki İşlerde) */}
+                      {isPlatformEscrowMode && isPaid && (
+                        <div className="p-2.5 bg-blue-50/80 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center gap-2 mt-2">
+                          <Timer className="w-4 h-4 text-blue-600 shrink-0" />
+                          <div>
+                            <span className="font-bold">İtiraz Süresi Sayacı: </span>
+                            <span className="font-mono text-blue-800 font-extrabold">
+                              {getDisputeCountdown(b.created_at)}
+                            </span>
+                            <span className="text-[11px] text-slate-500 block">
+                              Süre dolduğunda bedel otomatik olarak tedarikçiye aktarılır.
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="lg:col-span-4 flex flex-col justify-between items-end border-t lg:border-t-0 lg:border-l lg:border-slate-100 lg:pl-5 pt-3 lg:pt-0">
@@ -202,21 +286,40 @@ export default function BuyerBookingsPage() {
                       </div>
 
                       <div className="flex items-center gap-2 pt-3 w-full justify-end flex-wrap">
-                        {b.status === 'approved' && b.payment_status !== 'paid' && (
+                        {b.status === 'approved' && !isPaid && (
                           <Link
                             href={`/odeme/${b.id}`}
                             className="px-4 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-black text-xs shadow-md transition flex items-center gap-1.5"
                           >
                             <CreditCard className="w-3.5 h-3.5" />
-                            ÖDEME YAP
+                            {isPlatformEscrowMode ? 'GÜVENLİ ÖDEME YAP' : 'MUTABAKAT DETAYI'}
                           </Link>
                         )}
 
-                        {b.payment_status === 'paid' && (
-                          <span className="px-3 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Ödendi (Havuzda)
-                          </span>
+                        {/* Platform Escrow Modundaki Butonlar */}
+                        {isPlatformEscrowMode && isPaid && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => handleApproveEscrow(b.id)}
+                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              İşi Onayla & Ödemeyi Serbest Bırak
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDisputeBookingId(b.id);
+                                setDisputeReason('');
+                              }}
+                              className="px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold text-xs transition flex items-center gap-1"
+                            >
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              Sorun Bildir
+                            </button>
+                          </div>
                         )}
 
                         <Link
@@ -242,6 +345,73 @@ export default function BuyerBookingsPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Escrow Dispute Modal */}
+        {disputeBookingId && (
+          <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-red-100 text-red-600">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-navy-900 text-base">
+                      Ödeme İtirazı & Sorun Bildirimi
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Ödemeniz iyzico havuzunda derhal askıya alınır.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDisputeBookingId(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed">
+                İtiraz açıldığında sayac durur ve satıcıya para aktarımı blokenir. Şantiye Go İtiraz Masası teslim tutanaklarını inceleyerek para iadesi veya aktarım kararı verir.
+              </div>
+
+              <form onSubmit={handleSubmitDispute} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-navy-900 mb-1">
+                    İtiraz / Sorun Gerekçesi *
+                  </label>
+                  <textarea
+                    rows={4}
+                    required
+                    value={disputeReason}
+                    onChange={(e) => setDisputeReason(e.target.value)}
+                    placeholder="Örn: Makine taahhüt edilen tarihte şantiyeye getirilmedi / Eksik operatör ile çalışıldı..."
+                    className="w-full p-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setDisputeBookingId(null)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-xs"
+                  >
+                    Vazgeç
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={disputeSubmitting || !disputeReason.trim()}
+                    className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-black text-xs shadow-md transition"
+                  >
+                    {disputeSubmitting ? 'Kaydediliyor...' : 'İtirazı Başlat ve Ödemeyi Askıya Al'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>
