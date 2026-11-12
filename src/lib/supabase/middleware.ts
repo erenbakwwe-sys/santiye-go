@@ -17,31 +17,33 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  // If env variables are not yet configured, allow request to proceed (for dev/preview)
-  if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('placeholder')) {
-    return supabaseResponse;
+  let user = null;
+
+  if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('placeholder')) {
+    try {
+      const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet: CookieToSet[]) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+            supabaseResponse = NextResponse.next({
+              request,
+            });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
+            );
+          },
+        },
+      });
+
+      const { data } = await supabase.auth.getUser();
+      user = data?.user || null;
+    } catch {
+      user = null;
+    }
   }
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet: CookieToSet[]) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        supabaseResponse = NextResponse.next({
-          request,
-        });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
-        );
-      },
-    },
-  });
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   const url = request.nextUrl.clone();
   const path = url.pathname;
@@ -56,9 +58,15 @@ export async function updateSession(request: NextRequest) {
   supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
 
+  const hasAuthCookie =
+    request.cookies.get('santiyego_auth')?.value === 'true' ||
+    request.cookies.getAll().some((c) => c.name.includes('sb-') && c.name.includes('-auth-token'));
+
+  const isAuthenticated = !!user || hasAuthCookie;
+
   // Protect admin routes
   if (path.startsWith('/admin')) {
-    if (!user) {
+    if (!isAuthenticated) {
       url.pathname = '/giris';
       url.searchParams.set('redirect', path);
       return NextResponse.redirect(url);
@@ -67,7 +75,7 @@ export async function updateSession(request: NextRequest) {
 
   // Protect company routes
   if (path.startsWith('/firma-paneli')) {
-    if (!user) {
+    if (!isAuthenticated) {
       url.pathname = '/giris';
       url.searchParams.set('redirect', path);
       return NextResponse.redirect(url);
@@ -76,7 +84,7 @@ export async function updateSession(request: NextRequest) {
 
   // Protect buyer / profile routes
   if (path.startsWith('/alici-paneli') || path.startsWith('/favorilerim')) {
-    if (!user) {
+    if (!isAuthenticated) {
       url.pathname = '/giris';
       url.searchParams.set('redirect', path);
       return NextResponse.redirect(url);
@@ -85,7 +93,7 @@ export async function updateSession(request: NextRequest) {
 
   // Protect messages route
   if (path.startsWith('/mesajlar')) {
-    if (!user) {
+    if (!isAuthenticated) {
       url.pathname = '/giris';
       url.searchParams.set('redirect', path);
       return NextResponse.redirect(url);
