@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   FileText,
   Clock,
@@ -23,16 +24,33 @@ import {
 } from 'lucide-react';
 import { QuoteRequest, Quote } from '@/types/database';
 import { getBuyerQuoteRequests, acceptQuote, rejectQuote } from '@/lib/services/quote-service';
+import { getActiveProfile } from '@/lib/services/auth-service';
 
 export default function BuyerQuoteRequestsPage() {
+  const router = useRouter();
   const [requests, setRequests] = useState<QuoteRequest[]>([]);
   const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionSuccessMsg, setActionSuccessMsg] = useState('');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function init() {
+      const profile = await getActiveProfile();
+      if (profile?.id) {
+        setCurrentUserId(profile.id);
+      } else {
+        setLoading(false);
+        router.push('/giris?redirect=/alici-paneli/taleplerim');
+      }
+    }
+    init();
+  }, [router]);
 
   const loadRequests = async () => {
+    if (!currentUserId) return;
     setLoading(true);
-    const data = await getBuyerQuoteRequests('buyer-demo-001');
+    const data = await getBuyerQuoteRequests(currentUserId);
     setRequests(data);
     if (data.length > 0 && !expandedRequestId) {
       setExpandedRequestId(data[0].id);
@@ -41,8 +59,10 @@ export default function BuyerQuoteRequestsPage() {
   };
 
   useEffect(() => {
-    loadRequests();
-  }, []);
+    if (currentUserId) {
+      loadRequests();
+    }
+  }, [currentUserId]);
 
   const handleAccept = async (quoteId: string, requestId: string) => {
     const res = await acceptQuote(quoteId, requestId);

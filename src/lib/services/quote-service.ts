@@ -1,143 +1,76 @@
 import { createClient } from '@/lib/supabase/client';
-import { QuoteRequest, Quote, Listing } from '@/types/database';
-import { DEMO_LISTINGS } from '@/lib/mock-data';
-import { calculateDistanceKm } from '@/lib/geo';
+import { QuoteRequest, Quote } from '@/types/database';
 import { sanitizeContent } from '@/lib/security/contact-masker';
 import { triggerControlledReveal } from './reveal-service';
+import { getActiveProfile } from './auth-service';
 
-// In-Memory store for offline/demo operation
-export const DEMO_QUOTE_REQUESTS: QuoteRequest[] = [
-  {
-    id: 'qr-0000-0000-0000-000000000001',
-    buyer_id: 'buyer-demo-001',
-    request_type: 'single_listing',
-    listing_id: '10000000-0000-0000-0000-000000000001',
-    category_id: 'b0000000-0000-0000-0000-000000000001',
-    title: 'Tuzla Şantiye Sahası İçin 22 Ton Ekskavatör Kiralama',
-    description: '3 haftalık temel kazı çalışması için tecrübeli operatörlü 22 ton paletli ekskavatör teklifi talep ediyoruz. Mazot şantiye sahasında bizim tarafımızdan sağlanacaktır.',
-    quantity: 1,
-    start_date: '2026-11-05',
-    end_date: '2026-11-26',
-    city_id: 34,
-    district_id: 104,
-    address_detail: 'Tuzla Tepeören Şantiyesi',
-    lat: 40.8841,
-    lng: 29.3876,
-    need_operator: true,
-    need_fuel: false,
-    need_transport: true,
-    status: 'quotes_received',
-    max_recipients: 1,
-    search_radius_km: 50,
-    expires_at: new Date(Date.now() + 86400000 * 5).toISOString(),
-    is_demo: true,
-    created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-    updated_at: new Date().toISOString(),
-    city_name: 'İstanbul',
-    district_name: 'Tuzla',
-    quotes_count: 1,
-  },
-  {
-    id: 'qr-0000-0000-0000-000000000002',
-    buyer_id: 'buyer-demo-001',
-    request_type: 'multi_vendor',
-    listing_id: null,
-    category_id: 'd0000000-0000-0000-0000-000000000003', // Lowbed
-    title: 'Samsun - Ankara Arası 55 Ton İş Makinesi Taşıma (Lowbed)',
-    slug: 'samsun-ankara-lowbed',
-    description: 'Tekkeköy OSB şantiyesinden Ostim sanayi garajına 55 tonluk ekskavatör nakliyesi. Eskortlu ve sigortalı teklif rica olunur.',
-    quantity: 1,
-    start_date: '2026-11-10',
-    end_date: '2026-11-12',
-    city_id: 55,
-    district_id: 701,
-    address_detail: 'Samsun Tekkeköy OSB',
-    lat: 41.2412,
-    lng: 36.4215,
-    need_operator: true,
-    need_fuel: true,
-    need_transport: true,
-    status: 'quotes_received',
-    max_recipients: 10,
-    search_radius_km: 100,
-    expires_at: new Date(Date.now() + 86400000 * 6).toISOString(),
-    is_demo: true,
-    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-    updated_at: new Date().toISOString(),
-    city_name: 'Samsun',
-    district_name: 'Tekkeköy',
-    quotes_count: 2,
-  } as any,
-];
+const STORAGE_QUOTE_REQUESTS_KEY = 'santiyego_quote_requests_store';
+const STORAGE_QUOTES_KEY = 'santiyego_quotes_store';
 
-export const DEMO_QUOTES: Quote[] = [
-  {
-    id: 'quote-0000-0000-0000-000000000001',
-    request_id: 'qr-0000-0000-0000-000000000001',
-    company_id: 'f0000000-0000-0000-0000-000000000001',
-    listing_id: '10000000-0000-0000-0000-000000000001',
-    price_total: 245000,
-    price_unit: 11666,
-    currency: 'TRY',
-    is_operator_included: true,
-    is_fuel_included: false,
-    is_transport_included: true,
-    notes: '21 günlük kiralama için nakliye gidiş-dönüş tarafımızca karşılanacaktır. CAT 320D 2021 model makine tahsis edilecektir.',
-    valid_until: new Date(Date.now() + 86400000 * 3).toISOString(),
-    status: 'submitted',
-    is_demo: true,
-    created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
-    updated_at: new Date().toISOString(),
-    company: {
-      name: '[DEMO] Anadolu İş Makineleri Parkı',
-      phone: '+90 532 000 0101',
-      whatsapp: '+905320000101',
-      rating_avg: 4.8,
-      review_count: 14,
-    } as any,
-    distance_km: 5.2,
-  },
-  {
-    id: 'quote-0000-0000-0000-000000000002',
-    request_id: 'qr-0000-0000-0000-000000000002',
-    company_id: 'f0000000-0000-0000-0000-000000000004',
-    listing_id: '10000000-0000-0000-0000-000000000023',
-    price_total: 68000,
-    price_unit: 68000,
-    currency: 'TRY',
-    is_operator_included: true,
-    is_fuel_included: true,
-    is_transport_included: true,
-    notes: 'Samsun - Ankara güzergahı özel izin belgeleri, eskort ve ferdi kaza sigortası fiyata dahildir. 4 dingil hidrolik lowbed ile taşınır.',
-    valid_until: new Date(Date.now() + 86400000 * 3).toISOString(),
-    status: 'submitted',
-    is_demo: true,
-    created_at: new Date(Date.now() - 3600000 * 18).toISOString(),
-    updated_at: new Date().toISOString(),
-    company: {
-      name: '[DEMO] Karadeniz İş Makineleri Parkı',
-      phone: '+90 532 000 0551',
-      whatsapp: '+905320000551',
-      rating_avg: 4.9,
-      review_count: 19,
-    } as any,
-    distance_km: 2.1,
-  },
-];
+// Geriye dönük uyumluluk için boş demo koleksiyonları (sahte veri üretmez)
+export const DEMO_QUOTES: Quote[] = [];
+export const DEMO_QUOTE_REQUESTS: QuoteRequest[] = [];
+
+function getStoredQuoteRequests(): QuoteRequest[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_QUOTE_REQUESTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredQuoteRequest(req: QuoteRequest) {
+  if (typeof window === 'undefined') return;
+  try {
+    const list = getStoredQuoteRequests();
+    const existingIdx = list.findIndex((r) => r.id === req.id);
+    if (existingIdx !== -1) {
+      list[existingIdx] = req;
+    } else {
+      list.unshift(req);
+    }
+    localStorage.setItem(STORAGE_QUOTE_REQUESTS_KEY, JSON.stringify(list));
+  } catch {}
+}
+
+function getStoredQuotes(): Quote[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_QUOTES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredQuote(quote: Quote) {
+  if (typeof window === 'undefined') return;
+  try {
+    const list = getStoredQuotes();
+    const existingIdx = list.findIndex((q) => q.id === quote.id);
+    if (existingIdx !== -1) {
+      list[existingIdx] = quote;
+    } else {
+      list.push(quote);
+    }
+    localStorage.setItem(STORAGE_QUOTES_KEY, JSON.stringify(list));
+  } catch {}
+}
 
 // In-Memory Rate Limiting for Spam Prevention (max 5 requests per 10 mins)
 const userRequestTimestamps: Record<string, number[]> = {};
 
 export function checkSpamLimit(userId: string): { allowed: boolean; waitMinutes?: number } {
   const now = Date.now();
-  const windowMs = 10 * 60 * 1000; // 10 minutes
+  const windowMs = 10 * 60 * 1000;
   const limit = 5;
 
   if (!userRequestTimestamps[userId]) {
     userRequestTimestamps[userId] = [];
   }
 
-  // Filter out timestamps older than window
   userRequestTimestamps[userId] = userRequestTimestamps[userId].filter((t) => now - t < windowMs);
 
   if (userRequestTimestamps[userId].length >= limit) {
@@ -150,12 +83,28 @@ export function checkSpamLimit(userId: string): { allowed: boolean; waitMinutes?
   return { allowed: true };
 }
 
+/**
+ * Gerçek kullanıcının buyer_id'sini döndürür
+ */
+async function getCurrentBuyerId(): Promise<string | null> {
+  try {
+    const profile = await getActiveProfile();
+    return profile?.id || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function createQuoteRequest(
   data: Partial<QuoteRequest>
 ): Promise<{ success: boolean; request?: QuoteRequest; error?: string }> {
-  const buyerId = data.buyer_id || 'buyer-demo-001';
+  // Gerçek kullanıcı ID'sini al
+  const buyerId = data.buyer_id || (await getCurrentBuyerId());
+  if (!buyerId) {
+    return { success: false, error: 'Teklif talebi oluşturmak için giriş yapmalısınız.' };
+  }
 
-  // 1. Spam Rate Limit Check
+  // Spam Rate Limit Check
   const spamCheck = checkSpamLimit(buyerId);
   if (!spamCheck.allowed) {
     return {
@@ -167,8 +116,11 @@ export async function createQuoteRequest(
   const sanitizedTitle = data.title ? sanitizeContent(data.title).maskedText : 'Şantiye İhtiyacı Teklif Talebi';
   const sanitizedDesc = data.description ? sanitizeContent(data.description).maskedText : '';
 
+  const requestId = `qr-${Date.now()}`;
+  const nowIso = new Date().toISOString();
+
   const newRequest: QuoteRequest = {
-    id: `qr-${Date.now()}`,
+    id: requestId,
     buyer_id: buyerId,
     request_type: data.request_type || 'single_listing',
     listing_id: data.listing_id || null,
@@ -176,13 +128,13 @@ export async function createQuoteRequest(
     title: sanitizedTitle,
     description: sanitizedDesc,
     quantity: data.quantity || 1,
-    start_date: data.start_date || new Date().toISOString().split('T')[0],
+    start_date: data.start_date || nowIso.split('T')[0],
     end_date: data.end_date || null,
-    city_id: data.city_id || 34,
+    city_id: data.city_id || null,
     district_id: data.district_id || null,
     address_detail: data.address_detail || null,
-    lat: data.lat || 41.0,
-    lng: data.lng || 29.0,
+    lat: data.lat || null,
+    lng: data.lng || null,
     need_operator: data.need_operator ?? false,
     need_fuel: data.need_fuel ?? false,
     need_transport: data.need_transport ?? false,
@@ -190,12 +142,17 @@ export async function createQuoteRequest(
     max_recipients: data.max_recipients || 10,
     search_radius_km: data.search_radius_km || 50,
     expires_at: new Date(Date.now() + 86400000 * 7).toISOString(),
-    is_demo: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    is_demo: false,
+    created_at: nowIso,
+    updated_at: nowIso,
     quotes_count: 0,
+    quotes: [],
   };
 
+  // 1. Tarayıcı yerel saklama alanına kaydet (sayfa yenilense / oturum açılıp kapansa kaybolmaz)
+  saveStoredQuoteRequest(newRequest);
+
+  // 2. Canlı Supabase varsa senkronize et
   try {
     const supabase = createClient();
     const isSupabaseConfigured =
@@ -203,32 +160,55 @@ export async function createQuoteRequest(
       !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
 
     if (isSupabaseConfigured) {
+      const insertPayload = {
+        buyer_id: buyerId,
+        request_type: newRequest.request_type,
+        listing_id: newRequest.listing_id,
+        category_id: newRequest.category_id,
+        title: newRequest.title,
+        description: newRequest.description,
+        quantity: newRequest.quantity,
+        start_date: newRequest.start_date,
+        end_date: newRequest.end_date,
+        city_id: newRequest.city_id,
+        district_id: newRequest.district_id,
+        address_detail: newRequest.address_detail,
+        lat: newRequest.lat,
+        lng: newRequest.lng,
+        need_operator: newRequest.need_operator,
+        need_fuel: newRequest.need_fuel,
+        need_transport: newRequest.need_transport,
+        status: newRequest.status,
+        max_recipients: newRequest.max_recipients,
+        search_radius_km: newRequest.search_radius_km,
+        expires_at: newRequest.expires_at,
+        is_demo: false,
+      };
+
       const { data: dbData, error } = await supabase
         .from('quote_requests')
-        .insert({
-          ...newRequest,
-          location:
-            newRequest.lat && newRequest.lng
-              ? `SRID=4326;POINT(${newRequest.lng} ${newRequest.lat})`
-              : null,
-        })
+        .insert(insertPayload)
         .select()
         .single();
 
       if (!error && dbData) {
+        saveStoredQuoteRequest(dbData as QuoteRequest);
         return { success: true, request: dbData as QuoteRequest };
       }
     }
-  } catch {
-    // fallback
+  } catch (err) {
+    console.warn('[createQuoteRequest] Supabase sync fallback to local store:', err);
   }
 
-  // Fallback to local memory store
-  DEMO_QUOTE_REQUESTS.unshift(newRequest);
   return { success: true, request: newRequest };
 }
 
 export async function getBuyerQuoteRequests(buyerId: string): Promise<QuoteRequest[]> {
+  if (!buyerId) return [];
+
+  let results: QuoteRequest[] = [];
+
+  // 1. Canlı Supabase'den çek
   try {
     const supabase = createClient();
     const isSupabaseConfigured =
@@ -248,25 +228,41 @@ export async function getBuyerQuoteRequests(buyerId: string): Promise<QuoteReque
           district:districts(name)
         `)
         .eq('buyer_id', buyerId)
+        .eq('is_demo', false)
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        return data as QuoteRequest[];
+      if (!error && data && data.length > 0) {
+        results = data as QuoteRequest[];
       }
     }
-  } catch {
-    // fallback
+  } catch (err) {
+    console.warn('[getBuyerQuoteRequests] Supabase fetch error:', err);
   }
 
-  // Return local demo requests with quotes populated
-  return DEMO_QUOTE_REQUESTS.map((req) => ({
-    ...req,
-    quotes: DEMO_QUOTES.filter((q) => q.request_id === req.id),
-    quotes_count: DEMO_QUOTES.filter((q) => q.request_id === req.id).length,
-  }));
+  // 2. Yerel saklama alanındaki kullanıcının kendi talepleri ile birleştir
+  const stored = getStoredQuoteRequests().filter((r) => r.buyer_id === buyerId);
+  const storedQuotes = getStoredQuotes();
+
+  for (const s of stored) {
+    if (!results.some((r) => r.id === s.id)) {
+      const reqQuotes = storedQuotes.filter((q) => q.request_id === s.id);
+      results.push({
+        ...s,
+        quotes: reqQuotes,
+        quotes_count: reqQuotes.length,
+      });
+    }
+  }
+
+  // Tarihe göre sırala
+  return results.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
 export async function getCompanyQuoteRequests(companyId: string): Promise<QuoteRequest[]> {
+  if (!companyId) return [];
+
+  let results: QuoteRequest[] = [];
+
   try {
     const supabase = createClient();
     const isSupabaseConfigured =
@@ -282,10 +278,11 @@ export async function getCompanyQuoteRequests(companyId: string): Promise<QuoteR
           city:cities(name),
           district:districts(name)
         `)
+        .eq('is_demo', false)
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        return data.map((d: any) => ({
+        results = (data || []).map((d: any) => ({
           ...d,
           city_name: d.city?.name,
           district_name: d.district?.name,
@@ -297,7 +294,19 @@ export async function getCompanyQuoteRequests(companyId: string): Promise<QuoteR
     // fallback
   }
 
-  return [];
+  // Yerel saklama alanındaki taleplerden de ekle
+  const stored = getStoredQuoteRequests();
+  const storedQuotes = getStoredQuotes();
+  for (const s of stored) {
+    if (!results.some((r) => r.id === s.id)) {
+      results.push({
+        ...s,
+        quotes: storedQuotes.filter((q) => q.request_id === s.id && q.company_id === companyId),
+      });
+    }
+  }
+
+  return results;
 }
 
 export async function submitQuote(
@@ -319,10 +328,12 @@ export async function submitQuote(
     notes: sanitizedNotes,
     valid_until: new Date(Date.now() + 86400000 * 3).toISOString(),
     status: 'submitted',
-    is_demo: true,
+    is_demo: false,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
+
+  saveStoredQuote(newQuote);
 
   try {
     const supabase = createClient();
@@ -333,7 +344,6 @@ export async function submitQuote(
     if (isSupabaseConfigured) {
       const { data, error } = await supabase.from('quotes').insert(newQuote).select().single();
       if (!error && data) {
-        // Update request status to 'quotes_received'
         await supabase
           .from('quote_requests')
           .update({ status: 'quotes_received' })
@@ -343,13 +353,6 @@ export async function submitQuote(
     }
   } catch {
     // fallback
-  }
-
-  DEMO_QUOTES.push(newQuote);
-  const targetReq = DEMO_QUOTE_REQUESTS.find((r) => r.id === quoteData.request_id);
-  if (targetReq) {
-    targetReq.status = 'quotes_received';
-    targetReq.quotes_count = (targetReq.quotes_count || 0) + 1;
   }
 
   return { success: true, quote: newQuote };
@@ -366,62 +369,78 @@ export async function acceptQuote(
       !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
 
     if (isSupabaseConfigured) {
-      await supabase.from('quotes').update({ status: 'accepted', updated_at: new Date().toISOString() }).eq('id', quoteId);
-      await supabase.from('quote_requests').update({ status: 'accepted', updated_at: new Date().toISOString() }).eq('id', requestId);
+      await supabase
+        .from('quotes')
+        .update({ status: 'accepted', updated_at: new Date().toISOString() })
+        .eq('id', quoteId);
+
+      await supabase
+        .from('quote_requests')
+        .update({ status: 'accepted', updated_at: new Date().toISOString() })
+        .eq('id', requestId);
 
       const { data: dbQuote } = await supabase
         .from('quotes')
-        .select(`
-          id,
-          company_id,
-          request:quote_requests(buyer_id)
-        `)
+        .select(`id, company_id, request:quote_requests(buyer_id)`)
         .eq('id', quoteId)
         .maybeSingle();
 
       if (dbQuote) {
-        const buyerId = (dbQuote.request as any)?.buyer_id || 'buyer-demo-001';
-        // Prompt 9A: Trigger controlled reveal upon quote acceptance
-        await triggerControlledReveal({
-          buyerId,
-          companyId: dbQuote.company_id,
-          quoteId: dbQuote.id,
-          triggerType: 'teklif_kabul',
-        });
+        const buyerId = (dbQuote.request as any)?.buyer_id;
+        if (buyerId) {
+          await triggerControlledReveal({
+            buyerId,
+            companyId: dbQuote.company_id,
+            quoteId: dbQuote.id,
+            triggerType: 'teklif_kabul',
+          });
+        }
       }
     }
   } catch {
     // fallback
   }
 
-  // Update quote status to accepted, reject others
-  const quote = DEMO_QUOTES.find((q) => q.id === quoteId);
-  if (quote) {
-    quote.status = 'accepted';
-    quote.updated_at = new Date().toISOString();
+  // Yerel depoda güncelle
+  const quotes = getStoredQuotes();
+  const q = quotes.find((x) => x.id === quoteId);
+  if (q) {
+    q.status = 'accepted';
+    saveStoredQuote(q);
   }
-  const req = DEMO_QUOTE_REQUESTS.find((r) => r.id === requestId);
-  if (req) {
-    req.status = 'accepted';
-    req.updated_at = new Date().toISOString();
-  }
-
-  if (quote && req) {
-    await triggerControlledReveal({
-      buyerId: req.buyer_id,
-      companyId: quote.company_id,
-      quoteId: quote.id,
-      triggerType: 'teklif_kabul',
-    });
+  const requests = getStoredQuoteRequests();
+  const r = requests.find((x) => x.id === requestId);
+  if (r) {
+    r.status = 'accepted';
+    saveStoredQuoteRequest(r);
   }
 
   return { success: true };
 }
 
-export async function rejectQuote(quoteId: string): Promise<{ success: boolean }> {
-  const quote = DEMO_QUOTES.find((q) => q.id === quoteId);
-  if (quote) {
-    quote.status = 'rejected';
+export async function rejectQuote(quoteId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createClient();
+    const isSupabaseConfigured =
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+    if (isSupabaseConfigured) {
+      await supabase
+        .from('quotes')
+        .update({ status: 'rejected', updated_at: new Date().toISOString() })
+        .eq('id', quoteId);
+    }
+  } catch {
+    // fallback
   }
+
+  const quotes = getStoredQuotes();
+  const q = quotes.find((x) => x.id === quoteId);
+  if (q) {
+    q.status = 'rejected';
+    saveStoredQuote(q);
+  }
+
   return { success: true };
 }

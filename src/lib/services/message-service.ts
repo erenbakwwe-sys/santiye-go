@@ -11,93 +11,63 @@ export interface DemoConversation extends Conversation {
   last_message_at?: string;
 }
 
-// In-memory demo conversations
-export const DEMO_CONVERSATIONS: DemoConversation[] = [
-  {
-    id: 'conv-0000-0000-0000-000000000001',
-    listing_id: '10000000-0000-0000-0000-000000000001',
-    buyer_id: 'buyer-demo-001',
-    company_id: 'f0000000-0000-0000-0000-000000000001',
-    is_blocked: false,
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-    updated_at: new Date(Date.now() - 3600000 * 3).toISOString(),
-    other_user_name: '[DEMO] Anadolu İş Makineleri Parkı',
-    other_user_role: 'company',
-    listing_title: '2021 Model 22 Ton Paletli Ekskavatör (CAT 320D)',
-    unread_count: 1,
-    last_message: 'Pazartesi günü şantiye sahanıza tır ile teslimatı sağlayabiliriz.',
-    last_message_at: new Date(Date.now() - 3600000 * 3).toISOString(),
-  },
-  {
-    id: 'conv-0000-0000-0000-000000000002',
-    quote_id: 'quote-0000-0000-0000-000000000002',
-    buyer_id: 'buyer-demo-001',
-    company_id: 'f0000000-0000-0000-0000-000000000004',
-    is_blocked: false,
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    updated_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-    other_user_name: '[DEMO] Karadeniz İş Makineleri Parkı',
-    other_user_role: 'company',
-    listing_title: 'Samsun - Ankara Arası Lowbed Ağır Nakliye',
-    unread_count: 0,
-    last_message: 'Teklifimizdeki güzergah izin belgeleri Valilik onaylıdır.',
-    last_message_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-  },
-];
+const STORAGE_CONVERSATIONS_KEY = 'santiyego_conversations_store';
+const STORAGE_MESSAGES_KEY_PREFIX = 'santiyego_messages_store_';
 
-export const DEMO_MESSAGES: Record<string, Message[]> = {
-  'conv-0000-0000-0000-000000000001': [
-    {
-      id: 'msg-001',
-      conversation_id: 'conv-0000-0000-0000-000000000001',
-      sender_id: 'buyer-demo-001',
-      body: 'Merhaba, Tuzla Tepeören şantiyemiz için 3 haftalık kiralama düşünüyoruz. Operatörünüzün G sınıfı belgesi ve SGK dökümü mevcut mudur?',
-      attachment_url: null,
-      is_read: true,
-      created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
-    },
-    {
-      id: 'msg-002',
-      conversation_id: 'conv-0000-0000-0000-000000000001',
-      sender_id: 'f0000000-0000-0000-0000-000000000001',
-      body: 'Merhabalar, evet tüm operatörlerimiz sertifikalıdır, İSG evrakları şantiye girişine eksiksiz teslim edilir.',
-      attachment_url: null,
-      is_read: true,
-      created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
-    },
-    {
-      id: 'msg-003',
-      conversation_id: 'conv-0000-0000-0000-000000000001',
-      sender_id: 'f0000000-0000-0000-0000-000000000001',
-      body: 'Pazartesi günü şantiye sahanıza tır ile teslimatı sağlayabiliriz.',
-      attachment_url: null,
-      is_read: false,
-      created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
-    },
-  ],
-  'conv-0000-0000-0000-000000000002': [
-    {
-      id: 'msg-101',
-      conversation_id: 'conv-0000-0000-0000-000000000002',
-      sender_id: 'buyer-demo-001',
-      body: 'Lowbed nakliyesi için Karayolları özel izin belgeleri dahil mi?',
-      attachment_url: null,
-      is_read: true,
-      created_at: new Date(Date.now() - 3600000 * 10).toISOString(),
-    },
-    {
-      id: 'msg-102',
-      conversation_id: 'conv-0000-0000-0000-000000000002',
-      sender_id: 'f0000000-0000-0000-0000-000000000004',
-      body: 'Teklifimizdeki güzergah izin belgeleri Valilik onaylıdır.',
-      attachment_url: null,
-      is_read: true,
-      created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
-    },
-  ],
-};
+// Geriye dönük uyumluluk için boş demo koleksiyonları
+export const DEMO_CONVERSATIONS: DemoConversation[] = [];
+export const DEMO_MESSAGES: Record<string, Message[]> = {};
+
+// Node.js test ve SSR ortamı için in-memory defter
+const memConversations: DemoConversation[] = [];
+const memMessages: Record<string, Message[]> = {};
+
+function getStoredConversations(): DemoConversation[] {
+  if (typeof window === 'undefined') return [...memConversations];
+  try {
+    const raw = localStorage.getItem(STORAGE_CONVERSATIONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredConversations(convs: DemoConversation[]) {
+  if (typeof window === 'undefined') {
+    memConversations.length = 0;
+    memConversations.push(...convs);
+    return;
+  }
+  try {
+    localStorage.setItem(STORAGE_CONVERSATIONS_KEY, JSON.stringify(convs));
+  } catch {}
+}
+
+function getStoredMessages(convId: string): Message[] {
+  if (typeof window === 'undefined') return [...(memMessages[convId] || [])];
+  try {
+    const raw = localStorage.getItem(STORAGE_MESSAGES_KEY_PREFIX + convId);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredMessages(convId: string, msgs: Message[]) {
+  if (typeof window === 'undefined') {
+    memMessages[convId] = [...msgs];
+    return;
+  }
+  try {
+    localStorage.setItem(STORAGE_MESSAGES_KEY_PREFIX + convId, JSON.stringify(msgs));
+  } catch {}
+}
 
 export async function getConversations(userId: string): Promise<DemoConversation[]> {
+  if (!userId) return [];
+
+  let results: DemoConversation[] = [];
+
   try {
     const supabase = createClient();
     const isSupabaseConfigured =
@@ -115,18 +85,43 @@ export async function getConversations(userId: string): Promise<DemoConversation
         .or(`buyer_id.eq.${userId},company_id.eq.${userId}`)
         .order('updated_at', { ascending: false });
 
-      if (!error && data) {
-        return data as any;
+      if (!error && data && data.length > 0) {
+        results = data.map((d: any) => ({
+          ...d,
+          other_user_name: d.buyer_id === userId ? (d.company_name || 'Firma') : (d.buyer_name || 'Alıcı'),
+          other_user_role: d.buyer_id === userId ? 'company' : 'buyer',
+          listing_title: d.listing?.title,
+          unread_count: (d.messages || []).filter((m: any) => !m.is_read && m.sender_id !== userId).length,
+          last_message: d.messages?.[d.messages.length - 1]?.body,
+          last_message_at: d.messages?.[d.messages.length - 1]?.created_at,
+        }));
       }
     }
   } catch {
     // fallback
   }
 
-  return DEMO_CONVERSATIONS;
+  // Yerel saklama alanındaki konuşmalar ile birleştir (kullanıcının kendi konuşmaları)
+  const stored = getStoredConversations().filter(
+    (c) => c.buyer_id === userId || c.company_id === userId
+  );
+
+  for (const s of stored) {
+    if (!results.some((r) => r.id === s.id)) {
+      results.push(s);
+    }
+  }
+
+  return results.sort(
+    (a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime()
+  );
 }
 
 export async function getMessages(conversationId: string): Promise<Message[]> {
+  if (!conversationId) return [];
+
+  let results: Message[] = [];
+
   try {
     const supabase = createClient();
     const isSupabaseConfigured =
@@ -140,15 +135,25 @@ export async function getMessages(conversationId: string): Promise<Message[]> {
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
 
-      if (!error && data) {
-        return data as Message[];
+      if (!error && data && data.length > 0) {
+        results = data as Message[];
       }
     }
   } catch {
     // fallback
   }
 
-  return DEMO_MESSAGES[conversationId] || [];
+  // Yerel mesajlar ile birleştir
+  const stored = getStoredMessages(conversationId);
+  for (const s of stored) {
+    if (!results.some((r) => r.id === s.id)) {
+      results.push(s);
+    }
+  }
+
+  return results.sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
 }
 
 export async function sendMessage(
@@ -207,7 +212,7 @@ export async function sendMessage(
   const finalBody = maskRes.sanitizedText;
   let complianceLogId = `log-${Date.now()}`;
 
-  // Eğer maskeleme yapıldıysa KVKK uyumlu log tut (Asla ham telefon/mail saklanmaz!)
+  // Eğer maskeleme yapıldıysa KVKK uyumlu log tut
   if (maskRes.isMasked && isSupabaseConfigured) {
     try {
       const { data: logData } = await supabase
@@ -224,16 +229,12 @@ export async function sendMessage(
       if (logData?.id) {
         complianceLogId = logData.id;
       }
-
-      // Kullanıcının profilindeki ihlal sayacını artır
-      if (!senderId.includes('demo')) {
-        await supabase.rpc('increment_profile_mask_count', { p_user_id: senderId });
-      }
     } catch {
-      // loglama sessiz devam eder
+      // sessiz devam et
     }
   }
 
+  const nowIso = new Date().toISOString();
   const newMsg: Message = {
     id: `msg-${Date.now()}`,
     conversation_id: conversationId,
@@ -241,17 +242,34 @@ export async function sendMessage(
     body: finalBody,
     attachment_url: attachmentUrl || null,
     is_read: false,
-    created_at: new Date().toISOString(),
+    created_at: nowIso,
   };
 
+  // 1. Yerel saklama alanına kaydet
+  const existingMsgs = getStoredMessages(conversationId);
+  existingMsgs.push(newMsg);
+  saveStoredMessages(conversationId, existingMsgs);
+
+  // Konuşmanın son mesajını güncelle
+  const convs = getStoredConversations();
+  const targetConv = convs.find((c) => c.id === conversationId);
+  if (targetConv) {
+    targetConv.last_message = finalBody;
+    targetConv.last_message_at = nowIso;
+    targetConv.updated_at = nowIso;
+    saveStoredConversations(convs);
+  }
+
+  // 2. Canlı Supabase'e gönder
   try {
     if (isSupabaseConfigured) {
       const { data, error } = await supabase.from('messages').insert(newMsg).select().single();
       if (!error && data) {
         await supabase
           .from('conversations')
-          .update({ updated_at: new Date().toISOString() })
+          .update({ updated_at: nowIso })
           .eq('id', conversationId);
+
         return {
           success: true,
           message: data as Message,
@@ -266,17 +284,6 @@ export async function sendMessage(
     // fallback
   }
 
-  if (!DEMO_MESSAGES[conversationId]) {
-    DEMO_MESSAGES[conversationId] = [];
-  }
-  DEMO_MESSAGES[conversationId].push(newMsg);
-
-  const conv = DEMO_CONVERSATIONS.find((c) => c.id === conversationId);
-  if (conv) {
-    conv.last_message = newMsg.body;
-    conv.last_message_at = newMsg.created_at;
-  }
-
   return {
     success: true,
     message: newMsg,
@@ -287,22 +294,119 @@ export async function sendMessage(
   };
 }
 
+export async function startConversation({
+  buyerId,
+  companyId,
+  listingId,
+  quoteId,
+  companyName,
+  listingTitle,
+  initialMessage,
+}: {
+  buyerId: string;
+  companyId: string;
+  listingId?: string;
+  quoteId?: string;
+  companyName?: string;
+  listingTitle?: string;
+  initialMessage?: string;
+}): Promise<{ success: boolean; conversation?: DemoConversation; error?: string }> {
+  const existingConvs = getStoredConversations();
+  const existing = existingConvs.find(
+    (c) =>
+      c.buyer_id === buyerId &&
+      c.company_id === companyId &&
+      (!listingId || c.listing_id === listingId)
+  );
+
+  if (existing) {
+    if (initialMessage) {
+      await sendMessage(existing.id, buyerId, initialMessage);
+    }
+    return { success: true, conversation: existing };
+  }
+
+  const nowIso = new Date().toISOString();
+  const newConv: DemoConversation = {
+    id: `conv-${Date.now()}`,
+    buyer_id: buyerId,
+    company_id: companyId,
+    listing_id: listingId || null,
+    quote_id: quoteId || null,
+    is_blocked: false,
+    created_at: nowIso,
+    updated_at: nowIso,
+    other_user_name: companyName || 'Firma Yetkilisi',
+    other_user_role: 'company',
+    listing_title: listingTitle,
+    unread_count: 0,
+    last_message: initialMessage || 'Konuşma başlatıldı.',
+    last_message_at: nowIso,
+  };
+
+  existingConvs.unshift(newConv);
+  saveStoredConversations(existingConvs);
+
+  if (initialMessage) {
+    await sendMessage(newConv.id, buyerId, initialMessage);
+  }
+
+  // Supabase senkronizasyonu
+  try {
+    const supabase = createClient();
+    const isSupabaseConfigured =
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+    if (isSupabaseConfigured) {
+      await supabase.from('conversations').insert({
+        id: newConv.id,
+        buyer_id: buyerId,
+        company_id: companyId,
+        listing_id: listingId || null,
+        quote_id: quoteId || null,
+      });
+    }
+  } catch {}
+
+  return { success: true, conversation: newConv };
+}
+
 export async function markConversationAsRead(
   conversationId: string,
   userId: string
 ): Promise<void> {
-  const conv = DEMO_CONVERSATIONS.find((c) => c.id === conversationId);
+  const convs = getStoredConversations();
+  const conv = convs.find((c) => c.id === conversationId);
   if (conv) {
     conv.unread_count = 0;
+    saveStoredConversations(convs);
   }
-  const msgs = DEMO_MESSAGES[conversationId];
-  if (msgs) {
+
+  const msgs = getStoredMessages(conversationId);
+  if (msgs.length > 0) {
     msgs.forEach((m) => {
       if (m.sender_id !== userId) {
         m.is_read = true;
       }
     });
+    saveStoredMessages(conversationId, msgs);
   }
+
+  try {
+    const supabase = createClient();
+    const isSupabaseConfigured =
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+    if (isSupabaseConfigured) {
+      await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('conversation_id', conversationId)
+        .neq('sender_id', userId);
+    }
+  } catch {}
 }
 
 export async function reportMessage(
@@ -310,8 +414,23 @@ export async function reportMessage(
   reporterId: string,
   reason: string
 ): Promise<{ success: boolean }> {
-  // In real Supabase, writes to message_reports table
-  console.log(`[REPORT] Message ${messageId} reported by ${reporterId}: ${reason}`);
+  try {
+    const supabase = createClient();
+    const isSupabaseConfigured =
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+    if (isSupabaseConfigured) {
+      await supabase.from('compliance_reports').insert({
+        reporter_id: reporterId,
+        entity_id: messageId,
+        entity_type: 'message',
+        reason,
+        created_at: new Date().toISOString(),
+      });
+    }
+  } catch {}
+
   return { success: true };
 }
 
@@ -319,9 +438,26 @@ export async function blockUser(
   conversationId: string,
   blockerId: string
 ): Promise<{ success: boolean }> {
-  const conv = DEMO_CONVERSATIONS.find((c) => c.id === conversationId);
+  const convs = getStoredConversations();
+  const conv = convs.find((c) => c.id === conversationId);
   if (conv) {
     conv.is_blocked = true;
+    saveStoredConversations(convs);
   }
+
+  try {
+    const supabase = createClient();
+    const isSupabaseConfigured =
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+    if (isSupabaseConfigured) {
+      await supabase
+        .from('conversations')
+        .update({ is_blocked: true })
+        .eq('id', conversationId);
+    }
+  } catch {}
+
   return { success: true };
 }

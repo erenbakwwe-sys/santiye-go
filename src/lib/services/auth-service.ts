@@ -132,6 +132,22 @@ export async function registerUser({
   // A. Canlı Supabase Varsa
   if (isSupabaseConfigured) {
     try {
+      // 1. Telefon mükerrerlik kontrolü (Aynı telefonla ikinci hesap açılamaz)
+      if (phone) {
+        const { data: existingPhone } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('phone', phone)
+          .maybeSingle();
+
+        if (existingPhone) {
+          return {
+            success: false,
+            error: 'Bu telefon numarası ile kayıtlı bir hesap zaten bulunmaktadır. Lütfen giriş yapınız.',
+          };
+        }
+      }
+
       const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://santiyego.com').replace(/\/$/, '');
       const redirectUrl = `${siteUrl}/auth/callback`;
 
@@ -204,11 +220,19 @@ export async function registerUser({
 
   // B. Yerel Güvenli Kayıt Motoru (Local Resilient Engine)
   const users = getStoredUsers();
-  const exists = users.find((u) => u.email === cleanEmail);
-  if (exists) {
+  const existsEmail = users.find((u) => u.email === cleanEmail);
+  if (existsEmail) {
     return {
       success: false,
       error: 'Bu e-posta adresiyle kayıtlı bir hesap zaten bulunmaktadır. Lütfen giriş yapınız.',
+    };
+  }
+
+  const existsPhone = users.find((u) => u.phone === phone);
+  if (existsPhone) {
+    return {
+      success: false,
+      error: 'Bu telefon numarası ile kayıtlı bir hesap zaten bulunmaktadır. Lütfen giriş yapınız.',
     };
   }
 

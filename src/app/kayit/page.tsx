@@ -70,22 +70,68 @@ export default function RegisterPage() {
       return;
     }
 
+    // 1.1 Gerçek Ad Soyad Doğrulaması (Sahte isim engeli)
+    const nameTrimmed = fullName.trim();
+    const nameWords = nameTrimmed.split(/\s+/).filter(Boolean);
+    if (nameWords.length < 2) {
+      setErrorMsg('Lütfen gerçek adınızı ve soyadınızı aralarında boşluk bırakarak eksiksiz giriniz.');
+      return;
+    }
+    if (nameTrimmed.length < 5) {
+      setErrorMsg('Ad ve soyad alanı en az 5 karakter olmalıdır.');
+      return;
+    }
+    const dummyWords = ['test', 'demo', 'deneme', 'asdf', 'admin', 'user', 'kullanici', 'fake', 'sahte'];
+    if (nameWords.some((w) => dummyWords.includes(w.toLowerCase()))) {
+      setErrorMsg('Lütfen resmi ve gerçek adınızı soyadınızı giriniz.');
+      return;
+    }
+    if (/^(.)\1{3,}$/i.test(nameTrimmed.replace(/\s/g, ''))) {
+      setErrorMsg('Geçersiz veya anlamsız ad soyad girdiniz.');
+      return;
+    }
+
     // 2. Şifre Kuralları
     if (!isPasswordValid) {
       setErrorMsg('Şifreniz en az 8 karakter olmalı, en az bir büyük harf, bir küçük harf ve bir rakam içermelidir.');
       return;
     }
 
-    // 3. Tek Kullanımlık E-posta Engeli
-    if (isDisposableEmail(email)) {
+    // 3. Tek Kullanımlık ve Sahte E-posta Engeli
+    const cleanEmail = email.trim().toLowerCase();
+    if (isDisposableEmail(cleanEmail)) {
       setErrorMsg('Güvenlik nedeniyle geçici / tek kullanımlık e-posta adresleri kabul edilmemektedir.');
       return;
     }
+    const emailPrefix = cleanEmail.split('@')[0] || '';
+    if (emailPrefix.length < 3 || dummyWords.includes(emailPrefix)) {
+      setErrorMsg('Lütfen geçerli ve şahsi e-posta adresinizi giriniz.');
+      return;
+    }
 
-    // 4. Telefon Numarası Normalizasyonu (+90)
+    // 4. Telefon Numarası Normalizasyonu (+90) ve Sahte Numara Engeli
     const phoneCheck = normalizeTurkishPhone(phone);
     if (!phoneCheck.valid) {
       setErrorMsg('Lütfen geçerli bir Türkiye cep telefonu numarası giriniz (Örn: 0532 123 45 67).');
+      return;
+    }
+
+    const rawPhoneDigits = phoneCheck.raw; // 10 hane (5xxxxxxxxx)
+    // 4.1 Tekrarlayan rakamlar (örn: 5555555555, 5333333333)
+    if (/^(\d)\1+$/.test(rawPhoneDigits) || /^(\d)\1{6,}$/.test(rawPhoneDigits.substring(1))) {
+      setErrorMsg('Lütfen size ait gerçek bir cep telefonu numarası giriniz.');
+      return;
+    }
+    // 4.2 Sıralı sahte numaralar (örn: 5321234567, 5432109876)
+    const seqAsc = '0123456789012345';
+    const seqDesc = '9876543210987654';
+    if (seqAsc.includes(rawPhoneDigits.substring(2)) || seqDesc.includes(rawPhoneDigits.substring(2))) {
+      setErrorMsg('Sıralı sahte telefon numaraları ile kayıt olunamaz.');
+      return;
+    }
+    // 4.3 Sahte son haneler
+    if (rawPhoneDigits.endsWith('000000') || rawPhoneDigits.endsWith('111111') || rawPhoneDigits.endsWith('123456')) {
+      setErrorMsg('Lütfen aktif olarak kullandığınız gerçek cep telefonu numaranızı giriniz.');
       return;
     }
 
@@ -98,6 +144,10 @@ export default function RegisterPage() {
       const cleanTax = taxNumber.replace(/\D/g, '');
       if (cleanTax.length !== 10 && cleanTax.length !== 11) {
         setErrorMsg('Vergi Kimlik Numarası (VKN) 10 hane, Şahıs şirketi için T.C. Kimlik No 11 hane olmalıdır.');
+        return;
+      }
+      if (/^(\d)\1+$/.test(cleanTax) || '12345678901'.includes(cleanTax)) {
+        setErrorMsg('Lütfen firmanıza ait resmi vergi kimlik numarasını giriniz.');
         return;
       }
     }
