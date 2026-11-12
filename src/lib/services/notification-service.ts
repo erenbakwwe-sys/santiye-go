@@ -34,11 +34,20 @@ export const DEMO_NOTIFICATIONS: Notification[] = [
 ];
 
 export async function getUserNotifications(userId: string): Promise<Notification[]> {
-  return DEMO_NOTIFICATIONS;
+  if (!userId) return [];
+  // Sadece belirli demo test kullanıcısı için demo bildirimleri dön
+  if (userId === 'buyer-demo-001' || userId === 'demo-buyer-user-001') {
+    return DEMO_NOTIFICATIONS;
+  }
+  return [];
 }
 
 export async function getUnreadNotificationCount(userId: string): Promise<number> {
-  return DEMO_NOTIFICATIONS.filter((n) => !n.is_read).length;
+  if (!userId) return 0;
+  if (userId === 'buyer-demo-001' || userId === 'demo-buyer-user-001') {
+    return DEMO_NOTIFICATIONS.filter((n) => !n.is_read).length;
+  }
+  return 0;
 }
 
 export async function markNotificationAsRead(id: string): Promise<void> {

@@ -377,14 +377,14 @@ export default function Header() {
 
           <div className="pt-3 border-t border-navy-800 flex flex-col gap-2">
             <Link
-              href="/firma-paneli"
+              href={profile ? "/firma-paneli" : "/giris?redirect=/firma-paneli"}
               onClick={() => setMobileMenuOpen(false)}
               className="w-full text-center py-2.5 rounded-lg bg-navy-800 text-white font-semibold text-xs"
             >
               Firma Paneli (Talepler & Takvim)
             </Link>
             <Link
-              href="/alici-paneli"
+              href={profile ? "/alici-paneli" : "/giris?redirect=/alici-paneli"}
               onClick={() => setMobileMenuOpen(false)}
               className="w-full text-center py-2.5 rounded-lg bg-navy-800 text-white font-semibold text-xs"
             >
