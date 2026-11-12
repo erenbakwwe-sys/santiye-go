@@ -14,9 +14,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'ŞANTİYE GO – Şantiyenizin Akıllı Çözüm Ortağı | İş Makinesi, Malzeme & Nakliye',
+  title: 'Şantiye GO – İş Makinesi, Malzeme & Şantiye Ekipmanları Platformu',
   description:
-    'ŞANTİYE GO, Türkiye genelinde iş makinesi kiralama, yapı malzemesi tedariği ve ağır nakliyat hizmetlerini en yakın konumda ve en iyi fiyat teklifleriyle sunan dijital pazaryeridir.',
+    'Şantiye GO, Türkiye genelinde iş makinesi kiralama, yapı malzemesi tedariği ve ağır nakliyat hizmetlerini en yakın konumda ve en iyi fiyat teklifleriyle sunan dijital pazaryeridir.',
+  openGraph: {
+    title: 'Şantiye GO – İş Makinesi, Malzeme & Şantiye Ekipmanları Platformu',
+    description:
+      'Şantiye GO, Türkiye genelinde iş makinesi kiralama, yapı malzemesi tedariği ve ağır nakliyat hizmetlerini en yakın konumda ve en iyi fiyat teklifleriyle sunan dijital pazaryeridir.',
+  },
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.ico',

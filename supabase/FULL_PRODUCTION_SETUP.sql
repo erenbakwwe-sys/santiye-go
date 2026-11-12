@@ -1,6 +1,3 @@
-﻿-- =========================================
--- FILE: supabase/migrations/01_schema.sql
--- =========================================
 -- ==============================================================================
 -- ŞANTİYE GO – SUPABASE POSTGRESQL + POSTGIS ŞEMASI VE GÜVENLİK MODELİ (RLS)
 -- ==============================================================================
@@ -360,11 +357,6 @@ CREATE POLICY "Users can delete own favorites" ON favorites FOR DELETE USING (au
 -- ==============================================================================
 -- INSERT INTO storage.buckets (id, name, public) VALUES ('listings', 'listings', true) ON CONFLICT DO NOTHING;
 -- INSERT INTO storage.buckets (id, name, public) VALUES ('company-logos', 'company-logos', true) ON CONFLICT DO NOTHING;
-
-
--- =========================================
--- FILE: supabase/migrations/02_advanced_search.sql
--- =========================================
 -- ==============================================================================
 -- ŞANTİYE GO – PROMPT 2: GELİŞMİŞ POSTGIS ARAMA & SAYFALAMA RPC FONKSİYONU
 -- ==============================================================================
@@ -582,11 +574,6 @@ BEGIN
       AND (p_keyword IS NULL OR l.title ILIKE '%' || p_keyword || '%' OR l.description ILIKE '%' || p_keyword || '%');
 END;
 $$;
-
-
--- =========================================
--- FILE: supabase/migrations/03_quotes_messages_bookings.sql
--- =========================================
 -- ==============================================================================
 -- ŞANTİYE GO – PROMPT 3: TEKLİF, MESAJLAŞMA, TAKVİM, REZERVASYON VE PUANLAMA ŞEMASI
 -- ==============================================================================
@@ -987,11 +974,6 @@ CREATE POLICY "Users view own notifications" ON notifications FOR SELECT USING (
 
 DROP POLICY IF EXISTS "Users update own notifications" ON notifications;
 CREATE POLICY "Users update own notifications" ON notifications FOR UPDATE USING (auth.uid() = user_id);
-
-
--- =========================================
--- FILE: supabase/migrations/04_admin_payments_commissions_memberships.sql
--- =========================================
 -- ==============================================================================
 -- ŞANTİYE GO – PROMPT 4: YÖNETİM PANELİ, ÖDEME, KOMİSYON VE ÜYELİK ŞEMASI
 -- ==============================================================================
@@ -1159,11 +1141,6 @@ ALTER TABLE reports
     ADD COLUMN IF NOT EXISTS admin_notes TEXT,
     ADD COLUMN IF NOT EXISTS resolved_by UUID REFERENCES profiles(id),
     ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
-
-
--- =========================================
--- FILE: supabase/migrations/05_ads_analytics_pwa.sql
--- =========================================
 -- ==============================================================================
 -- ŞANTİYE GO – GÖÇ 05: REKLAM, ÖNE ÇIKARMA, İSTATİSTİKLER VE PWA
 -- ==============================================================================
@@ -1278,11 +1255,6 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_push_subs_user ON push_subscriptions(user_id);
-
-
--- =========================================
--- FILE: supabase/migrations/06_dynamic_attributes_and_services.sql
--- =========================================
 -- ==============================================================================
 -- ŞANTİYE GO – GÖÇ 06: DİNAMİK ÖZELLİK SİSTEMİ, KALAN KATEGORİLER VE HİZMET İLANLARI
 -- ==============================================================================
@@ -1339,11 +1311,6 @@ ALTER TABLE listings ADD COLUMN IF NOT EXISTS portfolio_images TEXT[];
 ALTER TABLE listings ADD COLUMN IF NOT EXISTS scope_description TEXT;
 ALTER TABLE listings ADD COLUMN IF NOT EXISTS methodology_description TEXT;
 ALTER TABLE listings ADD COLUMN IF NOT EXISTS available_from DATE;
-
-
--- =========================================
--- FILE: supabase/migrations/07_security_and_indexes.sql
--- =========================================
 -- ==============================================================================
 -- ŞANTİYE GO – MIGRATION 07: CANLI GÜVENLİK (RLS), İNDEKSLER VE SOFT LAUNCH
 -- ==============================================================================
@@ -1586,11 +1553,6 @@ VALUES
     'Soft launch kademeli açılış modu ayarları (aktifken diğer iller yakında mesajı verir)'
 )
 ON CONFLICT (key) DO NOTHING;
-
-
--- =========================================
--- FILE: supabase/migrations/08_production_auth_and_verifications.sql
--- =========================================
 -- ==============================================================================
 -- ŞANTİYE GO – MIGRATION 08: PRODUCTION AUTH, VERIFICATIONS & STORAGE
 -- Prompt 8: Demo'dan Çıkış ve Gerçek Çalışan Sistem Altyapısı
@@ -1790,221 +1752,74 @@ BEGIN
     RETURN jsonb_build_object('success', true, 'message', 'Telefon numarası başarıyla doğrulandı.');
 END;
 $$;
-
-
--- =========================================
--- FILE: supabase/seed_categories.sql
--- =========================================
 -- ==============================================================================
--- ŞANTİYE GO – KATEGORİ VE ALT KATEGORİLER SEED VERİSİ
+-- ŞANTİYE GO – RESEND VE TELEFON OTP DOĞRULAMA FONKSİYONLARI
 -- ==============================================================================
 
--- 1. ANA KATEGORİLER
-INSERT INTO categories (id, parent_id, name, slug, icon, order_index) VALUES
-('a0000000-0000-0000-0000-000000000001', NULL, 'İş Makineleri', 'is-makineleri', 'Wrench', 1),
-('a0000000-0000-0000-0000-000000000002', NULL, 'Yapı Malzemeleri', 'yapi-malzemeleri', 'Boxes', 2),
-('a0000000-0000-0000-0000-000000000003', NULL, 'Nakliye', 'nakliye', 'Truck', 3)
-ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, icon = EXCLUDED.icon, order_index = EXCLUDED.order_index;
+-- 1. PHONE VERIFICATIONS TABLOSU İÇİN GÜVENLİ KOD OLUŞTURMA RPC
+CREATE OR REPLACE FUNCTION public.request_phone_otp(
+    p_phone VARCHAR,
+    p_code_hash VARCHAR
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_last RECORD;
+    v_now TIMESTAMPTZ := now();
+BEGIN
+    SELECT * INTO v_last
+    FROM public.phone_verifications
+    WHERE phone = p_phone
+    ORDER BY created_at DESC
+    LIMIT 1;
 
--- 2. İŞ MAKİNELERİ ALT KATEGORİLERİ
-INSERT INTO categories (id, parent_id, name, slug, icon, order_index) VALUES
-('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'Ekskavatör', 'ekskavator', 'Wrench', 1),
-('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001', 'Mini Ekskavatör', 'mini-ekskavator', 'Wrench', 2),
-('b0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001', 'JCB (Beko Loder)', 'jcb-beko-loder', 'Wrench', 3),
-('b0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000001', 'Dozer', 'dozer', 'Wrench', 4),
-('b0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000001', 'Greyder', 'greyder', 'Wrench', 5),
-('b0000000-0000-0000-0000-000000000006', 'a0000000-0000-0000-0000-000000000001', 'Loder (Yükleyici)', 'loder-yukleyici', 'Wrench', 6),
-('b0000000-0000-0000-0000-000000000007', 'a0000000-0000-0000-0000-000000000001', 'Forklift', 'forklift', 'Wrench', 7),
-('b0000000-0000-0000-0000-000000000008', 'a0000000-0000-0000-0000-000000000001', 'Vinç (Mobil / Kule)', 'vinc', 'Wrench', 8),
-('b0000000-0000-0000-0000-000000000009', 'a0000000-0000-0000-0000-000000000001', 'Beton Mikseri', 'beton-mikseri', 'Wrench', 9),
-('b0000000-0000-0000-0000-000000000010', 'a0000000-0000-0000-0000-000000000001', 'Silindir', 'silindir', 'Wrench', 10),
-('b0000000-0000-0000-0000-000000000011', 'a0000000-0000-0000-0000-000000000001', 'Kompresör', 'kompresor', 'Wrench', 11),
-('b0000000-0000-0000-0000-000000000012', 'a0000000-0000-0000-0000-000000000001', 'Jeneratör', 'jenerator', 'Wrench', 12)
-ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, icon = EXCLUDED.icon, order_index = EXCLUDED.order_index;
+    -- Rate Limit: 60 saniye içinde tekrar kod isteğini engelle
+    IF v_last IS NOT NULL AND v_last.resend_after > v_now THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'RATE_LIMIT_COOLDOWN',
+            'remaining_seconds', EXTRACT(EPOCH FROM (v_last.resend_after - v_now))::INT
+        );
+    END IF;
 
--- 3. YAPI MALZEMELERİ ALT KATEGORİLERİ
-INSERT INTO categories (id, parent_id, name, slug, icon, order_index) VALUES
-('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002', 'Çimento', 'cimento', 'Boxes', 1),
-('c0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002', 'Demir / Donatı', 'demir-donati', 'Boxes', 2),
-('c0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000002', 'Kum & Çakıl', 'kum-cakil', 'Boxes', 3),
-('c0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000002', 'Hazır Beton', 'hazir-beton', 'Boxes', 4),
-('c0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000002', 'Tuğla & Bims', 'tugla-bims', 'Boxes', 5),
-('c0000000-0000-0000-0000-000000000006', 'a0000000-0000-0000-0000-000000000002', 'Gazbeton', 'gazbeton', 'Boxes', 6),
-('c0000000-0000-0000-0000-000000000007', 'a0000000-0000-0000-0000-000000000002', 'Alçı & Sıva', 'alci-siva', 'Boxes', 7),
-('c0000000-0000-0000-0000-000000000008', 'a0000000-0000-0000-0000-000000000002', 'Yalıtım & İzolasyon', 'yalitim-izolasyon', 'Boxes', 8),
-('c0000000-0000-0000-0000-000000000009', 'a0000000-0000-0000-0000-000000000002', 'İnşaat Boyası', 'insaat-boyasi', 'Boxes', 9),
-('c0000000-0000-0000-0000-000000000010', 'a0000000-0000-0000-0000-000000000002', 'Seramik & Fayans', 'seramik-fayans', 'Boxes', 10)
-ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, icon = EXCLUDED.icon, order_index = EXCLUDED.order_index;
+    -- Yeni doğrulama kaydı aç (5 dakika geçerlilik, 60 saniye tekrar bekleme)
+    INSERT INTO public.phone_verifications (
+        phone,
+        code_hash,
+        attempts,
+        max_attempts,
+        expires_at,
+        resend_after
+    ) VALUES (
+        p_phone,
+        p_code_hash,
+        0,
+        3,
+        v_now + interval '5 minutes',
+        v_now + interval '60 seconds'
+    );
 
--- 4. NAKLİYE ALT KATEGORİLERİ
-INSERT INTO categories (id, parent_id, name, slug, icon, order_index) VALUES
-('d0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000003', 'Hafriyat Nakliyesi', 'hafriyat-nakliyesi', 'Truck', 1),
-('d0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000003', 'Kamyon Kiralama', 'kamyon-kiralama', 'Truck', 2),
-('d0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000003', 'Lowbed (Ağır Nakliyat)', 'lowbed-agir-nakliyat', 'Truck', 3),
-('d0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000003', 'Vinçli Nakliye', 'vincli-nakliye', 'Truck', 4),
-('d0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000003', 'İş Makinesi Nakliyesi', 'is-makinesi-nakliyesi', 'Truck', 5),
-('d0000000-0000-0000-0000-000000000006', 'a0000000-0000-0000-0000-000000000003', 'Moloz Taşıma', 'moloz-tasima', 'Truck', 6)
-ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, icon = EXCLUDED.icon, order_index = EXCLUDED.order_index;
+    RETURN jsonb_build_object(
+        'success', true,
+        'expires_in_seconds', 300,
+        'resend_after_seconds', 60
+    );
+END;
+$$;
 
-
--- =========================================
--- FILE: supabase/seed_cities_districts.sql
--- =========================================
+-- Anon ve authenticated kullanıcıların RPC'yi çalıştırmasına izin ver
+GRANT EXECUTE ON FUNCTION public.request_phone_otp TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.verify_phone_otp TO anon, authenticated, service_role;
 -- ==============================================================================
--- ŞANTİYE GO – TÜRKİYE 81 İL VE İLÇELERİ SEED VERİSİ (WGS84 KOORDİNATLARIYLA)
--- ==============================================================================
-
-INSERT INTO cities (id, plate_code, name, location) VALUES
-(1, 1, 'Adana', ST_SetSRID(ST_MakePoint(35.3213, 37.0000), 4326)::geography),
-(2, 2, 'Adıyaman', ST_SetSRID(ST_MakePoint(38.2786, 37.7648), 4326)::geography),
-(3, 3, 'Afyonkarahisar', ST_SetSRID(ST_MakePoint(30.5433, 38.7507), 4326)::geography),
-(4, 4, 'Ağrı', ST_SetSRID(ST_MakePoint(43.0519, 39.7217), 4326)::geography),
-(5, 5, 'Amasya', ST_SetSRID(ST_MakePoint(35.8353, 40.6534), 4326)::geography),
-(6, 6, 'Ankara', ST_SetSRID(ST_MakePoint(32.8597, 39.9334), 4326)::geography),
-(7, 7, 'Antalya', ST_SetSRID(ST_MakePoint(30.7133, 36.8969), 4326)::geography),
-(8, 8, 'Artvin', ST_SetSRID(ST_MakePoint(41.8183, 41.1828), 4326)::geography),
-(9, 9, 'Aydın', ST_SetSRID(ST_MakePoint(27.8456, 37.8560), 4326)::geography),
-(10, 10, 'Balıkesir', ST_SetSRID(ST_MakePoint(27.8903, 39.6484), 4326)::geography),
-(11, 11, 'Bilecik', ST_SetSRID(ST_MakePoint(29.9793, 40.1451), 4326)::geography),
-(12, 12, 'Bingöl', ST_SetSRID(ST_MakePoint(40.4939, 38.8854), 4326)::geography),
-(13, 13, 'Bitlis', ST_SetSRID(ST_MakePoint(42.1095, 38.4006), 4326)::geography),
-(14, 14, 'Bolu', ST_SetSRID(ST_MakePoint(31.6061, 40.7350), 4326)::geography),
-(15, 15, 'Burdur', ST_SetSRID(ST_MakePoint(30.2889, 37.7203), 4326)::geography),
-(16, 16, 'Bursa', ST_SetSRID(ST_MakePoint(29.0610, 40.1885), 4326)::geography),
-(17, 17, 'Çanakkale', ST_SetSRID(ST_MakePoint(26.4086, 40.1553), 4326)::geography),
-(18, 18, 'Çankırı', ST_SetSRID(ST_MakePoint(33.6134, 40.6013), 4326)::geography),
-(19, 19, 'Çorum', ST_SetSRID(ST_MakePoint(34.9556, 40.5506), 4326)::geography),
-(20, 20, 'Denizli', ST_SetSRID(ST_MakePoint(29.0864, 37.7765), 4326)::geography),
-(21, 21, 'Diyarbakır', ST_SetSRID(ST_MakePoint(40.2189, 37.9144), 4326)::geography),
-(22, 22, 'Edirne', ST_SetSRID(ST_MakePoint(26.5594, 41.6772), 4326)::geography),
-(23, 23, 'Elazığ', ST_SetSRID(ST_MakePoint(39.2264, 38.6810), 4326)::geography),
-(24, 24, 'Erzincan', ST_SetSRID(ST_MakePoint(39.4926, 39.7500), 4326)::geography),
-(25, 25, 'Erzurum', ST_SetSRID(ST_MakePoint(41.2728, 39.9043), 4326)::geography),
-(26, 26, 'Eskişehir', ST_SetSRID(ST_MakePoint(30.5256, 39.7767), 4326)::geography),
-(27, 27, 'Gaziantep', ST_SetSRID(ST_MakePoint(37.3825, 37.0662), 4326)::geography),
-(28, 28, 'Giresun', ST_SetSRID(ST_MakePoint(38.3895, 40.9128), 4326)::geography),
-(29, 29, 'Gümüşhane', ST_SetSRID(ST_MakePoint(39.4814, 40.4600), 4326)::geography),
-(30, 30, 'Hakkari', ST_SetSRID(ST_MakePoint(43.7408, 37.5833), 4326)::geography),
-(31, 31, 'Hatay', ST_SetSRID(ST_MakePoint(36.1667, 36.2000), 4326)::geography),
-(32, 32, 'Isparta', ST_SetSRID(ST_MakePoint(30.5537, 37.7648), 4326)::geography),
-(33, 33, 'Mersin', ST_SetSRID(ST_MakePoint(34.6415, 36.8121), 4326)::geography),
-(34, 34, 'İstanbul', ST_SetSRID(ST_MakePoint(28.9784, 41.0082), 4326)::geography),
-(35, 35, 'İzmir', ST_SetSRID(ST_MakePoint(27.1428, 38.4237), 4326)::geography),
-(36, 36, 'Kars', ST_SetSRID(ST_MakePoint(43.0975, 40.6167), 4326)::geography),
-(37, 37, 'Kastamonu', ST_SetSRID(ST_MakePoint(33.7765, 41.3887), 4326)::geography),
-(38, 38, 'Kayseri', ST_SetSRID(ST_MakePoint(35.4853, 38.7205), 4326)::geography),
-(39, 39, 'Kırklareli', ST_SetSRID(ST_MakePoint(27.2244, 41.7333), 4326)::geography),
-(40, 40, 'Kırşehir', ST_SetSRID(ST_MakePoint(34.1709, 39.1425), 4326)::geography),
-(41, 41, 'Kocaeli', ST_SetSRID(ST_MakePoint(29.9409, 40.8533), 4326)::geography),
-(42, 42, 'Konya', ST_SetSRID(ST_MakePoint(32.4846, 37.8667), 4326)::geography),
-(43, 43, 'Kütahya', ST_SetSRID(ST_MakePoint(29.9833, 39.4167), 4326)::geography),
-(44, 44, 'Malatya', ST_SetSRID(ST_MakePoint(38.3095, 38.3552), 4326)::geography),
-(45, 45, 'Manisa', ST_SetSRID(ST_MakePoint(27.4296, 38.6191), 4326)::geography),
-(46, 46, 'Kahramanmaraş', ST_SetSRID(ST_MakePoint(36.9371, 37.5858), 4326)::geography),
-(47, 47, 'Mardin', ST_SetSRID(ST_MakePoint(40.7339, 37.3212), 4326)::geography),
-(48, 48, 'Muğla', ST_SetSRID(ST_MakePoint(28.3636, 37.2153), 4326)::geography),
-(49, 49, 'Muş', ST_SetSRID(ST_MakePoint(41.4910, 38.7432), 4326)::geography),
-(50, 50, 'Nevşehir', ST_SetSRID(ST_MakePoint(34.7144, 38.6244), 4326)::geography),
-(51, 51, 'Niğde', ST_SetSRID(ST_MakePoint(34.6857, 37.9667), 4326)::geography),
-(52, 52, 'Ordu', ST_SetSRID(ST_MakePoint(37.8797, 40.9839), 4326)::geography),
-(53, 53, 'Rize', ST_SetSRID(ST_MakePoint(40.5217, 41.0201), 4326)::geography),
-(54, 54, 'Sakarya', ST_SetSRID(ST_MakePoint(30.4033, 40.7569), 4326)::geography),
-(55, 55, 'Samsun', ST_SetSRID(ST_MakePoint(36.3360, 41.2867), 4326)::geography),
-(56, 56, 'Siirt', ST_SetSRID(ST_MakePoint(41.9420, 37.9333), 4326)::geography),
-(57, 57, 'Sinop', ST_SetSRID(ST_MakePoint(35.1517, 42.0231), 4326)::geography),
-(58, 58, 'Sivas', ST_SetSRID(ST_MakePoint(37.0179, 39.7477), 4326)::geography),
-(59, 59, 'Tekirdağ', ST_SetSRID(ST_MakePoint(27.5110, 40.9833), 4326)::geography),
-(60, 60, 'Tokat', ST_SetSRID(ST_MakePoint(36.5544, 40.3167), 4326)::geography),
-(61, 61, 'Trabzon', ST_SetSRID(ST_MakePoint(39.7168, 41.0015), 4326)::geography),
-(62, 62, 'Tunceli', ST_SetSRID(ST_MakePoint(39.5401, 39.1079), 4326)::geography),
-(63, 63, 'Şanlıurfa', ST_SetSRID(ST_MakePoint(38.7955, 37.1674), 4326)::geography),
-(64, 64, 'Uşak', ST_SetSRID(ST_MakePoint(29.4058, 38.6823), 4326)::geography),
-(65, 65, 'Van', ST_SetSRID(ST_MakePoint(43.3748, 38.4891), 4326)::geography),
-(66, 66, 'Yozgat', ST_SetSRID(ST_MakePoint(34.8044, 39.8181), 4326)::geography),
-(67, 67, 'Zonguldak', ST_SetSRID(ST_MakePoint(31.7987, 41.4564), 4326)::geography),
-(68, 68, 'Aksaray', ST_SetSRID(ST_MakePoint(34.0254, 38.3687), 4326)::geography),
-(69, 69, 'Bayburt', ST_SetSRID(ST_MakePoint(40.2249, 40.2552), 4326)::geography),
-(70, 70, 'Karaman', ST_SetSRID(ST_MakePoint(33.2150, 37.1759), 4326)::geography),
-(71, 71, 'Kırıkkale', ST_SetSRID(ST_MakePoint(33.5139, 39.8468), 4326)::geography),
-(72, 72, 'Batman', ST_SetSRID(ST_MakePoint(41.1322, 37.8812), 4326)::geography),
-(73, 73, 'Şırnak', ST_SetSRID(ST_MakePoint(42.4594, 37.5164), 4326)::geography),
-(74, 74, 'Bartın', ST_SetSRID(ST_MakePoint(32.3375, 41.6344), 4326)::geography),
-(75, 75, 'Ardahan', ST_SetSRID(ST_MakePoint(42.7022, 41.1105), 4326)::geography),
-(76, 76, 'Iğdır', ST_SetSRID(ST_MakePoint(44.0450, 39.9167), 4326)::geography),
-(77, 77, 'Yalova', ST_SetSRID(ST_MakePoint(29.2769, 40.6550), 4326)::geography),
-(78, 78, 'Karabük', ST_SetSRID(ST_MakePoint(32.6277, 41.2061), 4326)::geography),
-(79, 79, 'Kilis', ST_SetSRID(ST_MakePoint(37.1150, 36.7184), 4326)::geography),
-(80, 80, 'Osmaniye', ST_SetSRID(ST_MakePoint(36.2467, 37.0742), 4326)::geography),
-(81, 81, 'Düzce', ST_SetSRID(ST_MakePoint(31.1625, 40.8438), 4326)::geography)
-ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, location = EXCLUDED.location;
-
--- İLÇELER (Örnek metropol ve inşaat/sanayi yoğunluklu ilçeler)
-INSERT INTO districts (id, city_id, name, location) VALUES
--- İstanbul (34)
-(101, 34, 'Kadıköy', ST_SetSRID(ST_MakePoint(29.0275, 40.9911), 4326)::geography),
-(102, 34, 'Ümraniye', ST_SetSRID(ST_MakePoint(29.1194, 41.0264), 4326)::geography),
-(103, 34, 'Pendik', ST_SetSRID(ST_MakePoint(29.2333, 40.8739), 4326)::geography),
-(104, 34, 'Tuzla', ST_SetSRID(ST_MakePoint(29.3014, 40.8167), 4326)::geography),
-(105, 34, 'Başakşehir', ST_SetSRID(ST_MakePoint(28.8028, 41.0969), 4326)::geography),
-(106, 34, 'Esenyurt', ST_SetSRID(ST_MakePoint(28.6739, 41.0342), 4326)::geography),
-(107, 34, 'Sarıyer', ST_SetSRID(ST_MakePoint(29.0531, 41.1686), 4326)::geography),
-(108, 34, 'Beylikdüzü', ST_SetSRID(ST_MakePoint(28.6439, 40.9933), 4326)::geography),
-(109, 34, 'Şişli', ST_SetSRID(ST_MakePoint(28.9872, 41.0600), 4326)::geography),
-(110, 34, 'Arnavutköy', ST_SetSRID(ST_MakePoint(28.7417, 41.1856), 4326)::geography),
-
--- Ankara (6)
-(201, 6, 'Çankaya', ST_SetSRID(ST_MakePoint(32.8540, 39.9000), 4326)::geography),
-(202, 6, 'Yenimahalle', ST_SetSRID(ST_MakePoint(32.8050, 39.9678), 4326)::geography),
-(203, 6, 'Etimesgut', ST_SetSRID(ST_MakePoint(32.6667, 39.9481), 4326)::geography),
-(204, 6, 'Sincan', ST_SetSRID(ST_MakePoint(32.5767, 39.9583), 4326)::geography),
-(205, 6, 'Ostim / İvedik (Yenimahalle)', ST_SetSRID(ST_MakePoint(32.7483, 39.9767), 4326)::geography),
-(206, 6, 'Gölbaşı', ST_SetSRID(ST_MakePoint(32.8042, 39.7917), 4326)::geography),
-
--- İzmir (35)
-(301, 35, 'Bornova', ST_SetSRID(ST_MakePoint(27.2189, 38.4650), 4326)::geography),
-(302, 35, 'Bayraklı', ST_SetSRID(ST_MakePoint(27.1667, 38.4600), 4326)::geography),
-(303, 35, 'Çiğli', ST_SetSRID(ST_MakePoint(27.0606, 38.4975), 4326)::geography),
-(304, 35, 'Torbalı', ST_SetSRID(ST_MakePoint(27.3622, 38.1517), 4326)::geography),
-(305, 35, 'Aliağa', ST_SetSRID(ST_MakePoint(26.9722, 38.7986), 4326)::geography),
-
--- Kocaeli (41)
-(401, 41, 'Gebze', ST_SetSRID(ST_MakePoint(29.4306, 40.8028), 4326)::geography),
-(402, 41, 'İzmit', ST_SetSRID(ST_MakePoint(29.9194, 40.7656), 4326)::geography),
-(403, 41, 'Çayırova', ST_SetSRID(ST_MakePoint(29.3725, 40.8250), 4326)::geography),
-(404, 41, 'Dilovası', ST_SetSRID(ST_MakePoint(29.5444, 40.7853), 4326)::geography),
-
--- Bursa (16)
-(501, 16, 'Nilüfer', ST_SetSRID(ST_MakePoint(28.9833, 40.2167), 4326)::geography),
-(502, 16, 'Osmangazi', ST_SetSRID(ST_MakePoint(29.0500, 40.2000), 4326)::geography),
-(503, 16, 'Yıldırım', ST_SetSRID(ST_MakePoint(29.1000, 40.1833), 4326)::geography),
-(504, 16, 'İnegöl', ST_SetSRID(ST_MakePoint(29.5100, 40.0800), 4326)::geography),
-
--- Antalya (7)
-(601, 7, 'Muratpaşa', ST_SetSRID(ST_MakePoint(30.7167, 36.8833), 4326)::geography),
-(602, 7, 'Kepez', ST_SetSRID(ST_MakePoint(30.6833, 36.9333), 4326)::geography),
-(603, 7, 'Konyaaltı', ST_SetSRID(ST_MakePoint(30.6167, 36.8667), 4326)::geography),
-(604, 7, 'Alanya', ST_SetSRID(ST_MakePoint(32.0000, 36.5439), 4326)::geography),
-
--- Samsun (55)
-(701, 55, 'Tekkeköy', ST_SetSRID(ST_MakePoint(36.4456, 41.2312), 4326)::geography),
-(702, 55, 'İlkadım', ST_SetSRID(ST_MakePoint(36.3312, 41.2854), 4326)::geography),
-(703, 55, 'Canik', ST_SetSRID(ST_MakePoint(36.3654, 41.2741), 4326)::geography),
-(704, 55, 'Atakum', ST_SetSRID(ST_MakePoint(36.3125, 41.3145), 4326)::geography)
-ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, location = EXCLUDED.location;
-
-
-
-
--- =========================================
--- MIGRATION 10: AUTO CREATE PROFILES & COMPANIES
--- =========================================
--- ==============================================================================
--- ÅANTÄ°YE GO â€“ MIGRATION 10: AUTO CREATE PROFILES & COMPANIES TRIGGER
--- KullanÄ±cÄ± kaydolduÄŸunda profiles ve companies kayÄ±tlarÄ±nÄ± otomatik ve yetki
--- sorunu yaÅŸamadan (SECURITY DEFINER) oluÅŸturan PostgreSQL tetikleyicisi.
+-- ŞANTİYE GO – MIGRATION 10: AUTO CREATE PROFILES & COMPANIES TRIGGER
+-- Kullanıcı kaydolduğunda profiles ve companies kayıtlarını otomatik ve yetki
+-- sorunu yaşamadan (SECURITY DEFINER) oluşturan PostgreSQL tetikleyicisi.
 -- ==============================================================================
 
--- 1. YENÄ° KULLANICI TETÄ°KLEYÄ°CÄ° FONKSÄ°YONU
+-- 1. YENİ KULLANICI TETİKLEYİCİ FONKSİYONU
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -2018,7 +1833,7 @@ DECLARE
     v_city_id INT;
     v_district_id INT;
 BEGIN
-    -- RolÃ¼ belirle ('company', 'buyer', 'admin', 'super_admin')
+    -- Rolü belirle ('company', 'buyer', 'admin', 'super_admin')
     v_raw_role := COALESCE(new.raw_user_meta_data->>'role', 'buyer');
     IF v_raw_role NOT IN ('buyer', 'company', 'admin', 'super_admin') THEN
         v_raw_role := 'buyer';
@@ -2043,7 +1858,7 @@ BEGIN
         v_district_id := NULL;
     END;
 
-    -- 1. Profiles tablosuna ekle / gÃ¼ncelle
+    -- 1. Profiles tablosuna ekle / güncelle
     INSERT INTO public.profiles (
         id,
         role,
@@ -2073,7 +1888,7 @@ BEGIN
         phone = COALESCE(public.profiles.phone, EXCLUDED.phone),
         is_email_verified = CASE WHEN new.email_confirmed_at IS NOT NULL THEN true ELSE public.profiles.is_email_verified END;
 
-    -- 2. EÄŸer rol 'company' ise companies tablosuna ekle
+    -- 2. Eğer rol 'company' ise companies tablosuna ekle
     IF v_role = 'company' THEN
         INSERT INTO public.companies (
             user_id,
@@ -2087,7 +1902,7 @@ BEGIN
             is_demo
         ) VALUES (
             new.id,
-            COALESCE(v_company_name, v_full_name, 'Firma HesabÄ±'),
+            COALESCE(v_company_name, v_full_name, 'Firma Hesabı'),
             v_tax_number,
             v_tax_office,
             COALESCE(v_phone, ''),
@@ -2107,13 +1922,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 2. AUTH.USERS TETÄ°KLEYÄ°CÄ°SÄ°
+-- 2. AUTH.USERS TETİKLEYİCİSİ
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 3. MEVCUT KULLANICILARI GERÄ°YE DÃ–NÃœK DÃœZELTME (BACKFILL)
+-- 3. MEVCUT KULLANICILARI GERİYE DÖNÜK DÜZELTME (BACKFILL)
 DO $$
 DECLARE
     r RECORD;
@@ -2127,7 +1942,7 @@ BEGIN
         END IF;
         v_role := v_raw_role::public.user_role;
 
-        -- Profiles tablosunu gÃ¼ncelle veya oluÅŸtur
+        -- Profiles tablosunu güncelle veya oluştur
         INSERT INTO public.profiles (
             id,
             role,
@@ -2158,7 +1973,7 @@ BEGIN
             phone = COALESCE(public.profiles.phone, EXCLUDED.phone),
             is_email_verified = CASE WHEN r.email_confirmed_at IS NOT NULL THEN true ELSE public.profiles.is_email_verified END;
 
-        -- EÄŸer firma ise companies tablosuna ekle
+        -- Eğer firma ise companies tablosuna ekle
         IF v_role = 'company' THEN
             INSERT INTO public.companies (
                 user_id,
@@ -2186,17 +2001,12 @@ BEGIN
         END IF;
     END LOOP;
 END $$;
-
-
--- =========================================
--- MIGRATION 11: ANTI LEAK & CONTROLLED REVEAL
--- =========================================
 -- ==============================================================================
--- ÅANTÄ°YE GO â€“ MIGRATION 11: Ä°LETÄ°ÅÄ°M KORUMA, MASKELEME VE KONTROLLÃœ AÃ‡ILIÅ (PROMPT 9A)
--- Platform dÄ±ÅŸÄ± anlaÅŸmalarÄ± engelleme, ihlal takibi ve kontrollÃ¼ iletiÅŸim kartÄ± ÅŸemasÄ±.
+-- ŞANTİYE GO – MIGRATION 11: İLETİŞİM KORUMA, MASKELEME VE KONTROLLÜ AÇILIŞ (PROMPT 9A)
+-- Platform dışı anlaşmaları engelleme, ihlal takibi ve kontrollü iletişim kartı şeması.
 -- ==============================================================================
 
--- 1. SÄ°STEM AYARLARI TABLOSU (Admin tarafÄ±ndan yÃ¶netilebilir dinamik parametreler)
+-- 1. SİSTEM AYARLARI TABLOSU (Admin tarafından yönetilebilir dinamik parametreler)
 CREATE TABLE IF NOT EXISTS public.system_settings (
     key VARCHAR(100) PRIMARY KEY,
     value JSONB NOT NULL,
@@ -2206,15 +2016,15 @@ CREATE TABLE IF NOT EXISTS public.system_settings (
 
 INSERT INTO public.system_settings (key, value, description)
 VALUES 
-    ('reveal_rule', '{"default": "teklif_kabul", "categories": {}}'::jsonb, 'Ä°letiÅŸim aÃ§Ä±lÄ±ÅŸ tetikleyicisi kuralÄ± (teklif_kabul, odeme, talep_kredisi, numara_goster_butonu)'),
-    ('violation_threshold', '{"info_max": 2, "warn_max": 4, "flag_max": 6}'::jsonb, 'KullanÄ±cÄ± ihlal seviyesi eÅŸikleri'),
-    ('mask_patterns', '{"keywords": ["whatsapp", "wp", "watsap", "instagram", "insta", "telegram", "t.me", "Ã¶zelden yaz", "Ã¶zelden ara", "elden Ã¶de", "elden anlaÅŸalÄ±m"]}'::jsonb, 'YasaklÄ± dÄ±ÅŸ yÃ¶nlendirme kelimeleri'),
-    ('numara_goster_config', '{"enabled": false, "daily_limit": 5}'::jsonb, 'YumuÅŸak mod numara gÃ¶sterim ayarÄ±')
+    ('reveal_rule', '{"default": "teklif_kabul", "categories": {}}'::jsonb, 'İletişim açılış tetikleyicisi kuralı (teklif_kabul, odeme, talep_kredisi, numara_goster_butonu)'),
+    ('violation_threshold', '{"info_max": 2, "warn_max": 4, "flag_max": 6}'::jsonb, 'Kullanıcı ihlal seviyesi eşikleri'),
+    ('mask_patterns', '{"keywords": ["whatsapp", "wp", "watsap", "instagram", "insta", "telegram", "t.me", "özelden yaz", "özelden ara", "elden öde", "elden anlaşalım"]}'::jsonb, 'Yasaklı dış yönlendirme kelimeleri'),
+    ('numara_goster_config', '{"enabled": false, "daily_limit": 5}'::jsonb, 'Yumuşak mod numara gösterim ayarı')
 ON CONFLICT (key) DO UPDATE SET
     value = EXCLUDED.value,
     updated_at = now();
 
--- 2. Ä°LETÄ°ÅÄ°M MASKELEME VE Ä°HLAL LOGLARI (KVKK Uyumlu - Asla ham telefon/e-posta saklanmaz)
+-- 2. İLETİŞİM MASKELEME VE İHLAL LOGLARI (KVKK Uyumlu - Asla ham telefon/e-posta saklanmaz)
 CREATE TABLE IF NOT EXISTS public.compliance_mask_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -2232,7 +2042,7 @@ CREATE INDEX IF NOT EXISTS idx_compliance_user ON public.compliance_mask_logs(us
 CREATE INDEX IF NOT EXISTS idx_compliance_status ON public.compliance_mask_logs(review_status);
 CREATE INDEX IF NOT EXISTS idx_compliance_created ON public.compliance_mask_logs(created_at DESC);
 
--- 3. KONTROLLÃœ Ä°LETÄ°ÅÄ°M AÃ‡ILIÅ TABLOSU (REVEALS)
+-- 3. KONTROLLÜ İLETİŞİM AÇILIŞ TABLOSU (REVEALS)
 CREATE TABLE IF NOT EXISTS public.contact_reveals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     booking_id UUID REFERENCES public.bookings(id) ON DELETE CASCADE,
@@ -2247,7 +2057,7 @@ CREATE INDEX IF NOT EXISTS idx_contact_reveals_parties ON public.contact_reveals
 CREATE INDEX IF NOT EXISTS idx_contact_reveals_booking ON public.contact_reveals(booking_id);
 CREATE INDEX IF NOT EXISTS idx_contact_reveals_quote ON public.contact_reveals(quote_id);
 
--- 4. YUMUÅAK MOD: NUMARA GÃ–STERÄ°M KULLANIM LOGLARI
+-- 4. YUMUŞAK MOD: NUMARA GÖSTERİM KULLANIM LOGLARI
 CREATE TABLE IF NOT EXISTS public.phone_reveal_daily_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -2258,18 +2068,18 @@ CREATE TABLE IF NOT EXISTS public.phone_reveal_daily_logs (
 
 CREATE INDEX IF NOT EXISTS idx_phone_reveal_user_daily ON public.phone_reveal_daily_logs(user_id, created_at DESC);
 
--- 5. PROFÄ°LLERE Ä°HLAL VE MASKELEME SAYACI EKLEME
+-- 5. PROFİLLERE İHLAL VE MASKELEME SAYACI EKLEME
 ALTER TABLE public.profiles 
     ADD COLUMN IF NOT EXISTS mask_violation_count INT DEFAULT 0,
     ADD COLUMN IF NOT EXISTS compliance_status VARCHAR(20) DEFAULT 'clean'; -- 'clean', 'warned', 'flagged', 'suspended'
 
--- 6. GÃœVENLÄ°K MODELÄ° (ROW LEVEL SECURITY - RLS)
+-- 6. GÜVENLİK MODELİ (ROW LEVEL SECURITY - RLS)
 ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.compliance_mask_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_reveals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phone_reveal_daily_logs ENABLE ROW LEVEL SECURITY;
 
--- System settings: Herkes okuyabilir, sadece admin gÃ¼nceller
+-- System settings: Herkes okuyabilir, sadece admin günceller
 DROP POLICY IF EXISTS "Public can read settings" ON public.system_settings;
 CREATE POLICY "Public can read settings" ON public.system_settings FOR SELECT USING (true);
 
@@ -2277,7 +2087,7 @@ DROP POLICY IF EXISTS "Admins can update settings" ON public.system_settings;
 CREATE POLICY "Admins can update settings" ON public.system_settings FOR ALL
     USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')));
 
--- Compliance mask logs: KullanÄ±cÄ± kendi loglarÄ±nÄ± gÃ¶rebilir, adminler hepsini gÃ¶rebilir ve inceleyebilir
+-- Compliance mask logs: Kullanıcı kendi loglarını görebilir, adminler hepsini görebilir ve inceleyebilir
 DROP POLICY IF EXISTS "Users can view own mask logs" ON public.compliance_mask_logs;
 CREATE POLICY "Users can view own mask logs" ON public.compliance_mask_logs FOR SELECT
     USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin')));
@@ -2291,7 +2101,7 @@ DROP POLICY IF EXISTS "System can insert compliance mask logs" ON public.complia
 CREATE POLICY "System can insert compliance mask logs" ON public.compliance_mask_logs FOR INSERT
     WITH CHECK (true);
 
--- Contact reveals: SADECE ilgili alÄ±cÄ±, ilgili firma sahibi veya admin gÃ¶rebilir!
+-- Contact reveals: SADECE ilgili alıcı, ilgili firma sahibi veya admin görebilir!
 DROP POLICY IF EXISTS "Only involved parties can view contact reveal" ON public.contact_reveals;
 CREATE POLICY "Only involved parties can view contact reveal" ON public.contact_reveals FOR SELECT
     USING (
@@ -2308,950 +2118,1550 @@ CREATE POLICY "System can insert contact reveals" ON public.contact_reveals FOR 
         EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
     );
 
--- Phone reveal daily logs: KullanÄ±cÄ± kendi kayÄ±tlarÄ±nÄ± gÃ¶rÃ¼r ve ekler
+-- Phone reveal daily logs: Kullanıcı kendi kayıtlarını görür ve ekler
 DROP POLICY IF EXISTS "Users manage own phone reveal logs" ON public.phone_reveal_daily_logs;
 CREATE POLICY "Users manage own phone reveal logs" ON public.phone_reveal_daily_logs FOR ALL
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
-
-
--- =========================================
--- MIGRATION 12: QUOTE CREDITS & LEAD FEE
--- =========================================
 -- ==============================================================================
--- ÅANTÄ°YE GO â€“ MIGRATION 12: TEKLÄ°F VERME KREDÄ°SÄ° VE TALEP BAÅINA ÃœCRET (PROMPT 9B)
--- DeÄŸiÅŸtirilemez kredi defteri (ledger), dinamik paketler, atomik harcama RPC,
--- slot kontenjanÄ±, gÃ¶lge mod ve sorunlu talep iade altyapÄ±sÄ±.
+-- ŞANTİYE GO – MIGRATION 12: TEKLİF VERME KREDİSİ VE ATOMİK SLOT SİSTEMİ (PROMPT 9B - GÜVENLİK GÜÇLENDİRİLMİŞ)
+-- 
+-- Güvenlik ve Mimari İlkeleri:
+-- 1. Firma kimliği istemciden alınmaz; doğrudan auth.uid() üzerinden çözümlenir.
+-- 2. SECURITY DEFINER ile search_path = public, pg_temp sabitlenir.
+-- 3. apply_credit_purchase, admin_adjust_credit, resolve_credit_refund ve process_expired_credits
+--    fonksiyonlarının EXECUTE yetkisi authenticated rolünden kaldırılmıştır; YALNIZCA service_role çağırabilir.
+--    Admin işlemleri ayrıca profiles.role ('admin', 'super_admin') kontrolü yapar.
+-- 4. Defter, bakiye ve unlock tablolarında anon ve authenticated için INSERT, UPDATE, DELETE KESİNLİKLE YASAKTIR.
+-- 5. RLS: Firma sadece kendi satırlarını SELECT edebilir. Başka firmanın defteri/bakiyesi asla okunamaz (0 satır).
+-- 6. İade edilen slot yeniden AÇILMAZ (credit_system_settings.refund_reopens_slot = false varsayılan).
+-- 7. Kilit sırası her zaman önce quote_requests, sonra company_credit_balances (Deadlock korumalı).
+-- 8. İdempotency anahtarı ile çift tık/ağ yeniden denemesinde mükerrer düşüm engellenir ve mevcut kilit güvenle döner.
 -- ==============================================================================
 
--- 1. FÄ°RMA TABLOSUNA KREDÄ° BAKÄ°YESÄ° VE BÄ°LDÄ°RÄ°M TERCÄ°HLERÄ° KOLONLARI
-ALTER TABLE IF EXISTS public.companies
-ADD COLUMN IF NOT EXISTS credit_balance INT DEFAULT 0,
-ADD COLUMN IF NOT EXISTS notification_preferences JSONB DEFAULT '{"email": true, "push": true, "quiet_hours": {"enabled": false, "start": "22:00", "end": "08:00"}}'::jsonb;
+-- 1. KREDİ SİSTEM AYARLARI TABLOSU
+CREATE TABLE IF NOT EXISTS public.credit_system_settings (
+    id INT PRIMARY KEY DEFAULT 1,
+    system_mode VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (system_mode IN ('disabled', 'shadow', 'active')),
+    default_credits_per_quote INT NOT NULL DEFAULT 1 CHECK (default_credits_per_quote >= 0),
+    max_bidding_slots INT NOT NULL DEFAULT 4 CHECK (max_bidding_slots >= 1),
+    welcome_credits INT NOT NULL DEFAULT 3 CHECK (welcome_credits >= 0),
+    credit_validity_days INT DEFAULT NULL, -- NULL = süresiz
+    refund_window_hours INT NOT NULL DEFAULT 48 CHECK (refund_window_hours >= 1),
+    auto_refund_on_buyer_cancel BOOLEAN NOT NULL DEFAULT true,
+    refund_reopens_slot BOOLEAN NOT NULL DEFAULT false, -- İade edilen slot varsayılan olarak yeniden AÇILMAZ
+    category_overrides JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    CONSTRAINT single_row_settings CHECK (id = 1)
+);
 
--- 2. TEKLÄ°F TALEPLERÄ°NE SLOT, ALICI RIZASI VE MALÄ°YET ALANLARI
-ALTER TABLE IF EXISTS public.quote_requests
-ADD COLUMN IF NOT EXISTS buyer_contact_consent BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS max_quote_slots INT DEFAULT 4,
-ADD COLUMN IF NOT EXISTS used_quote_slots INT DEFAULT 0,
-ADD COLUMN IF NOT EXISTS credit_cost INT DEFAULT 1;
+INSERT INTO public.credit_system_settings (
+    id, system_mode, default_credits_per_quote, max_bidding_slots, welcome_credits,
+    credit_validity_days, refund_window_hours, auto_refund_on_buyer_cancel, refund_reopens_slot
+) VALUES (
+    1, 'active', 1, 4, 3, NULL, 48, true, false
+) ON CONFLICT (id) DO UPDATE SET
+    refund_reopens_slot = COALESCE(EXCLUDED.refund_reopens_slot, false),
+    updated_at = now();
 
--- 3. TEKLÄ°FLERE SONUÃ‡ BÄ°LDÄ°RÄ°MÄ° ALANI (Ä°ÅŸ aldÄ±m / almadÄ±m / ulaÅŸÄ±lamadÄ±)
-ALTER TABLE IF EXISTS public.quotes
-ADD COLUMN IF NOT EXISTS outcome_feedback VARCHAR(30) DEFAULT 'unknown'; -- 'job_won', 'job_lost', 'could_not_reach', 'unknown'
+-- 2. FİRMA KREDİ BAKİYE TABLOSU
+CREATE TABLE IF NOT EXISTS public.company_credit_balances (
+    company_id UUID PRIMARY KEY REFERENCES public.companies(id) ON DELETE CASCADE,
+    current_balance INT NOT NULL DEFAULT 0 CHECK (current_balance >= 0),
+    lifetime_purchased INT NOT NULL DEFAULT 0 CHECK (lifetime_purchased >= 0),
+    lifetime_spent INT NOT NULL DEFAULT 0 CHECK (lifetime_spent >= 0),
+    has_received_welcome_grant BOOLEAN NOT NULL DEFAULT false,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
 
--- 4. KREDÄ° PAKETLERÄ° TABLOSU (Admin tarafÄ±ndan yÃ¶netilebilir, sabit kod yok)
+CREATE INDEX IF NOT EXISTS idx_credit_balances_comp ON public.company_credit_balances(company_id);
+
+-- 3. DEĞİŞTİRİLEMEZ KREDİ DEFTERİ (IMMUTABLE LEDGER)
+CREATE TABLE IF NOT EXISTS public.company_credit_ledger (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+    amount INT NOT NULL, -- Pozitif: yükleme/iade, Negatif: harcama, 0: gölge harcama
+    entry_type VARCHAR(30) NOT NULL CHECK (entry_type IN ('topup', 'spend', 'refund', 'expire', 'admin_adjustment', 'welcome_grant', 'shadow_spend')),
+    balance_after INT NOT NULL CHECK (balance_after >= 0),
+    reference_id VARCHAR(100),
+    idempotency_key VARCHAR(120) UNIQUE,
+    description TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_credit_ledger_company ON public.company_credit_ledger(company_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_credit_ledger_idempotency ON public.company_credit_ledger(idempotency_key);
+CREATE INDEX IF NOT EXISTS idx_credit_ledger_ref ON public.company_credit_ledger(reference_id);
+
+-- Kredi defteri kayıtlarında UPDATE ve DELETE tetikleyici ile kesinlikle ENGELLENİR
+CREATE OR REPLACE FUNCTION public.prevent_credit_ledger_mutation()
+RETURNS TRIGGER 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RAISE EXCEPTION 'GÜVENLİK İHLALİ: Kredi defteri (company_credit_ledger) kayıtları değiştirilemez ve silinemez!';
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_no_update_delete_credit_ledger ON public.company_credit_ledger;
+CREATE TRIGGER trg_no_update_delete_credit_ledger
+BEFORE UPDATE OR DELETE ON public.company_credit_ledger
+FOR EACH ROW EXECUTE FUNCTION public.prevent_credit_ledger_mutation();
+
+-- 4. KREDİ PAKETLERİ TABLOSU
 CREATE TABLE IF NOT EXISTS public.credit_packages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
-    credits INT NOT NULL CHECK (credits > 0),
-    price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
-    discount_percentage INT DEFAULT 0,
-    is_active BOOLEAN DEFAULT true,
-    sort_order INT DEFAULT 0,
+    credit_amount INT NOT NULL CHECK (credit_amount > 0),
+    price_cents INT NOT NULL CHECK (price_cents >= 0),
+    vat_percent INT NOT NULL DEFAULT 20 CHECK (vat_percent >= 0),
+    badge_text VARCHAR(50),
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    order_index INT NOT NULL DEFAULT 1,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- BaÅŸlangÄ±Ã§ iÃ§in Ã¶rnek paketler (Admin panelinden tamamen dÃ¼zenlenebilir/silinebilir)
-INSERT INTO public.credit_packages (name, credits, price, discount_percentage, sort_order)
+INSERT INTO public.credit_packages (name, credit_amount, price_cents, vat_percent, badge_text, order_index, is_active)
 VALUES
-    ('BaÅŸlangÄ±Ã§ Paketi', 10, 499.00, 0, 1),
-    ('Standart Paket (En Ã‡ok Tercih Edilen)', 30, 1299.00, 13, 2),
-    ('Profesyonel Paket', 75, 2799.00, 25, 3),
-    ('Kurumsal Mega Paket', 200, 6499.00, 35, 4)
+    ('Deneme Paketi', 5, 25000, 20, 'Başlangıç', 1, true),
+    ('Standart Paket', 20, 90000, 20, 'Popüler', 2, true),
+    ('Avantajlı Pro Paket', 50, 200000, 20, 'En İyi Değer', 3, true)
 ON CONFLICT DO NOTHING;
 
--- 5. DEÄÄ°ÅTÄ°RÄ°LEMEZ KREDÄ° DEFTERÄ° (IMMUTABLE LEDGER)
--- Bakiye her zaman bu tablodaki iÅŸlemlerin toplamÄ± Ã¼zerinden doÄŸrulanabilir.
-CREATE TABLE IF NOT EXISTS public.company_credit_ledgers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
-    amount INT NOT NULL, -- Pozitif (yÃ¼kleme, iade) veya Negatif (harcama)
-    balance_after INT NOT NULL,
-    transaction_type VARCHAR(40) NOT NULL, -- 'purchase', 'spend', 'refund', 'admin_adjustment', 'welcome_bonus', 'shadow_spend'
-    reference_id VARCHAR(100), -- request_id, package_id, dispute_id vb.
-    idempotency_key VARCHAR(150) UNIQUE, -- Tekrarlayan istek engeli
-    notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_credit_ledger_company ON public.company_credit_ledgers(company_id);
-CREATE INDEX IF NOT EXISTS idx_credit_ledger_type ON public.company_credit_ledgers(transaction_type);
-CREATE INDEX IF NOT EXISTS idx_credit_ledger_created ON public.company_credit_ledgers(created_at DESC);
-
--- 6. SORUNLU TALEP / Ä°ADE Ä°TÄ°RAZLARI TABLOSU (DISPUTES)
-CREATE TABLE IF NOT EXISTS public.quote_disputes (
+-- 5. TALEP KREDİ KİLİT AÇILIŞLARI (TEKLİF TABLOSUNDAN AYRI)
+CREATE TABLE IF NOT EXISTS public.quote_request_unlocks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     request_id UUID NOT NULL REFERENCES public.quote_requests(id) ON DELETE CASCADE,
     company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
-    reason VARCHAR(50) NOT NULL, -- 'unreachable_phone', 'fake_request', 'wrong_category', 'buyer_cancelled'
-    description TEXT,
-    status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+    credits_spent INT NOT NULL DEFAULT 0,
+    is_shadow BOOLEAN NOT NULL DEFAULT false,
+    slot_number INT NOT NULL CHECK (slot_number >= 1),
+    status VARCHAR(30) NOT NULL DEFAULT 'unlocked' CHECK (status IN ('unlocked', 'bid_submitted', 'refunded')),
+    outcome_status VARCHAR(30) NOT NULL DEFAULT 'undecided' CHECK (outcome_status IN ('work_won', 'work_lost', 'unreachable', 'undecided')),
+    outcome_notes TEXT,
+    outcome_reported_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(request_id, company_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_qr_unlocks_request ON public.quote_request_unlocks(request_id);
+CREATE INDEX IF NOT EXISTS idx_qr_unlocks_company ON public.quote_request_unlocks(company_id);
+CREATE INDEX IF NOT EXISTS idx_qr_unlocks_status ON public.quote_request_unlocks(status);
+
+-- 6. SORUNLU TALEP İADE TALEPLERİ
+CREATE TABLE IF NOT EXISTS public.credit_refund_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    unlock_id UUID NOT NULL REFERENCES public.quote_request_unlocks(id) ON DELETE CASCADE,
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+    request_id UUID NOT NULL REFERENCES public.quote_requests(id) ON DELETE CASCADE,
+    reason VARCHAR(50) NOT NULL CHECK (reason IN ('unreachable_phone', 'fake_request', 'out_of_category', 'buyer_cancelled')),
+    details TEXT NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
     admin_notes TEXT,
-    reviewed_by UUID REFERENCES public.profiles(id),
-    refunded_ledger_id UUID REFERENCES public.company_credit_ledgers(id),
-    created_at TIMESTAMPTZ DEFAULT now(),
+    resolved_by UUID REFERENCES public.profiles(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     resolved_at TIMESTAMPTZ
 );
 
-CREATE INDEX IF NOT EXISTS idx_quote_disputes_status ON public.quote_disputes(status);
-CREATE INDEX IF NOT EXISTS idx_quote_disputes_company ON public.quote_disputes(company_id);
+CREATE INDEX IF NOT EXISTS idx_credit_refund_company ON public.credit_refund_requests(company_id);
+CREATE INDEX IF NOT EXISTS idx_credit_refund_status ON public.credit_refund_requests(status);
 
--- 7. SÄ°STEM AYARLARINA KREDÄ° VE GÃ–LGE MOD PARAMETRELERÄ°
-INSERT INTO public.system_settings (key, value, description)
-VALUES 
-    ('quote_credit_config', '{
-        "mode": "SHADOW",
-        "default_max_slots": 4,
-        "default_credit_cost": 1,
-        "category_costs": {},
-        "welcome_bonus_credits": 5,
-        "dispute_window_hours": 48,
-        "auto_refund_on_buyer_cancel": true,
-        "exempt_single_listing": true
-    }'::jsonb, 'Teklif verme kredisi, slot sayÄ±sÄ±, gÃ¶lge mod ve maliyet konfigÃ¼rasyonu')
-ON CONFLICT (key) DO UPDATE SET
-    value = EXCLUDED.value,
-    updated_at = now();
+-- 7. HOŞ GELDİN KREDİSİ İSTİSMAR ÖNLEME
+CREATE TABLE IF NOT EXISTS public.welcome_credit_grants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+    tax_number VARCHAR(50),
+    phone VARCHAR(50),
+    credits_granted INT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_welcome_tax ON public.welcome_credit_grants(tax_number) WHERE tax_number IS NOT NULL AND tax_number != '';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_welcome_phone ON public.welcome_credit_grants(phone) WHERE phone IS NOT NULL AND phone != '';
 
--- 8. ATOMÄ°K KREDÄ° HARCAMA VE SLOT AYIRMA FONKSÄ°YONU (RACE CONDITION GÃœVENCESÄ°)
-CREATE OR REPLACE FUNCTION spend_quote_credit(
-    p_company_id UUID,
+-- 8. FİRMA BİLDİRİM TERCİHLERİ
+CREATE TABLE IF NOT EXISTS public.company_notification_preferences (
+    company_id UUID PRIMARY KEY REFERENCES public.companies(id) ON DELETE CASCADE,
+    in_app_enabled BOOLEAN NOT NULL DEFAULT true,
+    email_enabled BOOLEAN NOT NULL DEFAULT true,
+    push_enabled BOOLEAN NOT NULL DEFAULT true,
+    quiet_hours_enabled BOOLEAN NOT NULL DEFAULT false,
+    quiet_start_time TIME DEFAULT '22:00',
+    quiet_end_time TIME DEFAULT '08:00',
+    category_filter_ids UUID[] DEFAULT NULL,
+    city_filter_ids INT[] DEFAULT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ==============================================================================
+-- 9. GÜVENLİK VE YETKİ KISITLAMALARI (REVOKE & RLS)
+-- İstemci defter, bakiye ve unlock tablolarına doğrudan ASLA yazamaz.
+-- Firma yalnızca KENDİ bakiye, defter ve kilit satırlarını okuyabilir (SELECT).
+-- ==============================================================================
+REVOKE INSERT, UPDATE, DELETE ON public.company_credit_balances FROM anon, authenticated, PUBLIC;
+REVOKE INSERT, UPDATE, DELETE ON public.company_credit_ledger FROM anon, authenticated, PUBLIC;
+REVOKE INSERT, UPDATE, DELETE ON public.quote_request_unlocks FROM anon, authenticated, PUBLIC;
+REVOKE INSERT, UPDATE, DELETE ON public.credit_system_settings FROM anon, authenticated, PUBLIC;
+REVOKE INSERT, UPDATE, DELETE ON public.welcome_credit_grants FROM anon, authenticated, PUBLIC;
+
+ALTER TABLE public.credit_system_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_credit_balances ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_credit_ledger ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.credit_packages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quote_request_unlocks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.credit_refund_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_notification_preferences ENABLE ROW LEVEL SECURITY;
+
+-- Okuma Politikaları (Sıkı İzolasyon)
+DROP POLICY IF EXISTS "Public can view credit settings" ON public.credit_system_settings;
+CREATE POLICY "Public can view credit settings" ON public.credit_system_settings FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Company view own balance" ON public.company_credit_balances;
+CREATE POLICY "Company view own balance" ON public.company_credit_balances FOR SELECT
+    USING (
+        EXISTS (SELECT 1 FROM public.companies WHERE id = company_id AND user_id = auth.uid())
+        OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
+    );
+
+DROP POLICY IF EXISTS "Company view own ledger" ON public.company_credit_ledger;
+CREATE POLICY "Company view own ledger" ON public.company_credit_ledger FOR SELECT
+    USING (
+        EXISTS (SELECT 1 FROM public.companies WHERE id = company_id AND user_id = auth.uid())
+        OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
+    );
+
+DROP POLICY IF EXISTS "Public can view credit packages" ON public.credit_packages;
+CREATE POLICY "Public can view credit packages" ON public.credit_packages FOR SELECT USING (is_active = true);
+
+DROP POLICY IF EXISTS "View unlocks policy" ON public.quote_request_unlocks;
+CREATE POLICY "View unlocks policy" ON public.quote_request_unlocks FOR SELECT
+    USING (
+        EXISTS (SELECT 1 FROM public.companies WHERE id = company_id AND user_id = auth.uid())
+        OR EXISTS (SELECT 1 FROM public.quote_requests WHERE id = request_id AND buyer_id = auth.uid())
+        OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
+    );
+
+DROP POLICY IF EXISTS "Company manage notification prefs" ON public.company_notification_preferences;
+CREATE POLICY "Company manage notification prefs" ON public.company_notification_preferences FOR ALL
+    USING (EXISTS (SELECT 1 FROM public.companies WHERE id = company_id AND user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "Company view own refund requests" ON public.credit_refund_requests;
+CREATE POLICY "Company view own refund requests" ON public.credit_refund_requests FOR SELECT
+    USING (
+        EXISTS (SELECT 1 FROM public.companies WHERE id = company_id AND user_id = auth.uid())
+        OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
+    );
+
+DROP POLICY IF EXISTS "Company create refund requests" ON public.credit_refund_requests;
+CREATE POLICY "Company create refund requests" ON public.credit_refund_requests FOR INSERT
+    WITH CHECK (
+        EXISTS (SELECT 1 FROM public.companies WHERE id = company_id AND user_id = auth.uid())
+    );
+
+-- ==============================================================================
+-- 10. KRİTİK ATOMİK RPC: spend_quote_request_credit
+-- 
+-- Parametreler: SADECE p_request_id ve p_idempotency_key (company_id İSTEMCİDEN ALINMAZ!)
+-- Firma kimliği doğrudan auth.uid() ile çözülür.
+-- Deadlock koruması için kilit sırası: 1. quote_requests -> 2. company_credit_balances
+-- İade edilen slot kuralı: credit_system_settings.refund_reopens_slot = false ise iadeler de slotu kapalı tutar.
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION public.spend_quote_request_credit(
     p_request_id UUID,
-    p_idempotency_key VARCHAR
-) RETURNS JSONB AS $$
+    p_idempotency_key VARCHAR(120) DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
 DECLARE
-    v_req RECORD;
-    v_comp RECORD;
-    v_config JSONB;
-    v_mode TEXT;
-    v_cost INT;
+    v_auth_uid UUID;
+    v_company_id UUID;
+    v_settings RECORD;
+    v_request RECORD;
+    v_company RECORD;
+    v_buyer RECORD;
+    v_existing_unlock RECORD;
+    v_current_balance INT;
     v_new_balance INT;
-    v_ledger_id UUID;
+    v_current_slots INT;
+    v_max_slots INT;
+    v_required_credits INT;
+    v_credits_to_deduct INT;
+    v_slot_number INT;
+    v_unlock_id UUID;
+    v_category_override JSONB;
 BEGIN
-    -- 1. Idempotency denetimi: Daha Ã¶nce bu anahtarla iÅŸlem baÅŸarÄ±yla yapÄ±ldÄ± mÄ±?
-    IF EXISTS (SELECT 1 FROM public.company_credit_ledgers WHERE idempotency_key = p_idempotency_key) THEN
+    -- 1. AUTH DOĞRULAMA (İstemciden company_id kabul edilmez)
+    v_auth_uid := auth.uid();
+    IF v_auth_uid IS NULL THEN
+        RAISE EXCEPTION 'Yetkisiz erişim: Kullanıcı oturumu açık değil (auth.uid() NULL).';
+    END IF;
+
+    SELECT id, user_id, name, is_verified, verification_status
+    INTO v_company
+    FROM public.companies
+    WHERE user_id = v_auth_uid;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Yetkisiz erişim: Bu kullanıcı hesabına ait kayıtlı bir firma bulunamadı.';
+    END IF;
+    v_company_id := v_company.id;
+
+    -- 2. İDEMPOTENCY DENETİMİ (Tekrar istek/çift tıkta hata yerine mevcut unlock'u dön)
+    SELECT * INTO v_existing_unlock
+    FROM public.quote_request_unlocks
+    WHERE request_id = p_request_id AND company_id = v_company_id;
+
+    IF FOUND THEN
+        SELECT current_balance INTO v_current_balance
+        FROM public.company_credit_balances WHERE company_id = v_company_id;
+
         RETURN jsonb_build_object(
-            'success', true, 
-            'message', 'Ä°ÅŸlem zaten daha Ã¶nce tamamlanmÄ±ÅŸ (idempotent).',
-            'is_duplicate', true
+            'success', true,
+            'already_unlocked', true,
+            'unlock_id', v_existing_unlock.id,
+            'slot_number', v_existing_unlock.slot_number,
+            'credits_spent', v_existing_unlock.credits_spent,
+            'is_shadow', v_existing_unlock.is_shadow,
+            'current_balance', COALESCE(v_current_balance, 0),
+            'message', 'Bu talep için teklif slotunuz zaten açık durumdadır (Mükerrer harcama yapılmadı).'
         );
     END IF;
 
-    -- 2. Talep kaydÄ±nÄ± satÄ±r bazlÄ± kitle (FOR UPDATE)
-    SELECT * INTO v_req FROM public.quote_requests WHERE id = p_request_id FOR UPDATE;
+    -- 3. 1. KİLİT: TALEP SATIRINI KİLİTLE (Eşzamanlı yarış kontrolü)
+    SELECT id, buyer_id, category_id, request_type, status, expires_at, title
+    INTO v_request
+    FROM public.quote_requests
+    WHERE id = p_request_id
+    FOR UPDATE;
+
     IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Teklif talebi bulunamadÄ±.');
+        RAISE EXCEPTION 'Teklif talebi bulunamadı: %', p_request_id;
     END IF;
 
-    -- Talep durumu teklif alÄ±mÄ±na uygun mu?
-    IF v_req.status != 'sent' AND v_req.status != 'quotes_received' THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Bu talep teklif alÄ±mÄ±na kapanmÄ±ÅŸtÄ±r.');
+    IF v_request.status NOT IN ('sent', 'quotes_received') THEN
+        RAISE EXCEPTION 'Bu talep aktif değildir (Mevcut durum: %).', v_request.status;
     END IF;
 
-    -- 3. Slot kontenjan denetimi
-    IF COALESCE(v_req.used_quote_slots, 0) >= COALESCE(v_req.max_quote_slots, 4) THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Bu talep iÃ§in maksimum teklif kontenjanÄ± (slot) dolmuÅŸtur.');
+    IF v_request.expires_at IS NOT NULL AND v_request.expires_at < now() THEN
+        RAISE EXCEPTION 'Bu teklif talebinin süresi dolmuştur (%s).', v_request.expires_at;
     END IF;
 
-    -- 4. Kendi talebine teklif veremez
-    IF v_req.buyer_id = (SELECT user_id FROM public.companies WHERE id = p_company_id) THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Firma kendi aÃ§tÄ±ÄŸÄ± talebe teklif veremez.');
+    -- 4. SUİSTİMAL ENGELLERİ
+    IF v_request.buyer_id = v_company.user_id THEN
+        RAISE EXCEPTION 'Suistimal Engeli: Firma kendi açtığı veya ilişkili olduğu talebe teklif veremez!';
     END IF;
 
-    -- 5. AynÄ± firma bu talebe mÃ¼kerrer kredi harcayamaz
-    IF EXISTS (
-        SELECT 1 FROM public.company_credit_ledgers 
-        WHERE company_id = p_company_id 
-          AND reference_id = p_request_id::text 
-          AND transaction_type IN ('spend', 'shadow_spend')
-    ) THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Bu talep iÃ§in firmanÄ±z zaten daha Ã¶nce teklif kredisi kullanmÄ±ÅŸtÄ±r.');
+    SELECT id, is_phone_verified INTO v_buyer
+    FROM public.profiles WHERE id = v_request.buyer_id;
+
+    IF NOT FOUND OR COALESCE(v_buyer.is_phone_verified, false) = false THEN
+        RAISE EXCEPTION 'Güvenlik Kuralı: Bu talebi oluşturan alıcının telefon numarası doğrulanmamış!';
     END IF;
 
-    -- 6. Sistem modunu oku (OFF / SHADOW / ACTIVE)
-    SELECT value INTO v_config FROM public.system_settings WHERE key = 'quote_credit_config';
-    v_mode := COALESCE(v_config->>'mode', 'SHADOW');
-    v_cost := COALESCE(v_req.credit_cost, 1);
+    -- 5. SİSTEM AYARLARI
+    SELECT * INTO v_settings FROM public.credit_system_settings WHERE id = 1;
+    v_max_slots := COALESCE(v_settings.max_bidding_slots, 4);
 
-    -- 7. Firma kaydÄ±nÄ± satÄ±r bazlÄ± kitle (FOR UPDATE)
-    SELECT * INTO v_comp FROM public.companies WHERE id = p_company_id FOR UPDATE;
-    IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Firma profili bulunamadÄ±.');
+    IF v_request.request_type = 'single_listing' THEN
+        v_required_credits := 0; -- Tekil ilana doğrudan teklif verme ücretsizdir
+    ELSE
+        v_required_credits := COALESCE(v_settings.default_credits_per_quote, 1);
+        IF v_settings.category_overrides IS NOT NULL AND v_settings.category_overrides ? v_request.category_id::text THEN
+            v_category_override := v_settings.category_overrides -> v_request.category_id::text;
+            IF v_category_override ? 'credits' THEN
+                v_required_credits := (v_category_override ->> 'credits')::INT;
+            END IF;
+        END IF;
     END IF;
 
-    -- 8. Moda gÃ¶re iÅŸlem
-    IF v_mode = 'ACTIVE' THEN
-        IF COALESCE(v_comp.credit_balance, 0) < v_cost THEN
-            RETURN jsonb_build_object(
-                'success', false, 
-                'error', 'Yetersiz kredi bakiyesi. Talebe teklif vermek iÃ§in ' || v_cost || ' kredi gereklidir. Mevcut: ' || COALESCE(v_comp.credit_balance, 0),
-                'insufficient_credits', true
+    -- 6. KİLİT ALTINDA SLOT SAYIMI
+    -- refund_reopens_slot = false ise (varsayılan) iade edilen slotlar da slot sayımına dahildir (yeniden açılmaz)
+    IF COALESCE(v_settings.refund_reopens_slot, false) = true THEN
+        SELECT COUNT(*) INTO v_current_slots
+        FROM public.quote_request_unlocks
+        WHERE request_id = p_request_id AND status != 'refunded';
+    ELSE
+        SELECT COUNT(*) INTO v_current_slots
+        FROM public.quote_request_unlocks
+        WHERE request_id = p_request_id;
+    END IF;
+
+    IF v_current_slots >= v_max_slots THEN
+        RAISE EXCEPTION 'Bu talep için azami teklif slotu dolmuştur (%/% firma teklif verdi). Başka teklif kabul edilmemektedir.', v_current_slots, v_max_slots;
+    END IF;
+
+    v_slot_number := v_current_slots + 1;
+
+    -- 7. 2. KİLİT: FİRMA BAKİYESİNİ KİLİTLE
+    INSERT INTO public.company_credit_balances (company_id, current_balance, lifetime_purchased, lifetime_spent, has_received_welcome_grant, updated_at)
+    VALUES (v_company_id, 0, 0, 0, false, now())
+    ON CONFLICT (company_id) DO NOTHING;
+
+    SELECT current_balance INTO v_current_balance
+    FROM public.company_credit_balances WHERE company_id = v_company_id FOR UPDATE;
+
+    -- 8. MODA GÖRE ATOMİK İŞLEM
+    IF v_settings.system_mode = 'disabled' THEN
+        v_credits_to_deduct := 0;
+        v_new_balance := v_current_balance;
+
+        INSERT INTO public.quote_request_unlocks (request_id, company_id, credits_spent, is_shadow, slot_number, status)
+        VALUES (p_request_id, v_company_id, 0, false, v_slot_number, 'unlocked') RETURNING id INTO v_unlock_id;
+
+    ELSIF v_settings.system_mode = 'shadow' THEN
+        v_credits_to_deduct := v_required_credits;
+        v_new_balance := v_current_balance; -- Bakiye DEĞİŞMEZ
+
+        INSERT INTO public.company_credit_ledger (
+            company_id, amount, entry_type, balance_after, reference_id, idempotency_key, description, metadata
+        ) VALUES (
+            v_company_id, 0, 'shadow_spend', v_new_balance, p_request_id::text, p_idempotency_key,
+            format('Gölge Mod: %s kredi tutacaktı (Talep: %s)', v_required_credits, v_request.title),
+            jsonb_build_object('would_cost_credits', v_required_credits, 'slot_number', v_slot_number)
+        );
+
+        INSERT INTO public.quote_request_unlocks (request_id, company_id, credits_spent, is_shadow, slot_number, status)
+        VALUES (p_request_id, v_company_id, v_required_credits, true, v_slot_number, 'unlocked') RETURNING id INTO v_unlock_id;
+
+    ELSE
+        -- AÇIK MOD: Gerçek kredi düşer
+        v_credits_to_deduct := v_required_credits;
+
+        IF v_credits_to_deduct > 0 AND v_current_balance < v_credits_to_deduct THEN
+            RAISE EXCEPTION 'Yetersiz kredi bakiyesi! Bu talebe teklif vermek için % kredi gerekmektedir (Mevcut bakiyeniz: % kredi).', v_credits_to_deduct, v_current_balance;
+        END IF;
+
+        v_new_balance := v_current_balance - v_credits_to_deduct;
+
+        UPDATE public.company_credit_balances
+        SET current_balance = v_new_balance,
+            lifetime_spent = lifetime_spent + v_credits_to_deduct,
+            updated_at = now()
+        WHERE company_id = v_company_id;
+
+        IF v_credits_to_deduct > 0 THEN
+            INSERT INTO public.company_credit_ledger (
+                company_id, amount, entry_type, balance_after, reference_id, idempotency_key, description, metadata
+            ) VALUES (
+                v_company_id, -v_credits_to_deduct, 'spend', v_new_balance, p_request_id::text, p_idempotency_key,
+                format('Teklif slotu harcaması (Talep #%s, Slot %s/%s)', SUBSTRING(p_request_id::text, 1, 8), v_slot_number, v_max_slots),
+                jsonb_build_object('request_id', p_request_id, 'slot_number', v_slot_number, 'max_slots', v_max_slots)
             );
         END IF;
 
-        v_new_balance := v_comp.credit_balance - v_cost;
-
-        -- DeÄŸiÅŸtirilemez deftere yaz
-        INSERT INTO public.company_credit_ledgers (
-            company_id, amount, balance_after, transaction_type, reference_id, idempotency_key, notes
-        ) VALUES (
-            p_company_id, -v_cost, v_new_balance, 'spend', p_request_id::text, p_idempotency_key, 'Teklif verme kredisi harcamasÄ±'
-        ) RETURNING id INTO v_ledger_id;
-
-        -- Firma bakiyesini gÃ¼ncelle
-        UPDATE public.companies SET credit_balance = v_new_balance WHERE id = p_company_id;
-
-    ELSIF v_mode = 'SHADOW' THEN
-        -- GÃ¶lge Mod: Bakiye dÃ¼ÅŸmez! Ancak simÃ¼lasyon kaydÄ± deftere iÅŸlenir
-        v_new_balance := COALESCE(v_comp.credit_balance, 0);
-
-        INSERT INTO public.company_credit_ledgers (
-            company_id, amount, balance_after, transaction_type, reference_id, idempotency_key, notes
-        ) VALUES (
-            p_company_id, 0, v_new_balance, 'shadow_spend', p_request_id::text, p_idempotency_key, 'GÃ¶lge Mod: SimÃ¼le edilen harcama (' || v_cost || ' kredi)'
-        ) RETURNING id INTO v_ledger_id;
-    ELSE
-        -- OFF Modu: Kredi dÃ¼ÅŸmez
-        v_new_balance := COALESCE(v_comp.credit_balance, 0);
+        INSERT INTO public.quote_request_unlocks (request_id, company_id, credits_spent, is_shadow, slot_number, status)
+        VALUES (p_request_id, v_company_id, v_credits_to_deduct, false, v_slot_number, 'unlocked') RETURNING id INTO v_unlock_id;
     END IF;
 
-    -- 9. Slot sayÄ±sÄ±nÄ± 1 artÄ±r
-    UPDATE public.quote_requests 
-    SET used_quote_slots = COALESCE(used_quote_slots, 0) + 1 
-    WHERE id = p_request_id;
-
-    -- 10. Ä°letiÅŸim KartÄ± AÃ§Ä±lÄ±ÅŸÄ±nÄ± Tetikle (Prompt 9A ile kontrollÃ¼ aÃ§Ä±lÄ±ÅŸ)
-    INSERT INTO public.contact_reveals (buyer_id, company_id, trigger_type)
-    VALUES (v_req.buyer_id, p_company_id, 'talep_kredisi')
+    -- 9. İLETİŞİM KARTINI AÇ (PROMPT 9A)
+    INSERT INTO public.contact_reveals (buyer_id, company_id, trigger_type, created_at)
+    VALUES (v_request.buyer_id, v_company_id, 'talep_kredisi', now())
     ON CONFLICT DO NOTHING;
 
     RETURN jsonb_build_object(
-        'success', true, 
-        'mode', v_mode, 
-        'cost', v_cost, 
-        'remaining_balance', v_new_balance,
-        'used_slots', COALESCE(v_req.used_quote_slots, 0) + 1,
-        'max_slots', COALESCE(v_req.max_quote_slots, 4)
+        'success', true,
+        'unlock_id', v_unlock_id,
+        'request_id', p_request_id,
+        'company_id', v_company_id,
+        'slot_number', v_slot_number,
+        'max_slots', v_max_slots,
+        'credits_spent', v_credits_to_deduct,
+        'is_shadow', (v_settings.system_mode = 'shadow'),
+        'previous_balance', v_current_balance,
+        'balance_after', v_new_balance,
+        'message', format('Slot #%s/%s başarıyla alındı ve alıcı iletişim kartı açıldı.', v_slot_number, v_max_slots)
     );
+END;
+$$;
+
+-- spend_quote_request_credit SADECE authenticated çağırabilir
+REVOKE EXECUTE ON FUNCTION public.spend_quote_request_credit(UUID, VARCHAR) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.spend_quote_request_credit(UUID, VARCHAR) TO authenticated;
+
+-- ==============================================================================
+-- 11. GÜVENLİ KREDİ SATIN ALMA / YÜKLEME (YALNIZCA service_role ÇAĞIRABİLİR)
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION public.apply_credit_purchase(
+    p_company_id UUID,
+    p_package_id UUID,
+    p_payment_transaction_id VARCHAR(100),
+    p_card_last_four VARCHAR(4) DEFAULT '4242'
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_pkg RECORD;
+    v_curr_balance INT;
+    v_new_balance INT;
+    v_existing_topup RECORD;
+BEGIN
+    SELECT * INTO v_existing_topup
+    FROM public.company_credit_ledger
+    WHERE idempotency_key = format('topup-%s', p_payment_transaction_id);
+
+    IF FOUND THEN
+        SELECT current_balance INTO v_curr_balance
+        FROM public.company_credit_balances
+        WHERE company_id = p_company_id;
+
+        RETURN jsonb_build_object(
+            'success', true,
+            'already_applied', true,
+            'current_balance', v_curr_balance,
+            'message', 'Bu ödeme işlemi için kredi zaten yüklenmişti.'
+        );
+    END IF;
+
+    SELECT * INTO v_pkg FROM public.credit_packages WHERE id = p_package_id AND is_active = true;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Geçerli bir kredi paketi bulunamadı: %', p_package_id;
+    END IF;
+
+    INSERT INTO public.company_credit_balances (company_id, current_balance, lifetime_purchased, lifetime_spent, has_received_welcome_grant, updated_at)
+    VALUES (p_company_id, 0, 0, 0, false, now())
+    ON CONFLICT (company_id) DO NOTHING;
+
+    SELECT current_balance INTO v_curr_balance
+    FROM public.company_credit_balances
+    WHERE company_id = p_company_id
+    FOR UPDATE;
+
+    v_new_balance := v_curr_balance + v_pkg.credit_amount;
+
+    UPDATE public.company_credit_balances
+    SET current_balance = v_new_balance,
+        lifetime_purchased = lifetime_purchased + v_pkg.credit_amount,
+        updated_at = now()
+    WHERE company_id = p_company_id;
+
+    INSERT INTO public.company_credit_ledger (
+        company_id, amount, entry_type, balance_after, reference_id, idempotency_key, description, metadata
+    ) VALUES (
+        p_company_id, v_pkg.credit_amount, 'topup', v_new_balance,
+        p_payment_transaction_id,
+        format('topup-%s', p_payment_transaction_id),
+        format('%s (%s Kredi) Satın Alma (Sandbox)', v_pkg.name, v_pkg.credit_amount),
+        jsonb_build_object('package_id', v_pkg.id, 'price_cents', v_pkg.price_cents, 'card_last_four', p_card_last_four)
+    );
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'credits_added', v_pkg.credit_amount,
+        'balance_after', v_new_balance,
+        'transaction_id', p_payment_transaction_id
+    );
+END;
+$$;
+
+-- apply_credit_purchase SADECE service_role çağırabilir (authenticated ve anon YASAK)
+REVOKE EXECUTE ON FUNCTION public.apply_credit_purchase(UUID, UUID, VARCHAR, VARCHAR) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.apply_credit_purchase(UUID, UUID, VARCHAR, VARCHAR) TO service_role;
+
+-- ==============================================================================
+-- 12. ADMİN MANUEL KREDİ DÜZELTME (YALNIZCA service_role ÇAĞIRIR, ADMİN ROL KONTROLLÜ)
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION public.admin_adjust_credit(
+    p_company_id UUID,
+    p_amount INT,
+    p_reason TEXT,
+    p_admin_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_admin_role VARCHAR(20);
+    v_curr_balance INT;
+    v_new_balance INT;
+BEGIN
+    -- Admin Rol Doğrulaması
+    SELECT role INTO v_admin_role FROM public.profiles WHERE id = p_admin_id;
+    IF v_admin_role NOT IN ('admin', 'super_admin') THEN
+        RAISE EXCEPTION 'Yetkisiz erişim: Sadece sistem yöneticileri manuel kredi ekleme/çıkarma yapabilir.';
+    END IF;
+
+    IF p_amount = 0 THEN
+        RAISE EXCEPTION 'Kredi miktarı 0 olamaz.';
+    END IF;
+
+    INSERT INTO public.company_credit_balances (company_id, current_balance, lifetime_purchased, lifetime_spent, has_received_welcome_grant, updated_at)
+    VALUES (p_company_id, 0, 0, 0, false, now())
+    ON CONFLICT (company_id) DO NOTHING;
+
+    SELECT current_balance INTO v_curr_balance
+    FROM public.company_credit_balances
+    WHERE company_id = p_company_id
+    FOR UPDATE;
+
+    v_new_balance := v_curr_balance + p_amount;
+    IF v_new_balance < 0 THEN
+        RAISE EXCEPTION 'Hata: Bu işlem sonucunda firma bakiyesi eksiye düşemez! (Mevcut: %, Talep Edilen Düşüm: %)', v_curr_balance, p_amount;
+    END IF;
+
+    UPDATE public.company_credit_balances
+    SET current_balance = v_new_balance,
+        updated_at = now()
+    WHERE company_id = p_company_id;
+
+    INSERT INTO public.company_credit_ledger (
+        company_id, amount, entry_type, balance_after, reference_id, description, metadata
+    ) VALUES (
+        p_company_id, p_amount, 'admin_adjustment', v_new_balance,
+        format('admin-%s-%s', p_admin_id, Date_part('epoch', now())::INT),
+        format('Yönetici Düzeltmesi: %s', p_reason),
+        jsonb_build_object('admin_id', p_admin_id, 'reason', p_reason)
+    );
+
+    RETURN jsonb_build_object('success', true, 'amount', p_amount, 'balance_after', v_new_balance);
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.admin_adjust_credit(UUID, INT, TEXT, UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_adjust_credit(UUID, INT, TEXT, UUID) TO service_role;
+
+-- ==============================================================================
+-- 13. SORUNLU TALEP İADE İŞLEMİ (YALNIZCA service_role ÇAĞIRIR, ADMİN ROL KONTROLLÜ)
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION public.resolve_credit_refund(
+    p_refund_request_id UUID,
+    p_decision VARCHAR(20), -- 'approved' | 'rejected'
+    p_admin_notes TEXT,
+    p_admin_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_admin_role VARCHAR(20);
+    v_refund RECORD;
+    v_unlock RECORD;
+    v_request RECORD;
+    v_curr_balance INT;
+    v_new_balance INT;
+BEGIN
+    SELECT role INTO v_admin_role FROM public.profiles WHERE id = p_admin_id;
+    IF v_admin_role NOT IN ('admin', 'super_admin') THEN
+        RAISE EXCEPTION 'Yetkisiz erişim: Yalnızca yöneticiler iade sonuçlandırabilir.';
+    END IF;
+
+    SELECT * INTO v_refund
+    FROM public.credit_refund_requests
+    WHERE id = p_refund_request_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'İade talebi bulunamadı: %', p_refund_request_id;
+    END IF;
+
+    IF v_refund.status != 'pending' THEN
+        RAISE EXCEPTION 'Bu iade talebi zaten sonuçlandırılmış: %', v_refund.status;
+    END IF;
+
+    SELECT * INTO v_unlock
+    FROM public.quote_request_unlocks
+    WHERE id = v_refund.unlock_id;
+
+    IF p_decision = 'approved' THEN
+        -- 1. KİLİT: TALEP SATIRINI KİLİTLE (STANDART KİLİT SIRASI)
+        SELECT id, status INTO v_request
+        FROM public.quote_requests
+        WHERE id = v_refund.request_id
+        FOR UPDATE;
+
+        -- 2. KİLİT: FİRMA BAKİYESİNİ KİLİTLE
+        SELECT current_balance INTO v_curr_balance
+        FROM public.company_credit_balances
+        WHERE company_id = v_refund.company_id
+        FOR UPDATE;
+
+        v_new_balance := COALESCE(v_curr_balance, 0) + v_unlock.credits_spent;
+
+        UPDATE public.company_credit_balances
+        SET current_balance = v_new_balance,
+            updated_at = now()
+        WHERE company_id = v_refund.company_id;
+
+        INSERT INTO public.company_credit_ledger (
+            company_id, amount, entry_type, balance_after, reference_id, description, metadata
+        ) VALUES (
+            v_refund.company_id, v_unlock.credits_spent, 'refund', v_new_balance,
+            p_refund_request_id::text,
+            format('Sorunlu talep iadesi kabul edildi (Talep #%s): %s', SUBSTRING(v_refund.request_id::text, 1, 8), p_admin_notes),
+            jsonb_build_object('refund_id', p_refund_request_id, 'reason', v_refund.reason)
+        );
+
+        UPDATE public.quote_request_unlocks
+        SET status = 'refunded'
+        WHERE id = v_refund.unlock_id;
+
+        UPDATE public.credit_refund_requests
+        SET status = 'approved',
+            admin_notes = p_admin_notes,
+            resolved_by = p_admin_id,
+            resolved_at = now()
+        WHERE id = p_refund_request_id;
+
+        RETURN jsonb_build_object(
+            'success', true,
+            'decision', 'approved',
+            'credits_refunded', v_unlock.credits_spent,
+            'balance_after', v_new_balance
+        );
+    ELSE
+        UPDATE public.credit_refund_requests
+        SET status = 'rejected',
+            admin_notes = p_admin_notes,
+            resolved_by = p_admin_id,
+            resolved_at = now()
+        WHERE id = p_refund_request_id;
+
+        RETURN jsonb_build_object('success', true, 'decision', 'rejected');
+    END IF;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.resolve_credit_refund(UUID, VARCHAR, TEXT, UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.resolve_credit_refund(UUID, VARCHAR, TEXT, UUID) TO service_role;
+
+-- ==============================================================================
+-- 14. HOŞ GELDİN KREDİSİ TANIMLAMA FONKSİYONU
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION public.grant_welcome_credits_if_eligible(
+    p_company_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_comp RECORD;
+    v_credits INT;
+    v_curr_balance INT;
+    v_new_balance INT;
+    v_existing_grant RECORD;
+BEGIN
+    SELECT * INTO v_comp FROM public.companies WHERE id = p_company_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Firma bulunamadı: %', p_company_id;
+    END IF;
+
+    SELECT welcome_credits INTO v_credits FROM public.credit_system_settings WHERE id = 1;
+    v_credits := COALESCE(v_credits, 3);
+
+    IF v_credits <= 0 THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Hoş geldin kredisi kapalıdır.');
+    END IF;
+
+    SELECT * INTO v_existing_grant
+    FROM public.welcome_credit_grants
+    WHERE (tax_number IS NOT NULL AND tax_number != '' AND tax_number = v_comp.tax_number)
+       OR (phone IS NOT NULL AND phone != '' AND phone = v_comp.phone)
+       OR company_id = p_company_id;
+
+    IF FOUND THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Bu firma, VKN veya telefon için hoş geldin kredisi daha önce verilmiştir.');
+    END IF;
+
+    INSERT INTO public.company_credit_balances (company_id, current_balance, lifetime_purchased, lifetime_spent, has_received_welcome_grant, updated_at)
+    VALUES (p_company_id, 0, 0, 0, false, now())
+    ON CONFLICT (company_id) DO NOTHING;
+
+    SELECT current_balance INTO v_curr_balance
+    FROM public.company_credit_balances
+    WHERE company_id = p_company_id
+    FOR UPDATE;
+
+    v_new_balance := v_curr_balance + v_credits;
+
+    UPDATE public.company_credit_balances
+    SET current_balance = v_new_balance,
+        lifetime_purchased = lifetime_purchased + v_credits,
+        has_received_welcome_grant = true,
+        updated_at = now()
+    WHERE company_id = p_company_id;
+
+    INSERT INTO public.company_credit_ledger (
+        company_id, amount, entry_type, balance_after, reference_id, description
+    ) VALUES (
+        p_company_id, v_credits, 'welcome_grant', v_new_balance, 'WELCOME',
+        format('Yeni onaylanan firma hoş geldin hediyesi (%s Kredi)', v_credits)
+    );
+
+    INSERT INTO public.welcome_credit_grants (company_id, tax_number, phone, credits_granted)
+    VALUES (p_company_id, v_comp.tax_number, v_comp.phone, v_credits);
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'credits_granted', v_credits,
+        'balance_after', v_new_balance,
+        'message', format('%s hoş geldin kredisi yüklendi.', v_credits)
+    );
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.grant_welcome_credits_if_eligible(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.grant_welcome_credits_if_eligible(UUID) TO service_role;
+
+-- ==============================================================================
+-- 15. SÜRE DOLUMU VE CRON BAKIM FONKSİYONU (YALNIZCA service_role ÇAĞIRIR)
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION public.process_expired_credits()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_validity_days INT;
+    v_cutoff_time TIMESTAMPTZ;
+    v_row RECORD;
+    v_expired_count INT := 0;
+BEGIN
+    SELECT credit_validity_days INTO v_validity_days FROM public.credit_system_settings WHERE id = 1;
+    IF v_validity_days IS NULL OR v_validity_days <= 0 THEN
+        RETURN jsonb_build_object('success', true, 'message', 'Kredi geçerlilik süresi sınırsızdır.');
+    END IF;
+
+    v_cutoff_time := now() - (v_validity_days || ' days')::INTERVAL;
+
+    -- Süresi dolan yüklemeleri tespit et ve bakiyeleri güncelle
+    -- (Gerçek senaryoda FIFO ile defterde expire hareketi atan mekanizma)
+    RETURN jsonb_build_object('success', true, 'expired_grants_processed', v_expired_count);
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.process_expired_credits() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.process_expired_credits() TO service_role;
+-- ==============================================================================
+-- ŞANTİYE GO – PROMPT 9E-2: ÖDEME GÜVENCESİ (ESCROW / PAZARYERİ) ŞEMASI VE RPC'LER
+-- İyzico Alt Üye İşyeri (Sub-Merchant), Havuz Blokesi, Teslimat Onayı ve İtiraz Masası
+-- ==============================================================================
+
+-- 1. ENUM VE TİP TANIMLARI
+DO $$ BEGIN
+    CREATE TYPE escrow_status_enum AS ENUM (
+        'pending',       -- Bekliyor (Ödeme formu açıldı, henüz çekilmedi)
+        'paid_held',     -- Ödendi / İyzico Havuzunda Bloke
+        'releasable',    -- Serbest Bırakılabilir (Onaylandı veya itiraz süresi bitti)
+        'transferred',   -- Alt Üye İşyerine (Firmaya) Aktarıldı
+        'disputed',      -- İtiraz Edildi / Askıya Alındı
+        'refunded',      -- Alıcıya İade Edildi
+        'cancelled'      -- İptal Edildi
+    );
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- 2. MEVCUT ÖDEME TABLOLARINI GENİŞLETME (payment_transactions ve payments)
+ALTER TABLE public.payment_transactions
+    ADD COLUMN IF NOT EXISTS escrow_status VARCHAR(30) DEFAULT 'pending',
+    ADD COLUMN IF NOT EXISTS held_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS auto_release_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS released_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS disputed_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS dispute_reason TEXT,
+    ADD COLUMN IF NOT EXISTS sub_merchant_key VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS iyzico_item_id VARCHAR(100);
+
+-- payments tablosu varsa senkron alanları ekle
+DO $$ BEGIN
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'payments') THEN
+        ALTER TABLE public.payments
+            ADD COLUMN IF NOT EXISTS escrow_status VARCHAR(30) DEFAULT 'pending',
+            ADD COLUMN IF NOT EXISTS held_at TIMESTAMPTZ,
+            ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ,
+            ADD COLUMN IF NOT EXISTS auto_release_at TIMESTAMPTZ,
+            ADD COLUMN IF NOT EXISTS released_at TIMESTAMPTZ,
+            ADD COLUMN IF NOT EXISTS disputed_at TIMESTAMPTZ,
+            ADD COLUMN IF NOT EXISTS dispute_reason TEXT,
+            ADD COLUMN IF NOT EXISTS sub_merchant_key VARCHAR(100),
+            ADD COLUMN IF NOT EXISTS iyzico_item_id VARCHAR(100);
+    END IF;
+END $$;
+
+-- 3. FİRMA İYZİCO ALT ÜYE İŞYERİ PROFİL TABLOSU (company_submerchants)
+CREATE TABLE IF NOT EXISTS public.company_submerchants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+    sub_merchant_key VARCHAR(100) NOT NULL UNIQUE,
+    sub_merchant_type VARCHAR(50) NOT NULL DEFAULT 'LIMITED_OR_JOINT_STOCK_COMPANY',
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    phone VARCHAR(30) NOT NULL,
+    iban VARCHAR(40) NOT NULL,
+    tax_office VARCHAR(100),
+    tax_number VARCHAR(20),
+    identity_number VARCHAR(11),
+    status VARCHAR(30) NOT NULL DEFAULT 'active',
+    raw_response JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT unique_company_submerchant UNIQUE (company_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_submerchants_company ON public.company_submerchants(company_id);
+CREATE INDEX IF NOT EXISTS idx_submerchants_key ON public.company_submerchants(sub_merchant_key);
+
+-- 4. UYUŞMAZLIK / İTİRAZ MASASI TABLOSU (escrow_disputes)
+CREATE TABLE IF NOT EXISTS public.escrow_disputes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payment_id UUID NOT NULL REFERENCES public.payment_transactions(id) ON DELETE CASCADE,
+    booking_id UUID REFERENCES public.bookings(id) ON DELETE SET NULL,
+    opened_by UUID NOT NULL REFERENCES public.profiles(id),
+    status VARCHAR(30) NOT NULL DEFAULT 'open', -- 'open', 'resolved_seller', 'resolved_buyer', 'dismissed'
+    reason TEXT NOT NULL,
+    evidence_urls TEXT[] DEFAULT '{}',
+    resolution_notes TEXT,
+    resolved_by UUID REFERENCES public.profiles(id),
+    resolved_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_disputes_payment ON public.escrow_disputes(payment_id);
+CREATE INDEX IF NOT EXISTS idx_disputes_status ON public.escrow_disputes(status);
+
+-- 5. DEĞİŞTİRİLEMEZ ESCROW HAREKET KÜTÜĞÜ (escrow_audit_logs)
+CREATE TABLE IF NOT EXISTS public.escrow_audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payment_id UUID NOT NULL REFERENCES public.payment_transactions(id) ON DELETE CASCADE,
+    action VARCHAR(64) NOT NULL, -- 'payment_held', 'marked_delivered', 'buyer_approved', 'dispute_opened', 'auto_released', 'payout_transferred', 'refunded'
+    actor_id UUID REFERENCES public.profiles(id),
+    actor_role VARCHAR(30),
+    previous_status VARCHAR(30),
+    new_status VARCHAR(30),
+    details JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_escrow_audit_payment ON public.escrow_audit_logs(payment_id);
+CREATE INDEX IF NOT EXISTS idx_escrow_audit_created ON public.escrow_audit_logs(created_at);
+
+-- Kütük satırlarında UPDATE/DELETE yasaklayan tetikleyici
+CREATE OR REPLACE FUNCTION public.prevent_escrow_audit_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION 'escrow_audit_logs kütügünde kayıt silinemez veya değiştirilemez (Immutable Audit Log).';
 END;
 $$ LANGUAGE plpgsql;
 
--- 9. ROW LEVEL SECURITY (RLS) POLÄ°TÄ°KALARI
-ALTER TABLE public.company_credit_ledgers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.credit_packages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.quote_disputes ENABLE ROW LEVEL SECURITY;
-
--- Kredi Paketleri: Herkes okuyabilir (aktif olanlarÄ±)
-CREATE POLICY "credit_packages_read_all" ON public.credit_packages
-    FOR SELECT USING (is_active = true);
-
--- Kredi Defteri: Firma yalnÄ±zca kendi defterini okuyabilir (Bakiye manipÃ¼lasyonu sunucu dÄ±ÅŸÄ±ndan imkansÄ±zdÄ±r)
-CREATE POLICY "credit_ledger_read_own" ON public.company_credit_ledgers
-    FOR SELECT USING (
-        company_id IN (SELECT id FROM public.companies WHERE user_id = auth.uid())
-    );
-
--- Sorunlu Talep Ä°tirazlarÄ±: Firma kendi itirazÄ±nÄ± okuyabilir ve oluÅŸturabilir
-CREATE POLICY "quote_disputes_read_own" ON public.quote_disputes
-    FOR SELECT USING (
-        company_id IN (SELECT id FROM public.companies WHERE user_id = auth.uid())
-    );
-
-CREATE POLICY "quote_disputes_insert_own" ON public.quote_disputes
-    FOR INSERT WITH CHECK (
-        company_id IN (SELECT id FROM public.companies WHERE user_id = auth.uid())
-    );
-
-
--- =========================================
--- MIGRATION 13: COMMISSION CAPS & CONTRACTS
--- =========================================
--- ==============================================================================
--- ÅANTÄ°YE GO â€“ MIGRATION 13: TAVAN / KADEMELÄ° KOMÄ°SYON VE OTOMATÄ°K SÃ–ZLEÅME (PROMPT 9C)
--- ==============================================================================
-
--- 1. KOMÄ°SYON KURALLARI TABLOSUNU GENÄ°ÅLET
-ALTER TABLE IF EXISTS public.commission_rules
-ADD COLUMN IF NOT EXISTS cap_amount_cents BIGINT DEFAULT NULL,
-ADD COLUMN IF NOT EXISTS min_amount_cents BIGINT DEFAULT NULL,
-ADD COLUMN IF NOT EXISTS tiers JSONB DEFAULT '[]'::jsonb,
-ADD COLUMN IF NOT EXISTS exempt_if_quote_credit_used BOOLEAN DEFAULT false;
-
--- 2. Ã–DEME Ä°ÅLEMLERÄ° TABLOSUNA DONDURULMUÅ KOMÄ°SYON ALANLARI
-ALTER TABLE IF EXISTS public.payment_transactions
-ADD COLUMN IF NOT EXISTS commission_base_rate NUMERIC(5, 2),
-ADD COLUMN IF NOT EXISTS commission_cap_cents BIGINT,
-ADD COLUMN IF NOT EXISTS is_commission_capped BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS capped_commission_savings_cents BIGINT DEFAULT 0,
-ADD COLUMN IF NOT EXISTS commission_tier_applied JSONB,
-ADD COLUMN IF NOT EXISTS credit_exemption_applied BOOLEAN DEFAULT false;
-
--- 3. SÃ–ZLEÅME ÅABLONLARI TABLOSU (SÃœRÃœMLÃœ ÅABLONLAR)
-CREATE TABLE IF NOT EXISTS public.contract_templates (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    template_type VARCHAR(50) NOT NULL, -- 'rental' (Kiralama), 'service' (Nakliye/Hizmet)
-    version INT NOT NULL DEFAULT 1,
-    title VARCHAR(200) NOT NULL,
-    standard_terms TEXT NOT NULL,
-    is_active BOOLEAN DEFAULT true,
-    created_by UUID REFERENCES public.profiles(id),
-    created_at TIMESTAMPTZ DEFAULT now(),
-    UNIQUE(template_type, version)
-);
-
-CREATE INDEX IF NOT EXISTS idx_contract_templates_type_v ON public.contract_templates(template_type, version DESC);
-
--- BaÅŸlangÄ±Ã§ ÅablonlarÄ± (SÃ¼rÃ¼m 1)
-INSERT INTO public.contract_templates (template_type, version, title, standard_terms)
-VALUES
-    ('rental', 1, 'Ä°ÅŸ Makineleri ve Ekipman Kiralama SÃ¶zleÅŸmesi', $$1. TARAFLAR: Ä°ÅŸbu sÃ¶zleÅŸme ÅantiyeGO platformu Ã¼zerinden anlaÅŸan Kiralayan (Firma) ile KiracÄ± (AlÄ±cÄ±) arasÄ±nda akdedilmiÅŸtir.
-2. SÃ–ZLEÅMENÄ°N KONUSU: Ä°landa ve sipariÅŸ dÃ¶kÃ¼mÃ¼nde dinamik Ã¶zellikleri belirtilen ekipmanÄ±n, belirtilen sÃ¼re ve ÅŸantiye adresinde kiralanmasÄ±dÄ±r.
-3. PLATFORMUN KONUMU: ÅantiyeGO (Platform), 6563 sayÄ±lÄ± Kanun kapsamÄ±nda AracÄ± Hizmet SaÄŸlayÄ±cÄ±dÄ±r; sÃ¶zleÅŸmenin tarafÄ±, garantÃ¶rÃ¼ veya kefili deÄŸildir.
-4. TESLÄ°M VE Ä°ADE: Ekipman eksiksiz ve Ã§alÄ±ÅŸÄ±r vaziyette tutanakla teslim edilir ve iade alÄ±nÄ±r.
-5. KULLANIM VE BAKIM: KiracÄ±, ekipmanÄ± amacÄ±na uygun, iÅŸ gÃ¼venliÄŸi mevzuatÄ±na riayet ederek kullanmakla yÃ¼kÃ¼mlÃ¼dÃ¼r.
-6. HASAR VE KAYIP: KiracÄ±nÄ±n kusurundan doÄŸan hasarlar KiracÄ± tarafÄ±ndan tazmin edilir.
-7. Ä°PTAL VE FESÄ°H: Ä°ptal ve cayma hallerinde ÅantiyeGO Ä°ptal ve Ä°ade KoÅŸullarÄ± geÃ§erlidir.
-8. MÃœCBÄ°R SEBEPLER: TaraflarÄ±n kontrolÃ¼ dÄ±ÅŸÄ±ndaki doÄŸal afet, yangÄ±n, salgÄ±n vb. durumlarda yÃ¼kÃ¼mlÃ¼lÃ¼kler askÄ±ya alÄ±nÄ±r.
-9. GÄ°ZLÄ°LÄ°K VE KVKK: Taraflar paylaÅŸÄ±lan bilgileri iÅŸbu sÃ¶zleÅŸme haricinde kullanamaz.
-10. UYUÅMAZLIKLARIN Ã‡Ã–ZÃœMÃœ: UyuÅŸmazlÄ±klarda yetkili icra daireleri ve mahkemeler hukukÃ§ular tarafÄ±ndan belirlenecektir.
-NOT: Ä°ÅŸbu metin TASLAK niteliÄŸinde olup hukuki incelemeden geÃ§irilmelidir.$$),
-
-    ('service', 1, 'AÄŸÄ±r Nakliye ve Ä°nÅŸaat Hizmeti SÃ¶zleÅŸmesi', $$1. TARAFLAR: Ä°ÅŸbu sÃ¶zleÅŸme ÅantiyeGO platformu Ã¼zerinden anlaÅŸan Hizmet SaÄŸlayÄ±cÄ± (Firma) ile Hizmet Alan (AlÄ±cÄ±) arasÄ±nda akdedilmiÅŸtir.
-2. SÃ–ZLEÅMENÄ°N KONUSU: Ä°landa belirtilen nakliye/hizmetin, belirtilen gÃ¼zergah veya ÅŸantiye sahasÄ±nda ifa edilmesidir.
-3. PLATFORMUN KONUMU: ÅantiyeGO AracÄ± Hizmet SaÄŸlayÄ±cÄ±dÄ±r; hizmetin doÄŸrudan ifacÄ±sÄ± veya tarafÄ± deÄŸildir.
-4. YÃœK VE SAHA SORUMLULUÄU: Hizmet alan, yÃ¼kÃ¼n niteliÄŸi ve yol/saha koÅŸullarÄ± hakkÄ±nda doÄŸru bilgi vermekle yÃ¼kÃ¼mlÃ¼dÃ¼r.
-5. Ä°FA VE GECÄ°KME: TaÅŸÄ±ma ve hizmet sÃ¼resi mÃ¼cbir sebepler saklÄ± kalmak Ã¼zere kararlaÅŸtÄ±rÄ±lan tarihlerde tamamlanÄ±r.
-6. Ä°PTAL KOÅULLARI: ÅantiyeGO hizmet iptal politikasÄ± geÃ§erlidir.
-7. GÄ°ZLÄ°LÄ°K: Ticari bilgiler gizli tutulacaktÄ±r.
-8. UYUÅMAZLIKLAR: Yetkili mahkeme alanÄ± taraflarca belirlenecektir.
-NOT: Ä°ÅŸbu metin TASLAK niteliÄŸinde olup hukuki incelemeden geÃ§irilmelidir.$$)
-ON CONFLICT (template_type, version) DO NOTHING;
-
--- 4. ÃœRETÄ°LEN SÃ–ZLEÅMELER TABLOSU (DONDURULMUÅ SNAPSHOT VE SHA-256)
-CREATE TABLE IF NOT EXISTS public.contracts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    contract_number VARCHAR(50) UNIQUE NOT NULL,
-    contract_type VARCHAR(50) NOT NULL, -- 'rental' | 'service'
-    booking_id UUID REFERENCES public.bookings(id) ON DELETE SET NULL,
-    quote_id UUID REFERENCES public.quotes(id) ON DELETE SET NULL,
-    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
-    buyer_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    
-    template_id UUID REFERENCES public.contract_templates(id),
-    template_version INT NOT NULL DEFAULT 1,
-    data_snapshot JSONB NOT NULL,
-    
-    pdf_sha256 VARCHAR(64) NOT NULL,
-    pdf_storage_path TEXT,
-    
-    status VARCHAR(30) DEFAULT 'pending_approval', -- 'draft', 'pending_approval', 'mutual_approved', 'revision_requested', 'superseded'
-    company_approved_at TIMESTAMPTZ,
-    buyer_approved_at TIMESTAMPTZ,
-    company_approved_ip VARCHAR(45),
-    buyer_approved_ip VARCHAR(45),
-    revision_notes TEXT,
-    
-    signed_copy_url TEXT,
-    signed_uploaded_by UUID REFERENCES public.profiles(id),
-    signed_uploaded_at TIMESTAMPTZ,
-    
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_contracts_buyer ON public.contracts(buyer_id);
-CREATE INDEX IF NOT EXISTS idx_contracts_company ON public.contracts(company_id);
-CREATE INDEX IF NOT EXISTS idx_contracts_status ON public.contracts(status);
-CREATE INDEX IF NOT EXISTS idx_contracts_booking ON public.contracts(booking_id);
-CREATE INDEX IF NOT EXISTS idx_contracts_quote ON public.contracts(quote_id);
-
--- 5. ROW LEVEL SECURITY (RLS)
-ALTER TABLE public.contract_templates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.contracts ENABLE ROW LEVEL SECURITY;
-
--- ÅablonlarÄ± herkes okuyabilir (aktif olanlarÄ±)
-DROP POLICY IF EXISTS "contract_templates_read_all" ON public.contract_templates;
-CREATE POLICY "contract_templates_read_all" ON public.contract_templates
-    FOR SELECT USING (is_active = true);
-
--- SÃ¶zleÅŸmeleri sadece taraflar ve adminler okuyabilir
-DROP POLICY IF EXISTS "contracts_parties_read" ON public.contracts;
-CREATE POLICY "contracts_parties_read" ON public.contracts
-    FOR SELECT USING (
-        buyer_id = auth.uid() OR
-        company_id IN (SELECT id FROM public.companies WHERE user_id = auth.uid()) OR
-        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
-    );
-
--- Taraflar onay bilgilerini gÃ¼ncelleyebilir
-DROP POLICY IF EXISTS "contracts_parties_update" ON public.contracts;
-CREATE POLICY "contracts_parties_update" ON public.contracts
-    FOR UPDATE USING (
-        buyer_id = auth.uid() OR
-        company_id IN (SELECT id FROM public.companies WHERE user_id = auth.uid()) OR
-        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'super_admin'))
-    );
-
-
--- =========================================
--- MIGRATION 17: ESCROW PAYMENT GUARANTEE
--- =========================================
--- ==============================================================================
--- ÅANTÄ°YE GO â€“ MIGRATION 17: Ã–DEME GÃœVENCESÄ° (ESCROW), PAZARYERÄ° VE ALT ÃœYE Ä°ÅYERÄ° ALTYAPISI (PROMPT 9E)
--- ==============================================================================
-
--- 1. PAYMENT STATUS ENUM DEÄERLERÄ°NÄ° GENÄ°ÅLET
-DO $$ BEGIN
-    ALTER TYPE payment_status ADD VALUE IF NOT EXISTS 'paid_escrow';
-    ALTER TYPE payment_status ADD VALUE IF NOT EXISTS 'releasable';
-    ALTER TYPE payment_status ADD VALUE IF NOT EXISTS 'disputed';
-EXCEPTION WHEN duplicate_object THEN null;
-END $$;
-
--- 2. FÄ°RMALAR TABLOSUNA ALT ÃœYE Ä°ÅYERÄ° VE OPT-IN ALANLARI
-ALTER TABLE IF EXISTS public.companies
-    ADD COLUMN IF NOT EXISTS accept_platform_escrow BOOLEAN DEFAULT false,
-    ADD COLUMN IF NOT EXISTS sub_merchant_status VARCHAR(30) DEFAULT 'unregistered', -- 'unregistered', 'pending', 'approved', 'rejected'
-    ADD COLUMN IF NOT EXISTS iban_last4 VARCHAR(4),
-    ADD COLUMN IF NOT EXISTS sub_merchant_external_id VARCHAR(100),
-    ADD COLUMN IF NOT EXISTS sub_merchant_registered_at TIMESTAMPTZ;
-
--- 3. SÄ°STEM AYARLARI TABLOSUNA ESCROW KONFÄ°GÃœRASYONLARI
-INSERT INTO public.platform_settings (key, value, description)
-VALUES
-    ('payment_mode', '{"mode": "external"}'::jsonb, 'Platform genel Ã¶deme modu ("external" varsayÄ±lan doÄŸrudan mutabakat, "platform" emanet havuz)'),
-    ('escrow_dispute_window_days', '{"days": 3}'::jsonb, 'Ä°ÅŸ tamamlandÄ±ktan sonra alÄ±cÄ±nÄ±n itiraz edebileceÄŸi sÃ¼re (gÃ¼n). SÃ¼re bitince otomatik serbest bÄ±rakÄ±lÄ±r.'),
-    ('refund_commission_action', '{"action": "refund_full"}'::jsonb, 'Ä°ptal ve iade durumunda platform komisyonu politikasÄ± ("refund_full" komisyon da iade edilir, "retain_fee" komisyon kesilir)'),
-    ('escrow_auto_release_enabled', '{"enabled": true}'::jsonb, 'Ä°tiraz penceresi dolduÄŸunda itiraz yoksa otomatik serbest bÄ±rakma cron bayraÄŸÄ±')
-ON CONFLICT (key) DO NOTHING;
-
--- 4. PAYMENT_TRANSACTIONS TABLOSUNA ESCROW VE Ä°TÄ°RAZ ALANLARI
-ALTER TABLE IF EXISTS public.payment_transactions
-    ADD COLUMN IF NOT EXISTS payment_mode VARCHAR(20) DEFAULT 'platform',
-    ADD COLUMN IF NOT EXISTS buyer_confirmed_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS auto_release_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS disputed_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS dispute_status VARCHAR(30) DEFAULT 'none', -- 'none', 'opened', 'under_review', 'resolved_transferred', 'resolved_refunded', 'resolved_split'
-    ADD COLUMN IF NOT EXISTS dispute_reason TEXT,
-    ADD COLUMN IF NOT EXISTS dispute_resolution_notes TEXT,
-    ADD COLUMN IF NOT EXISTS dispute_resolved_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS dispute_resolved_by UUID REFERENCES public.profiles(id),
-    ADD COLUMN IF NOT EXISTS provider_submerchant_price_cents BIGINT,
-    ADD COLUMN IF NOT EXISTS provider_transaction_id TEXT,
-    ADD COLUMN IF NOT EXISTS split_buyer_amount_cents BIGINT DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS split_company_amount_cents BIGINT DEFAULT 0;
-
-CREATE INDEX IF NOT EXISTS idx_payment_auto_release ON public.payment_transactions(auto_release_at) WHERE status IN ('paid', 'paid_escrow');
-CREATE INDEX IF NOT EXISTS idx_payment_dispute_status ON public.payment_transactions(dispute_status);
-
--- 5. DEÄÄ°ÅTÄ°RÄ°LEMEZ Ã–DEME OLAY DEFTERÄ° (APPEND-ONLY PAYMENT EVENTS)
-CREATE TABLE IF NOT EXISTS public.payment_events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    payment_id UUID NOT NULL REFERENCES public.payment_transactions(id) ON DELETE CASCADE,
-    from_status VARCHAR(30) NOT NULL,
-    to_status VARCHAR(30) NOT NULL,
-    triggered_by VARCHAR(60) NOT NULL, -- 'buyer_confirmation', 'dispute_opened', 'dispute_resolved', 'auto_timeout', 'admin_override', 'webhook_paid', 'refund_requested'
-    actor_id UUID REFERENCES public.profiles(id),
-    actor_role VARCHAR(30) NOT NULL, -- 'buyer', 'company', 'admin', 'system'
-    reason TEXT,
-    metadata JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_payment_events_pid ON public.payment_events(payment_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_payment_events_actor ON public.payment_events(actor_id);
-
--- 6. UYUÅMAZLIK / Ä°TÄ°RAZ KUYRUÄU TABLOSU (PAYMENT DISPUTES)
-CREATE TABLE IF NOT EXISTS public.payment_disputes (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    payment_id UUID NOT NULL REFERENCES public.payment_transactions(id) ON DELETE CASCADE,
-    buyer_id UUID NOT NULL REFERENCES public.profiles(id),
-    company_id UUID NOT NULL REFERENCES public.companies(id),
-    reason TEXT NOT NULL,
-    buyer_notes TEXT,
-    company_notes TEXT,
-    company_responded_at TIMESTAMPTZ,
-    status VARCHAR(30) NOT NULL DEFAULT 'opened', -- 'opened', 'under_review', 'resolved_transferred', 'resolved_refunded', 'resolved_split'
-    resolution_type VARCHAR(30), -- 'transfer_to_company', 'full_refund_to_buyer', 'split'
-    buyer_refund_cents BIGINT DEFAULT 0,
-    company_transfer_cents BIGINT DEFAULT 0,
-    admin_notes TEXT,
-    admin_id UUID REFERENCES public.profiles(id),
-    requires_2fa BOOLEAN DEFAULT true,
-    two_factor_verified_at TIMESTAMPTZ,
-    resolved_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_disputes_payment ON public.payment_disputes(payment_id);
-CREATE INDEX IF NOT EXISTS idx_disputes_status ON public.payment_disputes(status);
-CREATE INDEX IF NOT EXISTS idx_disputes_parties ON public.payment_disputes(buyer_id, company_id);
-
--- 7. WEBHOOK BÄ°LDÄ°RÄ°M VE Ä°DEMPOTENCY TABLOSU
-CREATE TABLE IF NOT EXISTS public.payment_webhook_events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id VARCHAR(128) UNIQUE NOT NULL,
-    provider VARCHAR(30) NOT NULL DEFAULT 'iyzico',
-    event_type VARCHAR(50) NOT NULL,
-    signature TEXT,
-    is_valid_signature BOOLEAN NOT NULL DEFAULT true,
-    payload JSONB NOT NULL,
-    processed BOOLEAN DEFAULT false,
-    processed_at TIMESTAMPTZ,
-    error_message TEXT,
-    created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_webhook_events_eid ON public.payment_webhook_events(event_id);
-
--- 8. GÃœVENLÄ°K (ROW LEVEL SECURITY) POLÄ°TÄ°KALARI
-ALTER TABLE public.payment_events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.payment_disputes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.payment_webhook_events ENABLE ROW LEVEL SECURITY;
-
--- 8.1 payment_events RLS:
--- Ä°lgili alÄ±cÄ±, ilgili firma yetkilisi veya admin okuyabilir.
-DROP POLICY IF EXISTS "payment_events_read_parties_or_admin" ON public.payment_events;
-CREATE POLICY "payment_events_read_parties_or_admin" ON public.payment_events
-    FOR SELECT TO authenticated
-    USING (
-        actor_id = auth.uid() OR
-        EXISTS (
-            SELECT 1 FROM public.payment_transactions pt
-            WHERE pt.id = payment_events.payment_id
-              AND (
-                  pt.buyer_id = auth.uid() OR
-                  pt.company_id IN (SELECT c.id FROM public.companies c WHERE c.user_id = auth.uid())
-              )
-        ) OR
-        EXISTS (
-            SELECT 1 FROM public.admin_users au
-            WHERE au.id = auth.uid() AND au.is_active = true
-        )
-    );
-
--- Ä°stemciden doÄŸrudan INSERT / UPDATE / DELETE kesinlikle YASAKTIR! (Append-only via service_role RPCs)
-DROP POLICY IF EXISTS "payment_events_no_client_mutation" ON public.payment_events;
-CREATE POLICY "payment_events_no_client_mutation" ON public.payment_events
-    FOR INSERT TO authenticated WITH CHECK (false);
-
--- 8.2 payment_disputes RLS:
-DROP POLICY IF EXISTS "disputes_read_parties_or_admin" ON public.payment_disputes;
-CREATE POLICY "disputes_read_parties_or_admin" ON public.payment_disputes
-    FOR SELECT TO authenticated
-    USING (
-        buyer_id = auth.uid() OR
-        company_id IN (SELECT c.id FROM public.companies c WHERE c.user_id = auth.uid()) OR
-        EXISTS (SELECT 1 FROM public.admin_users au WHERE au.id = auth.uid() AND au.is_active = true)
-    );
-
-DROP POLICY IF EXISTS "disputes_buyer_insert" ON public.payment_disputes;
-CREATE POLICY "disputes_buyer_insert" ON public.payment_disputes
-    FOR INSERT TO authenticated
-    WITH CHECK (buyer_id = auth.uid());
-
-DROP POLICY IF EXISTS "disputes_company_update_response" ON public.payment_disputes;
-CREATE POLICY "disputes_company_update_response" ON public.payment_disputes
-    FOR UPDATE TO authenticated
-    USING (
-        company_id IN (SELECT c.id FROM public.companies c WHERE c.user_id = auth.uid()) OR
-        EXISTS (SELECT 1 FROM public.admin_users au WHERE au.id = auth.uid() AND au.is_active = true)
-    );
-
--- 8.3 payment_transactions RLS sÄ±kÄ±laÅŸtÄ±rma:
--- Ä°stemciler payment_transactions Ã¼zerinde ASLA doÄŸrudan UPDATE yapamaz!
-DROP POLICY IF EXISTS "payments_no_direct_client_update" ON public.payment_transactions;
-CREATE POLICY "payments_no_direct_client_update" ON public.payment_transactions
-    FOR UPDATE TO authenticated
-    USING (false);
+DROP TRIGGER IF EXISTS trg_prevent_escrow_audit_mutation ON public.escrow_audit_logs;
+CREATE TRIGGER trg_prevent_escrow_audit_mutation
+    BEFORE UPDATE OR DELETE ON public.escrow_audit_logs
+    FOR EACH ROW
+    EXECUTE FUNCTION public.prevent_escrow_audit_mutation();
 
 -- ==============================================================================
--- 9. SERVICE_ROLE POSTGRESQL RPC DURUM MAKÄ°NESÄ° (FOR UPDATE SATIR KÄ°LÄ°TLÄ°)
+-- 6. GÜVENLİ VE ATOMİK POSTGRESQL RPC FONKSİYONLARI (ESCROW ENGINE)
 -- ==============================================================================
 
--- 9.1 Ã–DEMENÄ°N HAVUZA ALINMASI (WEBHOOK / PAYMENT CONFIRMATION)
-CREATE OR REPLACE FUNCTION public.confirm_escrow_payment_paid(
+-- 6.1. ÖDEME BAŞARILI VE HAVUZDA BLOKELENDİ (SADECE service_role ÇAĞIRABİLİR)
+CREATE OR REPLACE FUNCTION public.mark_payment_held(
     p_payment_id UUID,
-    p_provider_payment_id TEXT,
-    p_card_last_four VARCHAR(4) DEFAULT '4242',
-    p_dispute_window_days INT DEFAULT 3
+    p_iyzico_item_id TEXT,
+    p_sub_merchant_key TEXT,
+    p_details JSONB DEFAULT '{}'::jsonb
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
-    v_tx RECORD;
-    v_auto_release TIMESTAMPTZ;
+    v_pay RECORD;
 BEGIN
-    -- SatÄ±r kilidi ile seÃ§ (Race condition korumasÄ±)
-    SELECT * INTO v_tx
+    -- 1. Satır düzeyinde FOR UPDATE kilidi
+    SELECT * INTO v_pay
     FROM public.payment_transactions
     WHERE id = p_payment_id
     FOR UPDATE;
 
     IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Ã–deme kaydÄ± bulunamadÄ±.');
+        RAISE EXCEPTION 'Ödeme kaydı bulunamadı (ID: %)', p_payment_id;
     END IF;
 
-    -- Idempotency kontrolÃ¼: Zaten havuzda veya sonrasÄ±nda ise baÅŸarÄ±lÄ± dÃ¶n
-    IF v_tx.status IN ('paid', 'paid_escrow', 'releasable', 'transferred') THEN
-        RETURN jsonb_build_object('success', true, 'status', v_tx.status, 'message', 'Zaten iÅŸlenmiÅŸ Ã¶deme.');
+    -- 2. İdempotency kontrolü: Zaten havuzdaysa veya aktarıldıysa tekrar etme
+    IF v_pay.escrow_status = 'paid_held' THEN
+        RETURN jsonb_build_object('success', true, 'message', 'Ödeme zaten havuzda bekliyor.', 'payment_id', p_payment_id);
     END IF;
 
-    v_auto_release := now() + (interval '1 day' * COALESCE(p_dispute_window_days, 3));
-
+    -- 3. Durum güncellemesi
     UPDATE public.payment_transactions
-    SET status = 'paid_escrow',
-        provider_payment_id = COALESCE(p_provider_payment_id, provider_payment_id),
-        card_last_four = COALESCE(p_card_last_four, card_last_four),
-        auto_release_at = v_auto_release,
-        updated_at = now()
+    SET
+        status = 'paid',
+        escrow_status = 'paid_held',
+        held_at = COALESCE(held_at, NOW()),
+        iyzico_item_id = COALESCE(p_iyzico_item_id, iyzico_item_id),
+        sub_merchant_key = COALESCE(p_sub_merchant_key, sub_merchant_key),
+        updated_at = NOW()
     WHERE id = p_payment_id;
 
-    -- DeÄŸiÅŸtirilemez olay defterine yaz
-    INSERT INTO public.payment_events (
-        payment_id, from_status, to_status, triggered_by, actor_role, reason, metadata
-    ) VALUES (
-        p_payment_id, v_tx.status::text, 'paid_escrow', 'webhook_paid', 'system',
-        'Ã–deme saÄŸlayÄ±cÄ±dan baÅŸarÄ±lÄ± tahsilat teyidi alÄ±ndÄ±, havuzda bloke edildi.',
-        jsonb_build_object('provider_payment_id', p_provider_payment_id, 'auto_release_at', v_auto_release)
-    );
+    -- Varsa payments tablosunu da eşitle
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'payments') THEN
+        UPDATE public.payments
+        SET
+            status = 'paid',
+            escrow_status = 'paid_held',
+            held_at = COALESCE(held_at, NOW()),
+            iyzico_item_id = COALESCE(p_iyzico_item_id, iyzico_item_id),
+            sub_merchant_key = COALESCE(p_sub_merchant_key, sub_merchant_key)
+        WHERE id = p_payment_id;
+    END IF;
 
-    -- Ä°letiÅŸim aÃ§Ä±lÄ±ÅŸ tetikleyicisi 'odeme' kuralÄ± kontrolÃ¼
-    INSERT INTO public.contact_reveals (
-        buyer_id, company_id, booking_id, quote_id, trigger_type, revealed_phone, revealed_email
-    )
-    SELECT
-        v_tx.buyer_id,
-        v_tx.company_id,
-        v_tx.booking_id,
-        v_tx.quote_id,
-        'odeme',
-        p.phone,
-        p.email
-    FROM public.profiles p
-    WHERE p.id = v_tx.buyer_id
-    ON CONFLICT DO NOTHING;
+    -- İlgili rezervasyonu onayla
+    IF v_pay.booking_id IS NOT NULL THEN
+        UPDATE public.bookings
+        SET
+            payment_status = 'paid',
+            status = 'approved',
+            updated_at = NOW()
+        WHERE id = v_pay.booking_id;
+    END IF;
+
+    -- 4. Audit Log Ekle
+    INSERT INTO public.escrow_audit_logs (
+        payment_id,
+        action,
+        actor_role,
+        previous_status,
+        new_status,
+        details
+    ) VALUES (
+        p_payment_id,
+        'payment_held',
+        'system',
+        v_pay.escrow_status,
+        'paid_held',
+        p_details
+    );
 
     RETURN jsonb_build_object(
         'success', true,
-        'status', 'paid_escrow',
-        'auto_release_at', v_auto_release
+        'payment_id', p_payment_id,
+        'escrow_status', 'paid_held',
+        'held_at', NOW()
     );
 END;
 $$;
 
--- 9.2 ALICININ Ä°ÅÄ° ONAYLAMASI VE Ã–DEMENÄ°N SERBEST BIRAKILMASI
-CREATE OR REPLACE FUNCTION public.buyer_confirm_and_release_escrow(
-    p_payment_id UUID,
-    p_buyer_id UUID
+-- 6.2. FİRMA İŞİ TESLİM ETTİ BİLDİRİMİ (Firma Yetkilisi Tarafından Çağrılır)
+CREATE OR REPLACE FUNCTION public.seller_mark_delivered(
+    p_payment_id UUID
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
-    v_tx RECORD;
+    v_pay RECORD;
+    v_user_id UUID := auth.uid();
+    v_is_company_owner BOOLEAN;
+    v_auto_release_time TIMESTAMPTZ;
 BEGIN
-    SELECT * INTO v_tx
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'Kimlik doğrulanmadı. Lütfen giriş yapınız.';
+    END IF;
+
+    -- 1. Satırı kilitle
+    SELECT * INTO v_pay
     FROM public.payment_transactions
     WHERE id = p_payment_id
     FOR UPDATE;
 
     IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Ã–deme kaydÄ± bulunamadÄ±.');
+        RAISE EXCEPTION 'Ödeme işlemi bulunamadı.';
     END IF;
 
-    -- Yetkilendirme KuralÄ±: Firma kendi parasÄ±nÄ± ASLA serbest bÄ±rakamaz! YalnÄ±zca Ã¶demeyi yapan alÄ±cÄ± serbest bÄ±rakabilir.
-    IF v_tx.buyer_id != p_buyer_id THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Yetkisiz iÅŸlem: Sadece sipariÅŸin alÄ±cÄ±sÄ± Ã¶demeyi serbest bÄ±rakabilir.');
+    -- 2. Yetki kontrolü: Kullanıcı bu ödemenin yapıldığı firmanın sahibi mi?
+    SELECT EXISTS (
+        SELECT 1 FROM public.companies
+        WHERE id = v_pay.company_id AND user_id = v_user_id
+    ) INTO v_is_company_owner;
+
+    IF NOT v_is_company_owner THEN
+        RAISE EXCEPTION 'Bu işlem için yetkiniz yok. Sadece ödemeyi alacak firma teslimat bildirebilir.';
     END IF;
 
-    -- Durum kontrolleri
-    IF v_tx.status = 'transferred' THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Ã–deme zaten firmaya aktarÄ±lmÄ±ÅŸ (idempotent red).');
+    IF v_pay.escrow_status != 'paid_held' THEN
+        RAISE EXCEPTION 'Sadece havuzda bekleyen (paid_held) ödemeler için teslimat bildirilebilir. Mevcut durum: %', v_pay.escrow_status;
     END IF;
 
-    IF v_tx.status = 'refunded' THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Ä°ade edilmiÅŸ bir Ã¶deme serbest bÄ±rakÄ±lamaz.');
-    END IF;
+    -- 3. Teslim zamanı ve 3 günlük (72 saat) itiraz penceresini kur
+    v_auto_release_time := NOW() + INTERVAL '3 days';
 
-    IF v_tx.status = 'disputed' THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Ä°tiraz sÃ¼recindeki Ã¶deme serbest bÄ±rakÄ±lamaz. YÃ¶netici kararÄ± beklenmelidir.');
-    END IF;
-
-    IF v_tx.status NOT IN ('paid', 'paid_escrow', 'releasable') THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Ã–deme havuzda hazÄ±r deÄŸil. GeÃ§ersiz durum geÃ§iÅŸi: ' || v_tx.status::text);
-    END IF;
-
-    -- Durum geÃ§iÅŸi: transferred
     UPDATE public.payment_transactions
-    SET status = 'transferred',
-        buyer_confirmed_at = now(),
-        is_transferred_to_submerchant = true,
-        transferred_at = now(),
-        updated_at = now()
+    SET
+        delivered_at = NOW(),
+        auto_release_at = v_auto_release_time,
+        updated_at = NOW()
     WHERE id = p_payment_id;
 
-    -- Olay defterine kaydet
-    INSERT INTO public.payment_events (
-        payment_id, from_status, to_status, triggered_by, actor_id, actor_role, reason, metadata
+    -- Varsa payments tablosunu güncelle
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'payments') THEN
+        UPDATE public.payments
+        SET
+            delivered_at = NOW(),
+            auto_release_at = v_auto_release_time
+        WHERE id = p_payment_id;
+    END IF;
+
+    -- Rezervasyon durumunu delivered yap
+    IF v_pay.booking_id IS NOT NULL THEN
+        UPDATE public.bookings
+        SET status = 'completed', updated_at = NOW()
+        WHERE id = v_pay.booking_id;
+    END IF;
+
+    -- 4. Audit Log Ekle
+    INSERT INTO public.escrow_audit_logs (
+        payment_id,
+        action,
+        actor_id,
+        actor_role,
+        previous_status,
+        new_status,
+        details
     ) VALUES (
-        p_payment_id, v_tx.status::text, 'transferred', 'buyer_confirmation', p_buyer_id, 'buyer',
-        'AlÄ±cÄ± iÅŸ teslimini onayladÄ± ve Ã¶demeyi firmaya aktardÄ±.',
-        jsonb_build_object('net_company_amount_cents', v_tx.net_company_amount_cents)
+        p_payment_id,
+        'marked_delivered',
+        v_user_id,
+        'company',
+        v_pay.escrow_status,
+        'paid_held',
+        jsonb_build_object('auto_release_at', v_auto_release_time)
     );
 
     RETURN jsonb_build_object(
         'success', true,
-        'status', 'transferred',
-        'net_company_amount_cents', v_tx.net_company_amount_cents
+        'payment_id', p_payment_id,
+        'delivered_at', NOW(),
+        'auto_release_at', v_auto_release_time
     );
 END;
 $$;
 
--- 9.3 ALICININ Ä°TÄ°RAZ AÃ‡MASI (DONDURMA VE ADMIN KUYRUÄUNA GÃ–NDERME)
-CREATE OR REPLACE FUNCTION public.open_escrow_dispute(
+-- 6.3. ALICI İŞİ ONAYLADI (Erken Serbest Bırakma - Alıcı Tarafından Çağrılır)
+CREATE OR REPLACE FUNCTION public.buyer_approve_escrow(
+    p_payment_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_pay RECORD;
+    v_user_id UUID := auth.uid();
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'Kimlik doğrulanmadı. Lütfen giriş yapınız.';
+    END IF;
+
+    -- 1. Satırı kilitle
+    SELECT * INTO v_pay
+    FROM public.payment_transactions
+    WHERE id = p_payment_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Ödeme işlemi bulunamadı.';
+    END IF;
+
+    -- 2. Yetki kontrolü: Kullanıcı bu ödemeyi yapan alıcı mı?
+    IF v_pay.buyer_id != v_user_id THEN
+        RAISE EXCEPTION 'Bu işlem için yetkiniz yok. Sadece ödemeyi yapan alıcı teslimatı onaylayabilir.';
+    END IF;
+
+    IF v_pay.escrow_status NOT IN ('paid_held', 'disputed') THEN
+        RAISE EXCEPTION 'Bu durumdaki bir ödeme onaylanamaz. Mevcut durum: %', v_pay.escrow_status;
+    END IF;
+
+    -- 3. Durumu serbest bırakılabilir yap
+    UPDATE public.payment_transactions
+    SET
+        escrow_status = 'releasable',
+        released_at = NOW(),
+        auto_release_at = NULL,
+        updated_at = NOW()
+    WHERE id = p_payment_id;
+
+    -- Varsa payments tablosunu güncelle
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'payments') THEN
+        UPDATE public.payments
+        SET
+            escrow_status = 'releasable',
+            released_at = NOW(),
+            auto_release_at = NULL
+        WHERE id = p_payment_id;
+    END IF;
+
+    -- Varsa açık itirazı çözümlendi olarak kapat
+    UPDATE public.escrow_disputes
+    SET
+        status = 'resolved_seller',
+        resolution_notes = 'Alıcı doğrudan işi teslim aldığını ve onayladığını beyan etti.',
+        resolved_at = NOW(),
+        updated_at = NOW()
+    WHERE payment_id = p_payment_id AND status = 'open';
+
+    -- 4. Audit Log Ekle
+    INSERT INTO public.escrow_audit_logs (
+        payment_id,
+        action,
+        actor_id,
+        actor_role,
+        previous_status,
+        new_status,
+        details
+    ) VALUES (
+        p_payment_id,
+        'buyer_approved',
+        v_user_id,
+        'buyer',
+        v_pay.escrow_status,
+        'releasable',
+        jsonb_build_object('released_at', NOW())
+    );
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'payment_id', p_payment_id,
+        'escrow_status', 'releasable',
+        'released_at', NOW()
+    );
+END;
+$$;
+
+-- 6.4. ALICI İTİRAZ ETTİ / SORUN BİLDİRDİ (Alıcı Tarafından Çağrılır)
+CREATE OR REPLACE FUNCTION public.buyer_dispute_escrow(
     p_payment_id UUID,
-    p_buyer_id UUID,
     p_reason TEXT,
-    p_notes TEXT DEFAULT NULL
+    p_evidence_urls TEXT[] DEFAULT '{}'
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
-    v_tx RECORD;
+    v_pay RECORD;
+    v_user_id UUID := auth.uid();
     v_dispute_id UUID;
 BEGIN
-    SELECT * INTO v_tx
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'Kimlik doğrulanmadı. Lütfen giriş yapınız.';
+    END IF;
+
+    IF p_reason IS NULL OR trim(p_reason) = '' THEN
+        RAISE EXCEPTION 'İtiraz açıklaması boş bırakılamaz.';
+    END IF;
+
+    -- 1. Satırı kilitle
+    SELECT * INTO v_pay
     FROM public.payment_transactions
     WHERE id = p_payment_id
     FOR UPDATE;
 
     IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Ã–deme kaydÄ± bulunamadÄ±.');
+        RAISE EXCEPTION 'Ödeme işlemi bulunamadı.';
     END IF;
 
-    IF v_tx.buyer_id != p_buyer_id THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Yetkisiz iÅŸlem: YalnÄ±zca alÄ±cÄ± itiraz aÃ§abilir.');
+    -- 2. Yetki kontrolü: Sadece alıcı itiraz edebilir
+    IF v_pay.buyer_id != v_user_id THEN
+        RAISE EXCEPTION 'Bu işlem için yetkiniz yok. Sadece ödemeyi yapan alıcı itiraz edebilir.';
     END IF;
 
-    IF v_tx.status = 'transferred' THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Ã–deme halihazÄ±rda firmaya aktarÄ±lmÄ±ÅŸ olduÄŸundan havuz itirazÄ± aÃ§Ä±lamaz.');
+    IF v_pay.escrow_status != 'paid_held' THEN
+        RAISE EXCEPTION 'Yalnızca havuzda bloke olan ödemelere itiraz edilebilir. Mevcut durum: %', v_pay.escrow_status;
     END IF;
 
-    IF v_tx.status = 'refunded' THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Ä°ade edilmiÅŸ Ã¶demeye itiraz aÃ§Ä±lamaz.');
-    END IF;
-
-    IF v_tx.status = 'disputed' THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Bu iÅŸlem iÃ§in zaten aktif bir itiraz sÃ¼reci mevcuttur.');
-    END IF;
-
-    IF v_tx.status NOT IN ('paid', 'paid_escrow', 'releasable') THEN
-        RETURN jsonb_build_object('success', false, 'error', 'YalnÄ±zca havuzdaki Ã¶demelere itiraz edilebilir.');
-    END IF;
-
-    -- Dondur: Durumu disputed yap ve auto_release'i dondur
+    -- 3. Durumu askıya al (disputed) ve otomatik serbest bırakma sayacını durdur
     UPDATE public.payment_transactions
-    SET status = 'disputed',
-        disputed_at = now(),
-        dispute_status = 'opened',
+    SET
+        escrow_status = 'disputed',
+        disputed_at = NOW(),
         dispute_reason = p_reason,
-        updated_at = now()
+        auto_release_at = NULL,
+        updated_at = NOW()
     WHERE id = p_payment_id;
 
-    -- Ä°tiraz kaydÄ± oluÅŸtur
-    INSERT INTO public.payment_disputes (
-        payment_id, buyer_id, company_id, reason, buyer_notes, status
+    -- Varsa payments tablosunu güncelle
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'payments') THEN
+        UPDATE public.payments
+        SET
+            escrow_status = 'disputed',
+            disputed_at = NOW(),
+            dispute_reason = p_reason,
+            auto_release_at = NULL
+        WHERE id = p_payment_id;
+    END IF;
+
+    -- 4. İtiraz masasına kayıt aç
+    INSERT INTO public.escrow_disputes (
+        payment_id,
+        booking_id,
+        opened_by,
+        status,
+        reason,
+        evidence_urls
     ) VALUES (
-        p_payment_id, v_tx.buyer_id, v_tx.company_id, p_reason, p_notes, 'opened'
+        p_payment_id,
+        v_pay.booking_id,
+        v_user_id,
+        'open',
+        p_reason,
+        p_evidence_urls
     ) RETURNING id INTO v_dispute_id;
 
-    -- Olay defterine kaydet
-    INSERT INTO public.payment_events (
-        payment_id, from_status, to_status, triggered_by, actor_id, actor_role, reason, metadata
+    -- 5. Audit Log Ekle
+    INSERT INTO public.escrow_audit_logs (
+        payment_id,
+        action,
+        actor_id,
+        actor_role,
+        previous_status,
+        new_status,
+        details
     ) VALUES (
-        p_payment_id, v_tx.status::text, 'disputed', 'dispute_opened', p_buyer_id, 'buyer',
-        p_reason,
-        jsonb_build_object('dispute_id', v_dispute_id, 'notes', p_notes)
+        p_payment_id,
+        'dispute_opened',
+        v_user_id,
+        'buyer',
+        v_pay.escrow_status,
+        'disputed',
+        jsonb_build_object('dispute_id', v_dispute_id, 'reason', p_reason)
     );
 
     RETURN jsonb_build_object(
         'success', true,
-        'status', 'disputed',
-        'dispute_id', v_dispute_id
+        'dispute_id', v_dispute_id,
+        'payment_id', p_payment_id,
+        'escrow_status', 'disputed'
     );
 END;
 $$;
 
--- 9.4 ADMÄ°N Ä°TÄ°RAZ KARARI (ZORUNLU GEREKÃ‡E, 2FA LOGLU, AKTARIM / TAM Ä°ADE / KISMÄ° PAYLAÅIM)
-CREATE OR REPLACE FUNCTION public.admin_resolve_escrow_dispute(
+-- 6.5. İYZİCO ON ONAYI SONRASI FİRMAYA AKTARILDI İŞARETLE (SADECE service_role)
+CREATE OR REPLACE FUNCTION public.execute_escrow_payout(
     p_payment_id UUID,
-    p_admin_id UUID,
-    p_resolution_type VARCHAR(30), -- 'transfer_to_company', 'full_refund_to_buyer', 'split'
-    p_admin_notes TEXT,
-    p_buyer_refund_cents BIGINT DEFAULT 0,
-    p_company_transfer_cents BIGINT DEFAULT 0
+    p_iyzico_transfer_id TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
-    v_tx RECORD;
-    v_is_admin BOOLEAN;
-    v_to_status VARCHAR(30);
+    v_pay RECORD;
 BEGIN
-    -- Admin kontrolÃ¼
-    SELECT EXISTS (
-        SELECT 1 FROM public.admin_users WHERE id = p_admin_id AND is_active = true
-    ) INTO v_is_admin;
-
-    IF NOT v_is_admin THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Yetkisiz iÅŸlem: Sadece platform yÃ¶neticileri itiraz kararÄ± verebilir.');
-    END IF;
-
-    IF p_admin_notes IS NULL OR length(trim(p_admin_notes)) < 5 THEN
-        RETURN jsonb_build_object('success', false, 'error', 'GerekÃ§e zorunludur (en az 5 karakter).');
-    END IF;
-
-    SELECT * INTO v_tx
+    -- 1. Satırı kilitle
+    SELECT * INTO v_pay
     FROM public.payment_transactions
     WHERE id = p_payment_id
     FOR UPDATE;
 
     IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Ã–deme kaydÄ± bulunamadÄ±.');
+        RAISE EXCEPTION 'Ödeme işlemi bulunamadı.';
     END IF;
 
-    IF v_tx.status != 'disputed' THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Ä°ÅŸlem itiraz durumunda deÄŸil.');
+    IF v_pay.escrow_status != 'releasable' THEN
+        RAISE EXCEPTION 'Ödeme serbest bırakılabilir (releasable) durumda değil. Mevcut durum: %', v_pay.escrow_status;
     END IF;
 
-    IF p_resolution_type = 'transfer_to_company' THEN
-        v_to_status := 'transferred';
-        UPDATE public.payment_transactions
-        SET status = 'transferred',
+    -- 2. Aktarıldı olarak kaydet
+    UPDATE public.payment_transactions
+    SET
+        status = 'transferred',
+        escrow_status = 'transferred',
+        is_transferred_to_submerchant = true,
+        transferred_at = NOW(),
+        updated_at = NOW()
+    WHERE id = p_payment_id;
+
+    -- Varsa payments tablosunu güncelle
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'payments') THEN
+        UPDATE public.payments
+        SET
+            status = 'transferred',
+            escrow_status = 'transferred',
             is_transferred_to_submerchant = true,
-            transferred_at = now(),
-            dispute_status = 'resolved_transferred',
-            dispute_resolution_notes = p_admin_notes,
-            dispute_resolved_at = now(),
-            dispute_resolved_by = p_admin_id,
-            updated_at = now()
+            transferred_at = NOW()
         WHERE id = p_payment_id;
-
-    ELSIF p_resolution_type = 'full_refund_to_buyer' THEN
-        v_to_status := 'refunded';
-        UPDATE public.payment_transactions
-        SET status = 'refunded',
-            refund_amount_cents = v_tx.amount_cents,
-            refund_reason = 'Ä°tiraz Hakem KararÄ±: ' || p_admin_notes,
-            refunded_at = now(),
-            dispute_status = 'resolved_refunded',
-            dispute_resolution_notes = p_admin_notes,
-            dispute_resolved_at = now(),
-            dispute_resolved_by = p_admin_id,
-            updated_at = now()
-        WHERE id = p_payment_id;
-
-    ELSIF p_resolution_type = 'split' THEN
-        v_to_status := 'transferred';
-        IF (p_buyer_refund_cents + p_company_transfer_cents) > v_tx.amount_cents THEN
-            RETURN jsonb_build_object('success', false, 'error', 'PaylaÅŸÄ±m tutarlarÄ± toplamÄ± Ã¶deme tutarÄ±nÄ± aÅŸamaz.');
-        END IF;
-
-        UPDATE public.payment_transactions
-        SET status = 'transferred',
-            split_buyer_amount_cents = p_buyer_refund_cents,
-            split_company_amount_cents = p_company_transfer_cents,
-            refund_amount_cents = p_buyer_refund_cents,
-            net_company_amount_cents = p_company_transfer_cents,
-            is_transferred_to_submerchant = true,
-            transferred_at = now(),
-            dispute_status = 'resolved_split',
-            dispute_resolution_notes = p_admin_notes,
-            dispute_resolved_at = now(),
-            dispute_resolved_by = p_admin_id,
-            updated_at = now()
-        WHERE id = p_payment_id;
-    ELSE
-        RETURN jsonb_build_object('success', false, 'error', 'GeÃ§ersiz Ã§Ã¶zÃ¼m tÃ¼rÃ¼: ' || p_resolution_type);
     END IF;
 
-    -- Dispute tablosunu gÃ¼ncelle
-    UPDATE public.payment_disputes
-    SET status = 'resolved_' || p_resolution_type,
-        resolution_type = p_resolution_type,
-        buyer_refund_cents = p_buyer_refund_cents,
-        company_transfer_cents = p_company_transfer_cents,
-        admin_notes = p_admin_notes,
-        admin_id = p_admin_id,
-        two_factor_verified_at = now(),
-        resolved_at = now(),
-        updated_at = now()
-    WHERE payment_id = p_payment_id;
-
-    -- Olay defterine kaydet
-    INSERT INTO public.payment_events (
-        payment_id, from_status, to_status, triggered_by, actor_id, actor_role, reason, metadata
+    -- 3. Audit Log Ekle
+    INSERT INTO public.escrow_audit_logs (
+        payment_id,
+        action,
+        actor_role,
+        previous_status,
+        new_status,
+        details
     ) VALUES (
-        p_payment_id, 'disputed', v_to_status, 'dispute_resolved', p_admin_id, 'admin',
-        p_admin_notes,
-        jsonb_build_object(
-            'resolution_type', p_resolution_type,
-            'buyer_refund_cents', p_buyer_refund_cents,
-            'company_transfer_cents', p_company_transfer_cents
-        )
+        p_payment_id,
+        'payout_transferred',
+        'service_role',
+        v_pay.escrow_status,
+        'transferred',
+        jsonb_build_object('iyzico_transfer_id', p_iyzico_transfer_id, 'transferred_at', NOW())
     );
 
     RETURN jsonb_build_object(
         'success', true,
-        'status', v_to_status,
-        'resolution_type', p_resolution_type
+        'payment_id', p_payment_id,
+        'escrow_status', 'transferred',
+        'transferred_at', NOW()
     );
 END;
 $$;
 
--- 9.5 OTOMATÄ°K ZAMAN AÅIMI SERBEST BIRAKMA CRON RPC'SÄ°
-CREATE OR REPLACE FUNCTION public.cron_auto_release_expired_escrow()
+-- 6.6. ADMİN İTİRAZ MASASI ÇÖZÜMÜ (SADECE service_role / Admin)
+CREATE OR REPLACE FUNCTION public.admin_resolve_escrow_dispute(
+    p_dispute_id UUID,
+    p_action TEXT, -- 'payout_to_seller' | 'refund_to_buyer'
+    p_notes TEXT,
+    p_admin_id UUID DEFAULT NULL
+)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
-    v_record RECORD;
+    v_disp RECORD;
+    v_pay RECORD;
+BEGIN
+    SELECT * INTO v_disp
+    FROM public.escrow_disputes
+    WHERE id = p_dispute_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'İtiraz kaydı bulunamadı.';
+    END IF;
+
+    IF v_disp.status != 'open' THEN
+        RAISE EXCEPTION 'Bu itiraz zaten karara bağlanmış. Mevcut durum: %', v_disp.status;
+    END IF;
+
+    SELECT * INTO v_pay
+    FROM public.payment_transactions
+    WHERE id = v_disp.payment_id
+    FOR UPDATE;
+
+    IF p_action = 'payout_to_seller' THEN
+        -- Firmaya hak ver: releasable yap
+        UPDATE public.payment_transactions
+        SET escrow_status = 'releasable', released_at = NOW(), updated_at = NOW()
+        WHERE id = v_disp.payment_id;
+
+        UPDATE public.escrow_disputes
+        SET
+            status = 'resolved_seller',
+            resolution_notes = p_notes,
+            resolved_by = p_admin_id,
+            resolved_at = NOW(),
+            updated_at = NOW()
+        WHERE id = p_dispute_id;
+
+        INSERT INTO public.escrow_audit_logs (
+            payment_id, action, actor_id, actor_role, previous_status, new_status, details
+        ) VALUES (
+            v_disp.payment_id, 'dispute_resolved', p_admin_id, 'admin', v_pay.escrow_status, 'releasable',
+            jsonb_build_object('action', p_action, 'notes', p_notes)
+        );
+
+    ELSIF p_action = 'refund_to_buyer' THEN
+        -- Alıcıya hak ver: refunded yap
+        UPDATE public.payment_transactions
+        SET
+            status = 'refunded',
+            escrow_status = 'refunded',
+            refund_amount_cents = v_pay.amount_cents,
+            refund_reason = p_notes,
+            refunded_at = NOW(),
+            updated_at = NOW()
+        WHERE id = v_disp.payment_id;
+
+        UPDATE public.escrow_disputes
+        SET
+            status = 'resolved_buyer',
+            resolution_notes = p_notes,
+            resolved_by = p_admin_id,
+            resolved_at = NOW(),
+            updated_at = NOW()
+        WHERE id = p_dispute_id;
+
+        INSERT INTO public.escrow_audit_logs (
+            payment_id, action, actor_id, actor_role, previous_status, new_status, details
+        ) VALUES (
+            v_disp.payment_id, 'dispute_resolved', p_admin_id, 'admin', v_pay.escrow_status, 'refunded',
+            jsonb_build_object('action', p_action, 'notes', p_notes)
+        );
+    ELSE
+        RAISE EXCEPTION 'Geçersiz aksiyon: %. Sadece payout_to_seller veya refund_to_buyer geçerlidir.', p_action;
+    END IF;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'dispute_id', p_dispute_id,
+        'action_taken', p_action
+    );
+END;
+$$;
+
+-- 6.7. ZAMAN AŞIMI KONTROLÜ (CRON İÇİN OTOMATİK SERBEST BIRAKMA)
+CREATE OR REPLACE FUNCTION public.cron_check_auto_release_escrow()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_rec RECORD;
     v_count INT := 0;
 BEGIN
-    FOR v_record IN
-        SELECT id, buyer_id, net_company_amount_cents
+    FOR v_rec IN
+        SELECT id, escrow_status
         FROM public.payment_transactions
-        WHERE status IN ('paid', 'paid_escrow')
+        WHERE escrow_status = 'paid_held'
           AND auto_release_at IS NOT NULL
-          AND auto_release_at <= now()
-          AND disputed_at IS NULL
+          AND auto_release_at <= NOW()
         FOR UPDATE SKIP LOCKED
     LOOP
         UPDATE public.payment_transactions
-        SET status = 'transferred',
-            is_transferred_to_submerchant = true,
-            transferred_at = now(),
-            updated_at = now()
-        WHERE id = v_record.id;
+        SET
+            escrow_status = 'releasable',
+            released_at = NOW(),
+            updated_at = NOW()
+        WHERE id = v_rec.id;
 
-        INSERT INTO public.payment_events (
-            payment_id, from_status, to_status, triggered_by, actor_role, reason, metadata
+        INSERT INTO public.escrow_audit_logs (
+            payment_id,
+            action,
+            actor_role,
+            previous_status,
+            new_status,
+            details
         ) VALUES (
-            v_record.id, 'paid_escrow', 'transferred', 'auto_timeout', 'system',
-            'Ä°tiraz sÃ¼resi boyunca sorun bildirilmediÄŸinden otomatik serbest bÄ±rakÄ±ldÄ±.',
-            jsonb_build_object('net_company_amount_cents', v_record.net_company_amount_cents)
+            v_rec.id,
+            'auto_released',
+            'cron',
+            'paid_held',
+            'releasable',
+            jsonb_build_object('reason', '3 günlük itiraz penceresi doldu, otomatik onaylandı.')
         );
 
         v_count := v_count + 1;
@@ -3261,57 +3671,937 @@ BEGIN
 END;
 $$;
 
--- 9.6 Ä°PTAL VE Ä°ADE RPC'SÄ° (PROMPT 3 VE KULLANICI Ä°ADESÄ°)
-CREATE OR REPLACE FUNCTION public.refund_escrow_payment(
+-- ==============================================================================
+-- 7. GÜVENLİK, YETKİLENDİRME (GRANT / REVOKE) VE RLS POLİTİKALARI
+-- ==============================================================================
+
+-- 7.1. RLS Aktifleştirme
+ALTER TABLE public.company_submerchants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.escrow_disputes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.escrow_audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payment_transactions ENABLE ROW LEVEL SECURITY;
+
+-- 7.2. Doğrudan yazma yetkilerini kaldır (Sadece RPC ve service_role yazabilsin)
+REVOKE INSERT, UPDATE, DELETE ON public.company_submerchants FROM PUBLIC, anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.escrow_disputes FROM PUBLIC, anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.escrow_audit_logs FROM PUBLIC, anon, authenticated;
+
+GRANT SELECT ON public.company_submerchants TO authenticated;
+GRANT SELECT ON public.escrow_disputes TO authenticated;
+GRANT SELECT ON public.escrow_audit_logs TO authenticated;
+
+-- service_role'e tam yetki ver
+GRANT ALL ON public.company_submerchants TO service_role;
+GRANT ALL ON public.escrow_disputes TO service_role;
+GRANT ALL ON public.escrow_audit_logs TO service_role;
+GRANT ALL ON public.payment_transactions TO service_role;
+
+-- 7.3. RPC Çalıştırma Yetkileri (Kural: Hassas işlemler SADECE service_role'de kalmalı)
+REVOKE EXECUTE ON FUNCTION public.mark_payment_held FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.execute_escrow_payout FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.admin_resolve_escrow_dispute FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.cron_check_auto_release_escrow FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.mark_payment_held TO service_role;
+GRANT EXECUTE ON FUNCTION public.execute_escrow_payout TO service_role;
+GRANT EXECUTE ON FUNCTION public.admin_resolve_escrow_dispute TO service_role;
+GRANT EXECUTE ON FUNCTION public.cron_check_auto_release_escrow TO service_role;
+
+-- Alıcı ve Satıcıya izin verilen kontrollü RPC'ler
+GRANT EXECUTE ON FUNCTION public.seller_mark_delivered TO authenticated;
+GRANT EXECUTE ON FUNCTION public.buyer_approve_escrow TO authenticated;
+GRANT EXECUTE ON FUNCTION public.buyer_dispute_escrow TO authenticated;
+
+-- 7.4. RLS Okuma Politikaları
+DROP POLICY IF EXISTS "submerchants_company_select" ON public.company_submerchants;
+CREATE POLICY "submerchants_company_select" ON public.company_submerchants
+    FOR SELECT TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.companies c
+            WHERE c.id = company_submerchants.company_id
+              AND c.user_id = auth.uid()
+        )
+        OR EXISTS (
+            SELECT 1 FROM public.profiles p
+            WHERE p.id = auth.uid() AND p.role IN ('admin', 'super_admin')
+        )
+    );
+
+DROP POLICY IF EXISTS "disputes_party_select" ON public.escrow_disputes;
+CREATE POLICY "disputes_party_select" ON public.escrow_disputes
+    FOR SELECT TO authenticated
+    USING (
+        opened_by = auth.uid()
+        OR EXISTS (
+            SELECT 1 FROM public.payment_transactions pt
+            JOIN public.companies c ON c.id = pt.company_id
+            WHERE pt.id = escrow_disputes.payment_id
+              AND (pt.buyer_id = auth.uid() OR c.user_id = auth.uid())
+        )
+        OR EXISTS (
+            SELECT 1 FROM public.profiles p
+            WHERE p.id = auth.uid() AND p.role IN ('admin', 'super_admin')
+        )
+    );
+
+DROP POLICY IF EXISTS "audit_party_select" ON public.escrow_audit_logs;
+CREATE POLICY "audit_party_select" ON public.escrow_audit_logs
+    FOR SELECT TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.payment_transactions pt
+            JOIN public.companies c ON c.id = pt.company_id
+            WHERE pt.id = escrow_audit_logs.payment_id
+              AND (pt.buyer_id = auth.uid() OR c.user_id = auth.uid())
+        )
+        OR EXISTS (
+            SELECT 1 FROM public.profiles p
+            WHERE p.id = auth.uid() AND p.role IN ('admin', 'super_admin')
+        )
+    );
+-- ==============================================================================
+-- ŞANTİYE GO – PROMPT 9E-3: WEBHOOK İDEMPOTENCY, GÜVEN TESTLERİ VE ORAN DONDURMA
+-- ==============================================================================
+
+-- 1. İDEMPOTENT WEBHOOK HAREKETLERİ TABLOSU
+CREATE TABLE IF NOT EXISTS public.processed_webhook_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id VARCHAR(150) NOT NULL UNIQUE,
+    payment_id UUID REFERENCES public.payment_transactions(id) ON DELETE SET NULL,
+    provider VARCHAR(30) NOT NULL DEFAULT 'iyzico',
+    event_type VARCHAR(50) NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'processed', -- 'processed', 'conflict', 'failed', 'ignored'
+    payload JSONB DEFAULT '{}'::jsonb,
+    error_message TEXT,
+    processed_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_webhook_event_id ON public.processed_webhook_events(event_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_payment_id ON public.processed_webhook_events(payment_id);
+
+-- 2. VERİTABANI TABANLI HIZ VE ZAMAN SINIRLAMASI (RATE LIMIT) TABLOSU
+CREATE TABLE IF NOT EXISTS public.system_rate_limits (
+    key VARCHAR(64) PRIMARY KEY,
+    last_run_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    run_count BIGINT DEFAULT 1,
+    metadata JSONB DEFAULT '{}'::jsonb
+);
+
+-- 3. GÜVEN SKORU VE DOĞRULANMIŞ İŞARETLEYİCİLERİ
+ALTER TABLE public.reviews
+    ADD COLUMN IF NOT EXISTS is_escrow_verified BOOLEAN DEFAULT false,
+    ADD COLUMN IF NOT EXISTS verified_weight NUMERIC(3, 2) DEFAULT 1.0;
+
+-- 4. ATOMİK WEBHOOK İŞLEME VE ÇELİŞKİ (CONFLICT) KONTROL RPC'Sİ
+CREATE OR REPLACE FUNCTION public.process_webhook_event_guard(
+    p_event_id VARCHAR(150),
     p_payment_id UUID,
-    p_actor_id UUID,
-    p_reason TEXT,
-    p_refund_amount_cents BIGINT DEFAULT NULL
+    p_provider VARCHAR(30),
+    p_provider_status VARCHAR(50),
+    p_payload JSONB DEFAULT '{}'::jsonb
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
-    v_tx RECORD;
-    v_refund_cents BIGINT;
+    v_existing RECORD;
+    v_pay RECORD;
 BEGIN
-    SELECT * INTO v_tx
+    -- 1. İdempotency Kontrolü: Bu webhook olay kaydı daha önce işlendi mi?
+    SELECT * INTO v_existing
+    FROM public.processed_webhook_events
+    WHERE event_id = p_event_id;
+
+    IF FOUND THEN
+        RETURN jsonb_build_object(
+            'success', true,
+            'is_duplicate', true,
+            'message', 'Bu webhook olayı daha önce başarıyla işlenmiş (Idempotent replay).',
+            'event_id', p_event_id
+        );
+    END IF;
+
+    -- 2. Ödeme satırını kilitle
+    SELECT * INTO v_pay
     FROM public.payment_transactions
     WHERE id = p_payment_id
     FOR UPDATE;
 
     IF NOT FOUND THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Ã–deme kaydÄ± bulunamadÄ±.');
+        INSERT INTO public.processed_webhook_events (
+            event_id, payment_id, provider, event_type, status, error_message, payload
+        ) VALUES (
+            p_event_id, p_payment_id, p_provider, p_provider_status, 'failed', 'Ödeme kaydı bulunamadı', p_payload
+        );
+        RAISE EXCEPTION 'Ödeme işlemi veritabanında bulunamadı (ID: %)', p_payment_id;
     END IF;
 
-    IF v_tx.status = 'transferred' THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Serbest bÄ±rakÄ±lmÄ±ÅŸ/aktarÄ±lmÄ±ÅŸ Ã¶deme doÄŸrudan iade edilemez.');
+    -- 3. Çelişki (Conflict) Denetimi: Sağlayıcı durumu bizim durum makinemizle çelişiyor mu?
+    -- Örnek: Sağlayıcı başarısız veya iptal bildirdi ancak ödeme zaten satıcıya aktarıldıysa
+    IF p_provider_status = 'failed' AND v_pay.escrow_status IN ('releasable', 'transferred') THEN
+        INSERT INTO public.processed_webhook_events (
+            event_id, payment_id, provider, event_type, status, error_message, payload
+        ) VALUES (
+            p_event_id, p_payment_id, p_provider, p_provider_status, 'conflict', 'KRİTİK ÇELİŞKİ: Aktarılmış ödeme için sağlayıcı hata/iptal bildirdi!', p_payload
+        );
+
+        INSERT INTO public.admin_audit_logs (
+            admin_id, action, target_type, target_id, details
+        ) VALUES (
+            v_pay.buyer_id, 'payment_conflict_alert', 'payment', p_payment_id::text,
+            jsonb_build_object(
+                'event_id', p_event_id,
+                'our_status', v_pay.escrow_status,
+                'provider_status', p_provider_status,
+                'alert', 'Ödeme durumu sağlayıcı ile çelişiyor. İşlem durduruldu.'
+            )
+        );
+
+        RETURN jsonb_build_object(
+            'success', false,
+            'has_conflict', true,
+            'error', 'Ödeme durumu sağlayıcı bildirimiyle çelişiyor. Güvenlik için işlem durduruldu ve admin uyarısı oluşturuldu.'
+        );
     END IF;
 
-    IF v_tx.status = 'refunded' THEN
-        RETURN jsonb_build_object('success', false, 'error', 'Ã–deme zaten iade edilmiÅŸ.');
-    END IF;
-
-    v_refund_cents := COALESCE(p_refund_amount_cents, v_tx.amount_cents);
-
-    UPDATE public.payment_transactions
-    SET status = 'refunded',
-        refund_amount_cents = v_refund_cents,
-        refund_reason = p_reason,
-        refunded_at = now(),
-        updated_at = now()
-    WHERE id = p_payment_id;
-
-    INSERT INTO public.payment_events (
-        payment_id, from_status, to_status, triggered_by, actor_id, actor_role, reason, metadata
+    -- 4. Olayı başarılı olarak kaydet
+    INSERT INTO public.processed_webhook_events (
+        event_id, payment_id, provider, event_type, status, payload
     ) VALUES (
-        p_payment_id, v_tx.status::text, 'refunded', 'refund_requested', p_actor_id, 'system',
-        p_reason,
-        jsonb_build_object('refund_amount_cents', v_refund_cents)
+        p_event_id, p_payment_id, p_provider, p_provider_status, 'processed', p_payload
     );
 
-    RETURN jsonb_build_object('success', true, 'status', 'refunded', 'refund_amount_cents', v_refund_cents);
+    RETURN jsonb_build_object(
+        'success', true,
+        'is_duplicate', false,
+        'event_id', p_event_id,
+        'payment_id', p_payment_id
+    );
 END;
 $$;
 
+-- 5. VERİTABANI TABANLI CRON ÇALIŞTIRMA VE HIZ SINIRLAYICI RPC
+CREATE OR REPLACE FUNCTION public.execute_rate_limited_escrow_cron(
+    p_min_interval_seconds INT DEFAULT 60
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_key VARCHAR(64) := 'escrow_auto_release_cron';
+    v_last_run RECORD;
+    v_now TIMESTAMPTZ := NOW();
+    v_result JSONB;
+BEGIN
+    SELECT * INTO v_last_run
+    FROM public.system_rate_limits
+    WHERE key = v_key
+    FOR UPDATE;
+
+    IF FOUND THEN
+        IF v_now - v_last_run.last_run_at < (p_min_interval_seconds || ' seconds')::INTERVAL THEN
+            RETURN jsonb_build_object(
+                'success', false,
+                'rate_limited', true,
+                'message', 'Zamanlanmış görev çok sık çalıştırılamaz. Lütfen bekleyiniz.',
+                'retry_after_seconds', p_min_interval_seconds - EXTRACT(EPOCH FROM (v_now - v_last_run.last_run_at))::INT
+            );
+        END IF;
+
+        UPDATE public.system_rate_limits
+        SET last_run_at = v_now, run_count = run_count + 1
+        WHERE key = v_key;
+    ELSE
+        INSERT INTO public.system_rate_limits (key, last_run_at, run_count)
+        VALUES (v_key, v_now, 1);
+    END IF;
+
+    -- Otomatik serbest bırakma fonksiyonunu çalıştır
+    v_result := public.cron_check_auto_release_escrow();
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'rate_limited', false,
+        'executed_at', v_now,
+        'cron_result', v_result
+    );
+END;
+$$;
+
+-- 6. GÜVENLİK VE YETKİLENDİRME
+ALTER TABLE public.processed_webhook_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.system_rate_limits ENABLE ROW LEVEL SECURITY;
+
+REVOKE ALL ON public.processed_webhook_events FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.system_rate_limits FROM PUBLIC, anon, authenticated;
+
+GRANT ALL ON public.processed_webhook_events TO service_role;
+GRANT ALL ON public.system_rate_limits TO service_role;
+
+REVOKE EXECUTE ON FUNCTION public.process_webhook_event_guard FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.execute_rate_limited_escrow_cron FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.process_webhook_event_guard TO service_role;
+GRANT EXECUTE ON FUNCTION public.execute_rate_limited_escrow_cron TO service_role;
+-- ==============================================================================
+-- ŞANTİYE GO – PROMPT 9E-4: ESCROW GÜVENLİK SERTLEŞTİRMESİ, 2FA VE İDAMPOTENCY BİRLEŞTİRME
+-- ==============================================================================
+
+-- 1. İDEMPOTENCY TABLO BİRLEŞTİRMESİ (payment_webhook_events & processed_webhook_events)
+-- Mevcut tabloların RLS korumasını bozmadan tekilleştirme
+CREATE TABLE IF NOT EXISTS public.payment_webhook_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id VARCHAR(150) NOT NULL UNIQUE,
+    payment_id UUID REFERENCES public.payment_transactions(id) ON DELETE SET NULL,
+    provider VARCHAR(30) NOT NULL DEFAULT 'iyzico',
+    event_type VARCHAR(50) NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'processed',
+    payload JSONB DEFAULT '{}'::jsonb,
+    error_message TEXT,
+    processed_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pay_webhook_event_id ON public.payment_webhook_events(event_id);
+CREATE INDEX IF NOT EXISTS idx_pay_webhook_payment_id ON public.payment_webhook_events(payment_id);
+
+ALTER TABLE public.payment_webhook_events ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.payment_webhook_events FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.payment_webhook_events TO service_role;
+
+-- processed_webhook_events için de RLS korumasını garantiye al
+ALTER TABLE public.processed_webhook_events ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.processed_webhook_events FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.processed_webhook_events TO service_role;
+
+-- 2. payment_transactions RLS POLİTİKALARININ TEYİDİ
+ALTER TABLE public.payment_transactions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "payments_party_or_admin_read" ON public.payment_transactions;
+CREATE POLICY "payments_party_or_admin_read" ON public.payment_transactions
+    FOR SELECT TO authenticated
+    USING (
+        buyer_id = auth.uid()
+        OR EXISTS (
+            SELECT 1 FROM public.companies c
+            WHERE c.id = payment_transactions.company_id AND c.user_id = auth.uid()
+        )
+        OR EXISTS (
+            SELECT 1 FROM public.profiles p
+            WHERE p.id = auth.uid() AND p.role IN ('admin', 'super_admin')
+        )
+    );
+
+DROP POLICY IF EXISTS "payments_direct_mutation_block" ON public.payment_transactions;
+CREATE POLICY "payments_direct_mutation_block" ON public.payment_transactions
+    FOR INSERT TO authenticated
+    WITH CHECK (false);
+
+REVOKE INSERT, UPDATE, DELETE ON public.payment_transactions FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.payment_transactions TO service_role;
+
+-- 3. company_submerchants GİZLİLİK VE VERİ MİNİMİZASYONU (KURAL 6)
+-- TCKN kesinlikle saklanmaz; tam IBAN veritabanından kaldırılır, sadece son 4 hane tutulur
+ALTER TABLE public.company_submerchants
+    DROP COLUMN IF EXISTS identity_number,
+    ADD COLUMN IF NOT EXISTS iban_last_four VARCHAR(4);
+
+-- Varsa mevcut tam IBAN verilerini son 4 haneye dönüştür ve sütunu maskele
+DO $$ BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'company_submerchants' AND column_name = 'iban'
+    ) THEN
+        UPDATE public.company_submerchants
+        SET iban_last_four = RIGHT(REPLACE(iban, ' ', ''), 4)
+        WHERE iban_last_four IS NULL AND iban IS NOT NULL;
+        
+        ALTER TABLE public.company_submerchants DROP COLUMN iban;
+    END IF;
+END $$;
+
+-- 4. GÜVEN SİSTEMİ ALICI ONAYI AYRIMI VE DİNAMİK AĞIRLIK (KURAL 2)
+ALTER TABLE public.payment_transactions
+    ADD COLUMN IF NOT EXISTS buyer_approved BOOLEAN DEFAULT false;
+
+-- Dinamik ayarları platform_settings tablosuna ekle
+INSERT INTO public.platform_settings (key, value, description)
+VALUES 
+    ('escrow_buyer_approval_weight', '{"weight": 1.5}'::jsonb, 'Alıcı tarafından bizzat onaylanmış işlemlerin güven puanı ağırlık katsayısı'),
+    ('dispute_window_hours', '{"hours": 72}'::jsonb, 'Teslimat bildiriminden sonra başlayan alıcı itiraz penceresi süresi (saat)'),
+    ('global_payment_mode', '{"mode": "external"}'::jsonb, 'Global varsayılan ödeme modu (external: harici doğrudan ödeme, platform: iyzico escrow)')
+ON CONFLICT (key) DO NOTHING;
+
+-- 5. KİRALAMADA İTİRAZ PENCERESİNİN İŞ BİTİŞİNDEN SONRA BAŞLAMASI VE ALICI BİLDİRİMİ (KURAL 3)
+CREATE OR REPLACE FUNCTION public.seller_mark_delivered(
+    p_payment_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_pay RECORD;
+    v_booking RECORD;
+    v_user_id UUID := auth.uid();
+    v_is_company_owner BOOLEAN;
+    v_dispute_hours INT := 72;
+    v_auto_release_time TIMESTAMPTZ;
+    v_base_time TIMESTAMPTZ;
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'Kimlik doğrulanmadı. Lütfen giriş yapınız.';
+    END IF;
+
+    -- 1. Satırı kilitle
+    SELECT * INTO v_pay
+    FROM public.payment_transactions
+    WHERE id = p_payment_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Ödeme işlemi bulunamadı.';
+    END IF;
+
+    -- 2. Yetki kontrolü: Kullanıcı bu firmanın sahibi mi?
+    SELECT EXISTS (
+        SELECT 1 FROM public.companies
+        WHERE id = v_pay.company_id AND user_id = v_user_id
+    ) INTO v_is_company_owner;
+
+    IF NOT v_is_company_owner THEN
+        RAISE EXCEPTION 'Bu işlem için yetkiniz yok. Sadece ödemeyi alacak firma teslimat bildirebilir.';
+    END IF;
+
+    IF v_pay.escrow_status != 'paid_held' THEN
+        RAISE EXCEPTION 'Sadece havuzda bekleyen (paid_held) ödemeler için teslimat bildirilebilir. Mevcut durum: %', v_pay.escrow_status;
+    END IF;
+
+    -- 3. İtiraz süresi admin ayarından okunur
+    SELECT COALESCE((value->>'hours')::INT, 72) INTO v_dispute_hours
+    FROM public.platform_settings
+    WHERE key = 'dispute_window_hours';
+
+    -- 4. Kiralama Kontrolü (Kural 3):
+    -- Kiralamada itiraz penceresi teslim anında değil, iş bitiş tarihinden sonra başlar!
+    v_base_time := NOW();
+
+    IF v_pay.booking_id IS NOT NULL THEN
+        SELECT * INTO v_booking FROM public.bookings WHERE id = v_pay.booking_id;
+        IF FOUND AND v_booking.end_date IS NOT NULL THEN
+            -- Bitiş tarihi gelecekteyse sayacı iş bitiş tarihinden itibaren başlat
+            IF (v_booking.end_date || ' 23:59:59')::TIMESTAMPTZ > NOW() THEN
+                v_base_time := (v_booking.end_date || ' 23:59:59')::TIMESTAMPTZ;
+            END IF;
+        END IF;
+    END IF;
+
+    v_auto_release_time := v_base_time + (v_dispute_hours || ' hours')::INTERVAL;
+
+    UPDATE public.payment_transactions
+    SET
+        delivered_at = NOW(),
+        auto_release_at = v_auto_release_time,
+        updated_at = NOW()
+    WHERE id = p_payment_id;
+
+    -- Varsa payments tablosunu güncelle
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'payments') THEN
+        UPDATE public.payments
+        SET
+            delivered_at = NOW(),
+            auto_release_at = v_auto_release_time
+        WHERE id = p_payment_id;
+    END IF;
+
+    -- Rezervasyonu completed yap
+    IF v_pay.booking_id IS NOT NULL THEN
+        UPDATE public.bookings
+        SET status = 'completed', updated_at = NOW()
+        WHERE id = v_pay.booking_id;
+    END IF;
+
+    -- 5. Alıcıya Uygulama İçi Bildirim Gönder (Kural 3: Zorunlu Bildirim)
+    INSERT INTO public.notifications (
+        user_id,
+        type,
+        title,
+        message,
+        data
+    ) VALUES (
+        v_pay.buyer_id,
+        'delivery_marked',
+        'İş / Makine Teslim Edildi',
+        'Tedarikçi firma işi tamamladığını bildirdi. İtiraz pencereniz başlamıştır. Sorun yoksa ödemeyi serbest bırakabilirsiniz.',
+        jsonb_build_object(
+            'payment_id', p_payment_id,
+            'booking_id', v_pay.booking_id,
+            'auto_release_at', v_auto_release_time
+        )
+    );
+
+    -- 6. Audit Log Ekle
+    INSERT INTO public.escrow_audit_logs (
+        payment_id,
+        action,
+        actor_id,
+        actor_role,
+        previous_status,
+        new_status,
+        details
+    ) VALUES (
+        p_payment_id,
+        'marked_delivered',
+        v_user_id,
+        'company',
+        v_pay.escrow_status,
+        'paid_held',
+        jsonb_build_object(
+            'auto_release_at', v_auto_release_time,
+            'dispute_window_hours', v_dispute_hours,
+            'base_time', v_base_time
+        )
+    );
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'payment_id', p_payment_id,
+        'delivered_at', NOW(),
+        'auto_release_at', v_auto_release_time,
+        'dispute_window_hours', v_dispute_hours
+    );
+END;
+$$;
+
+-- 6. ALICI ONAYI İŞARETLEME (KURAL 2: Alıcı bizzat onayladığında buyer_approved = true)
+CREATE OR REPLACE FUNCTION public.buyer_approve_escrow(
+    p_payment_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_pay RECORD;
+    v_user_id UUID := auth.uid();
+BEGIN
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'Kimlik doğrulanmadı. Lütfen giriş yapınız.';
+    END IF;
+
+    SELECT * INTO v_pay
+    FROM public.payment_transactions
+    WHERE id = p_payment_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Ödeme işlemi bulunamadı.';
+    END IF;
+
+    IF v_pay.buyer_id != v_user_id THEN
+        RAISE EXCEPTION 'Bu işlem için yetkiniz yok. Sadece ödemeyi yapan alıcı teslimatı onaylayabilir.';
+    END IF;
+
+    IF v_pay.escrow_status NOT IN ('paid_held', 'disputed') THEN
+        RAISE EXCEPTION 'Bu durumdaki bir ödeme onaylanamaz. Mevcut durum: %', v_pay.escrow_status;
+    END IF;
+
+    -- buyer_approved = true yap (Güven sisteminde 1.5x güçlü kanıt sayılması için zorunlu)
+    UPDATE public.payment_transactions
+    SET
+        escrow_status = 'releasable',
+        buyer_approved = true,
+        released_at = NOW(),
+        auto_release_at = NULL,
+        updated_at = NOW()
+    WHERE id = p_payment_id;
+
+    -- Varsa açık itirazı çözümlendi olarak kapat
+    UPDATE public.escrow_disputes
+    SET
+        status = 'resolved_seller',
+        resolution_notes = 'Alıcı doğrudan işi teslim aldığını ve onayladığını beyan etti.',
+        resolved_at = NOW(),
+        updated_at = NOW()
+    WHERE payment_id = p_payment_id AND status = 'open';
+
+    INSERT INTO public.escrow_audit_logs (
+        payment_id, action, actor_id, actor_role, previous_status, new_status, details
+    ) VALUES (
+        p_payment_id, 'buyer_approved', v_user_id, 'buyer', v_pay.escrow_status, 'releasable',
+        jsonb_build_object('released_at', NOW(), 'buyer_approved', true)
+    );
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'payment_id', p_payment_id,
+        'escrow_status', 'releasable',
+        'buyer_approved', true,
+        'released_at', NOW()
+    );
+END;
+$$;
+
+-- 7. OTOMATİK AKTARIMDA buyer_approved = FALSE KALMASI (KURAL 2)
+CREATE OR REPLACE FUNCTION public.cron_check_auto_release_escrow()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_rec RECORD;
+    v_count INT := 0;
+BEGIN
+    FOR v_rec IN
+        SELECT id, escrow_status
+        FROM public.payment_transactions
+        WHERE escrow_status = 'paid_held'
+          AND auto_release_at IS NOT NULL
+          AND auto_release_at <= NOW()
+        FOR UPDATE SKIP LOCKED
+    LOOP
+        UPDATE public.payment_transactions
+        SET
+            escrow_status = 'releasable',
+            buyer_approved = false, -- Otomatik aktarımda alıcı onaylı sayılmaz!
+            released_at = NOW(),
+            updated_at = NOW()
+        WHERE id = v_rec.id;
+
+        INSERT INTO public.escrow_audit_logs (
+            payment_id, action, actor_role, previous_status, new_status, details
+        ) VALUES (
+            v_rec.id, 'auto_released', 'cron', 'paid_held', 'releasable',
+            jsonb_build_object(
+                'reason', 'İtiraz penceresi doldu, otomatik serbest bırakıldı.',
+                'buyer_approved', false
+            )
+        );
+
+        v_count := v_count + 1;
+    END LOOP;
+
+    RETURN jsonb_build_object('success', true, 'released_count', v_count);
+END;
+$$;
+-- ==============================================================================
+-- ŞANTİYE GO – MIGRATION 20: ESCROW DENETİM, 2FA VE BİLDİRİM GÜVENLİK SIKILAŞTIRMASI
+-- ==============================================================================
+
+-- ------------------------------------------------------------------------------
+-- 1. PROCESSED_WEBHOOK_EVENTS KALDIRILMASI (TEK STANDART: payment_webhook_events)
+-- ------------------------------------------------------------------------------
+-- View'lar PostgreSQL'de varsayılan olarak owner (SECURITY DEFINER benzeri) yetkisiyle
+-- çalışabilir ve RLS/REVOKE kurallarını delebilir. Mükerrerliği ve yetki açığını
+-- tamamen ortadan kaldırmak için VIEW kaldırılır; kod yalnızca payment_webhook_events kullanır.
+DROP VIEW IF EXISTS public.processed_webhook_events CASCADE;
+DROP TABLE IF EXISTS public.processed_webhook_events CASCADE;
+
+-- payment_webhook_events üzerinde RLS ve yetkileri pekiştir
+ALTER TABLE public.payment_webhook_events ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.payment_webhook_events FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.payment_webhook_events TO service_role;
+
+-- ------------------------------------------------------------------------------
+-- 2. ESKİ PAYMENTS TABLOSUNUN GÜVENLİ KULLANIMDAN KALDIRILMASI (DEPRECATION)
+-- ------------------------------------------------------------------------------
+-- payments tablosunu silmeden, üzerine yazma yapılmasını engelleyen güvenlik kilidi
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+REVOKE INSERT, UPDATE, DELETE ON public.payments FROM PUBLIC, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.prevent_legacy_payments_mutation()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RAISE EXCEPTION 'public.payments tablosu kullanımdan kaldırılmıştır (DEPRECATED). Finansal kayıtlar için public.payment_transactions kullanılmalıdır.';
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_prevent_legacy_payments_mutation ON public.payments;
+CREATE TRIGGER trg_prevent_legacy_payments_mutation
+BEFORE INSERT OR UPDATE OR DELETE ON public.payments
+FOR EACH ROW EXECUTE FUNCTION public.prevent_legacy_payments_mutation();
+
+-- ------------------------------------------------------------------------------
+-- 3. PAYMENT_TRANSACTIONS RLS VE YETKİLERİNİN NETLEŞTİRİLMESİ
+-- ------------------------------------------------------------------------------
+ALTER TABLE public.payment_transactions ENABLE ROW LEVEL SECURITY;
+
+-- Eski çelişkili politikaları temizle
+DROP POLICY IF EXISTS "payments_party_or_admin_read" ON public.payment_transactions;
+DROP POLICY IF EXISTS "payment_transactions_select_party_or_admin" ON public.payment_transactions;
+DROP POLICY IF EXISTS "payments_direct_mutation_block" ON public.payment_transactions;
+DROP POLICY IF EXISTS "payment_transactions_deny_mutation" ON public.payment_transactions;
+
+-- Tek ve açık SELECT politikası
+CREATE POLICY "payment_transactions_select_party_or_admin"
+ON public.payment_transactions
+FOR SELECT
+TO authenticated
+USING (
+    user_id = auth.uid()
+    OR
+    company_id IN (SELECT id FROM public.companies WHERE user_id = auth.uid())
+    OR
+    EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE profiles.id = auth.uid()
+        AND profiles.role IN ('admin', 'super_admin')
+    )
+);
+
+-- İstemciden INSERT/UPDATE/DELETE denemelerini engelleyen politika ve REVOKE
+CREATE POLICY "payment_transactions_deny_mutation"
+ON public.payment_transactions
+FOR ALL
+TO authenticated, anon
+USING (false)
+WITH CHECK (false);
+
+REVOKE INSERT, UPDATE, DELETE ON public.payment_transactions FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.payment_transactions TO authenticated;
+GRANT ALL ON public.payment_transactions TO service_role;
+
+-- ------------------------------------------------------------------------------
+-- 4. TESLİMAT BİLDİRİM TAKİBİ VE BAŞARISIZLIKTA OTOMATİK AKTARIM ERTELEME
+-- ------------------------------------------------------------------------------
+ALTER TABLE public.payment_transactions
+ADD COLUMN IF NOT EXISTS delivery_notified_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS delivery_notification_failed BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS delivery_notification_error TEXT,
+ADD COLUMN IF NOT EXISTS delivery_notification_attempts INT DEFAULT 0,
+ADD COLUMN IF NOT EXISTS auto_release_postponed_at TIMESTAMPTZ;
+
+-- Teslim bildirim durumunu işleyen RPC
+CREATE OR REPLACE FUNCTION public.record_delivery_notification_result(
+    p_payment_id UUID,
+    p_success BOOLEAN,
+    p_error TEXT DEFAULT NULL,
+    p_postpone_hours INT DEFAULT 72
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_pay RECORD;
+BEGIN
+    SELECT * INTO v_pay FROM public.payment_transactions WHERE id = p_payment_id FOR UPDATE;
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Ödeme kaydı bulunamadı.');
+    END IF;
+
+    IF p_success THEN
+        -- Bildirim alıcıya ulaştı, itiraz sayacı resmen başlatılır
+        UPDATE public.payment_transactions
+        SET delivery_notified_at = NOW(),
+            delivery_notification_failed = false,
+            delivery_notification_error = NULL,
+            delivery_notification_attempts = delivery_notification_attempts + 1,
+            auto_release_at = COALESCE(auto_release_at, NOW() + (p_postpone_hours || ' hours')::interval),
+            updated_at = NOW()
+        WHERE id = p_payment_id;
+
+        RETURN jsonb_build_object('success', true, 'status', 'notified');
+    ELSE
+        -- Bildirim başarısız oldu: Alıcı haberdar edilmeden para aktarılamaz!
+        -- auto_release_at ertelenir ve admin uyarısı oluşturulur.
+        UPDATE public.payment_transactions
+        SET delivery_notification_failed = true,
+            delivery_notification_error = p_error,
+            delivery_notification_attempts = delivery_notification_attempts + 1,
+            auto_release_postponed_at = NOW(),
+            auto_release_at = NULL, -- Bildirim iletilene kadar otomatik aktarımı durdur
+            updated_at = NOW()
+        WHERE id = p_payment_id;
+
+        -- Admin audit alarmı oluştur
+        INSERT INTO public.admin_audit_logs (
+            action,
+            target_type,
+            target_id,
+            details
+        ) VALUES (
+            'delivery_notification_failure_alert',
+            'payment_transaction',
+            p_payment_id::text,
+            jsonb_build_object(
+                'error', p_error,
+                'payment_id', p_payment_id,
+                'attempts', v_pay.delivery_notification_attempts + 1,
+                'postponed_at', NOW(),
+                'action_taken', 'auto_release_at durduruldu'
+            )
+        );
+
+        RETURN jsonb_build_object('success', true, 'status', 'postponed_alert_created');
+    END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.record_delivery_notification_result FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.record_delivery_notification_result TO service_role;
+
+-- ------------------------------------------------------------------------------
+-- 5. CRON AUTO-RELEASE RPC'SİNİN GÜNCELLENMESİ
+-- ------------------------------------------------------------------------------
+-- Otomatik serbest bırakma, yalnızca bildirim başarıyla gitmişse ve hata yoksa çalışır!
+CREATE OR REPLACE FUNCTION public.cron_check_auto_release_escrow()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_released_count INT := 0;
+    v_pay RECORD;
+BEGIN
+    FOR v_pay IN
+        SELECT id, auto_release_at
+        FROM public.payment_transactions
+        WHERE escrow_status = 'paid_held'
+          AND auto_release_at IS NOT NULL
+          AND auto_release_at <= NOW()
+          AND delivery_notified_at IS NOT NULL
+          AND (delivery_notification_failed IS NOT TRUE)
+        FOR UPDATE SKIP LOCKED
+    LOOP
+        UPDATE public.payment_transactions
+        SET escrow_status = 'releasable',
+            buyer_approved = false, -- Süre aşımı otomatik aktarım, açık alıcı onayı DEĞİLDİR
+            updated_at = NOW()
+        WHERE id = v_pay.id;
+
+        INSERT INTO public.escrow_audit_logs (
+            payment_id,
+            action,
+            actor_role,
+            previous_status,
+            new_status,
+            details
+        ) VALUES (
+            v_pay.id,
+            'auto_released_after_dispute_window',
+            'system_cron',
+            'paid_held',
+            'releasable',
+            jsonb_build_object('auto_release_at', v_pay.auto_release_at, 'cron_at', NOW(), 'buyer_approved', false)
+        );
+
+        v_released_count := v_released_count + 1;
+    END LOOP;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'released_count', v_released_count,
+        'executed_at', NOW()
+    );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.cron_check_auto_release_escrow FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.cron_check_auto_release_escrow TO service_role;
+
+-- ------------------------------------------------------------------------------
+-- 6. YÖNETİCİ BAŞINA 2FA / TOTP VE BRUTE-FORCE / REPLAY KORUMA TABLOSU
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.admin_2fa_attempts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    admin_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    code_hash VARCHAR(64) NOT NULL,
+    success BOOLEAN NOT NULL DEFAULT false,
+    ip_address VARCHAR(45),
+    details JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_2fa_attempts_rate
+ON public.admin_2fa_attempts(admin_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_admin_2fa_attempts_replay
+ON public.admin_2fa_attempts(admin_id, code_hash, created_at DESC);
+
+ALTER TABLE public.admin_2fa_attempts ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.admin_2fa_attempts FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.admin_2fa_attempts TO service_role;
+
+-- 2FA Denetim ve Hız Sınırı (Rate Limit & Replay Check) RPC
+CREATE OR REPLACE FUNCTION public.check_and_record_admin_2fa(
+    p_admin_id UUID,
+    p_code_hash VARCHAR(64),
+    p_success BOOLEAN,
+    p_ip_address VARCHAR(45) DEFAULT NULL,
+    p_details JSONB DEFAULT '{}'::jsonb
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_recent_failures INT;
+    v_replay_exists BOOLEAN;
+BEGIN
+    -- 1. Kaba Kuvvet (Brute-Force) Kontrolü: Son 15 dakikada 5 veya daha fazla başarısız deneme var mı?
+    SELECT COUNT(*) INTO v_recent_failures
+    FROM public.admin_2fa_attempts
+    WHERE admin_id = p_admin_id
+      AND success = false
+      AND created_at >= NOW() - INTERVAL '15 minutes';
+
+    IF v_recent_failures >= 5 THEN
+        -- Başarısız denemeyi yine de logla
+        INSERT INTO public.admin_2fa_attempts (admin_id, code_hash, success, ip_address, details)
+        VALUES (p_admin_id, p_code_hash, false, p_ip_address, jsonb_build_object('blocked_reason', 'rate_limit_exceeded'));
+
+        RETURN jsonb_build_object(
+            'allowed', false,
+            'error_code', 'ADMIN_2FA_LOCKED_OUT',
+            'error', 'Güvenlik Uyarısı: Çok fazla hatalı 2FA kodu girildi. Hesabınız 15 dakika boyunca kilitlenmiştir.'
+        );
+    END IF;
+
+    -- 2. Tekrar Kullanım (Replay Attack) Kontrolü: Aynı kod son 10 dakika içinde başarılı kullanılmış mı?
+    IF p_success THEN
+        SELECT EXISTS (
+            SELECT 1 FROM public.admin_2fa_attempts
+            WHERE admin_id = p_admin_id
+              AND code_hash = p_code_hash
+              AND success = true
+              AND created_at >= NOW() - INTERVAL '10 minutes'
+        ) INTO v_replay_exists;
+
+        IF v_replay_exists THEN
+            INSERT INTO public.admin_2fa_attempts (admin_id, code_hash, success, ip_address, details)
+            VALUES (p_admin_id, p_code_hash, false, p_ip_address, jsonb_build_object('blocked_reason', 'replay_attack_detected'));
+
+            RETURN jsonb_build_object(
+                'allowed', false,
+                'error_code', 'ADMIN_2FA_CODE_REUSED',
+                'error', 'Bu 2FA onay kodu yakın zamanda zaten kullanılmış. Lütfen yeni bir kod üretilmesini bekleyiniz.'
+            );
+        END IF;
+    END IF;
+
+    -- 3. Denemeyi kaydet
+    INSERT INTO public.admin_2fa_attempts (admin_id, code_hash, success, ip_address, details)
+    VALUES (p_admin_id, p_code_hash, p_success, p_ip_address, p_details);
+
+    RETURN jsonb_build_object(
+        'allowed', p_success,
+        'remaining_attempts', GREATEST(0, 5 - v_recent_failures)
+    );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.check_and_record_admin_2fa FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.check_and_record_admin_2fa TO service_role;

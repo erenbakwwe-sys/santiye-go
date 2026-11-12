@@ -66,22 +66,12 @@ export default function KvkkPage() {
             </ul>
           </div>
 
-          <h2 className="text-lg font-bold text-navy-900 pt-2">4. Teklif Verme Kredisi Kapsamında İletişim Bilgisi Aktarımı ve Alıcı Açık Rızası</h2>
-          <p>
-            Alıcıların ücretsiz olarak açtığı iş makinesi ve malzeme taleplerine teklif sunmak isteyen doğrulanmış tedarikçiler, platform üzerinden teklif kredisi kullanmaktadır. Talep açılırken alıcı tarafından verilen açık rıza doğrultusunda, alıcının doğrulanmış adı, telefonu ve şantiye açık adresi; yalnızca söz konusu talep için kontenjan ayıran onaylı tedarikçi firmalara (en fazla 4 firma kontenjanı ile sınırlı olmak üzere) güvenli iletişim kartı aracılığıyla aktarılmaktadır. İletişim bilgileri genel internete veya diğer kullanıcılara açık hale getirilmez.
-          </p>
-
-          <h2 className="text-lg font-bold text-navy-900 pt-2">5. Veri Güvenliği ve RLS (Row Level Security)</h2>
+          <h2 className="text-lg font-bold text-navy-900 pt-2">4. Veri Güvenliği ve RLS (Row Level Security)</h2>
           <p>
             Veritabanımızda uygulanan Row Level Security mimarisi gereğince, açılan iletişim kartları ve özel mesajlaşmalar yalnızca ilgili alıcı ve onaylı tedarikçi tarafından görüntülenebilir. Üçüncü şahısların bu verilere erişimi kriptografik ve yetkilendirme düzeyinde engellenmiştir.
           </p>
 
-          <h2 className="text-lg font-bold text-navy-900 pt-2">6. Sözleşme Verilerinin İşlenmesi ve 10 Yıllık Saklama Süresi</h2>
-          <p>
-            Onaylanan rezervasyon ve teklifler neticesinde üretilen sözleşmelerdeki taraf bilgileri (unvan, vergi no, şantiye adresi) Türk Borçlar Kanunu ve Türk Ticaret Kanunu zamanaşımı hükümleri uyarınca en az 10 yıl süreyle dondurulmuş arşivde saklanmaktadır. Bireysel müşterilerden T.C. Kimlik Numarası talep edilmez ve işlenmez.
-          </p>
-
-          <h2 className="text-lg font-bold text-navy-900 pt-2">7. Haklarınız</h2>
+          <h2 className="text-lg font-bold text-navy-900 pt-2">5. Haklarınız</h2>
           <p>
             KVKK 11. maddesi uyarınca dilediğiniz zaman destek@santiyego.com adresi üzerinden verilerinizin durumunu sorgulayabilir, yanlış verilerin düzeltilmesini veya sistemden tamamen silinmesini talep edebilirsiniz.
           </p>

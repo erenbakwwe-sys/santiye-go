@@ -51,14 +51,114 @@ export const DEMO_REVIEWS: VerifiedReviewWithUser[] = [
   },
 ];
 
+export interface ReviewWithEscrowWeight extends Review {
+  is_escrow_verified?: boolean;
+  buyer_approved?: boolean; // True ONLY if explicit buyer approval was given (auto-release is false)
+  verified_weight?: number;
+  payment_status?: string;
+  dispute_status?: string;
+}
+
 /**
- * Bayesian Weighted Rating calculation
- * Formula: WR = (v / (v + m)) * R + (m / (v + m)) * C
- * v: number of reviews
- * m: minimum review threshold (m = 3)
- * R: actual average rating
- * C: platform average benchmark (C = 4.5)
+ * Fetch dynamic escrow buyer approval multiplier from platform_settings table.
+ * Defaults to 1.5 if table or setting is not configured.
  */
+export async function getEscrowBuyerApprovalWeight(): Promise<number> {
+  try {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('platform_settings')
+      .select('value')
+      .eq('key', 'escrow_buyer_approval_weight')
+      .maybeSingle();
+
+    if (data?.value) {
+      const parsed = parseFloat(String(data.value));
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+  } catch {
+    // fallback to default
+  }
+  return 1.5;
+}
+
+/**
+ * Prompt 9D + 9E Integration:
+ * - Only platform-paid AND explicitly BUYER-APPROVED transactions count with the elevated confidence weight (buyerApprovalWeight from settings, e.g. 1.5x).
+ * - Auto-released transactions (transferred without buyer approval upon timer expiration) are valid but receive standard 1.0x weight.
+ * - Refunded or buyer-favored disputed jobs are strictly EXCLUDED from positive rating calculation.
+ */
+export function calculateEscrowWeightedTrust(
+  reviews: ReviewWithEscrowWeight[],
+  options?: { buyerApprovalWeight?: number }
+): {
+  bayesianScore: number | null;
+  actualAvg: number | null;
+  totalValidCount: number;
+  escrowVerifiedCount: number;
+  buyerApprovedCount: number;
+  excludedDisputeCount: number;
+} {
+  const buyerApprovalWeight = options?.buyerApprovalWeight ?? 1.5;
+
+  // 1. Exclude refunded and buyer-favored disputed jobs
+  const validReviews = reviews.filter((r) => {
+    if (r.payment_status === 'refunded' || r.dispute_status === 'resolved_buyer') {
+      return false; // Excluded from company score
+    }
+    return true;
+  });
+
+  const excludedDisputeCount = reviews.length - validReviews.length;
+  if (validReviews.length === 0) {
+    return {
+      bayesianScore: null,
+      actualAvg: null,
+      totalValidCount: 0,
+      escrowVerifiedCount: 0,
+      buyerApprovedCount: 0,
+      excludedDisputeCount,
+    };
+  }
+
+  let totalWeightedSum = 0;
+  let totalEffectiveWeight = 0;
+  let escrowVerifiedCount = 0;
+  let buyerApprovedCount = 0;
+
+  for (const r of validReviews) {
+    // Elevate weight ONLY if explicitly buyer approved; auto-release without buyer approval receives standard 1.0
+    let weight = r.verified_weight || 1.0;
+    if (r.is_escrow_verified) {
+      escrowVerifiedCount++;
+      if (r.buyer_approved === true) {
+        weight = buyerApprovalWeight;
+        buyerApprovedCount++;
+      } else {
+        weight = 1.0; // Auto-release is not buyer approved
+      }
+    }
+    totalWeightedSum += Number(r.rating_overall) * weight;
+    totalEffectiveWeight += weight;
+  }
+
+  const R = totalWeightedSum / totalEffectiveWeight;
+  const v = validReviews.length;
+  const m = 3; // minimum threshold
+  const C = 4.5; // platform prior benchmark
+
+  const bayesianScore = (v / (v + m)) * R + (m / (v + m)) * C;
+
+  return {
+    bayesianScore: Number(bayesianScore.toFixed(2)),
+    actualAvg: Number(R.toFixed(1)),
+    totalValidCount: v,
+    escrowVerifiedCount,
+    buyerApprovedCount,
+    excludedDisputeCount,
+  };
+}
+
 export function calculateBayesianRating(
   reviews: Review[]
 ): { bayesianScore: number | null; actualAvg: number | null; totalCount: number } {

@@ -25,6 +25,8 @@ export default function AdminSettingsPage() {
   const [cancelHours, setCancelHours] = useState<number>(24);
   const [expireHours, setExpireHours] = useState<number>(48);
   const [escrowDays, setEscrowDays] = useState<number>(3);
+  const [disputeWindowHours, setDisputeWindowHours] = useState<number>(72);
+  const [paymentMode, setPaymentMode] = useState<'external' | 'platform'>('external');
   const [twoFactorEnabled, setTwoFactorEnabled] = useState<boolean>(true);
   const [softLaunchActive, setSoftLaunchActive] = useState<boolean>(true);
   const [softLaunchCity, setSoftLaunchCity] = useState<string>('55'); // Samsun default
@@ -48,6 +50,12 @@ export default function AdminSettingsPage() {
       if (s.platform_payout_escrow_days?.value?.days) {
         setEscrowDays(s.platform_payout_escrow_days.value.days);
       }
+      if (s.dispute_window_hours?.value?.hours) {
+        setDisputeWindowHours(s.dispute_window_hours.value.hours);
+      }
+      if (s.global_payment_mode?.value?.mode) {
+        setPaymentMode(s.global_payment_mode.value.mode);
+      }
       if (s.soft_launch_config?.value) {
         setSoftLaunchActive(s.soft_launch_config.value.is_active ?? true);
         setSoftLaunchCity(String(s.soft_launch_config.value.pilot_city_id || '55'));
@@ -65,6 +73,8 @@ export default function AdminSettingsPage() {
       updatePlatformSetting('booking_cancellation_hours', { hours: Number(cancelHours) }, 'admin-super-001'),
       updatePlatformSetting('quote_request_auto_expire_hours', { hours: Number(expireHours) }, 'admin-super-001'),
       updatePlatformSetting('platform_payout_escrow_days', { days: Number(escrowDays) }, 'admin-super-001'),
+      updatePlatformSetting('dispute_window_hours', { hours: Number(disputeWindowHours) }, 'admin-super-001'),
+      updatePlatformSetting('global_payment_mode', { mode: paymentMode }, 'admin-super-001'),
       updatePlatformSetting('soft_launch_config', { is_active: softLaunchActive, pilot_city_id: Number(softLaunchCity) }, 'admin-super-001'),
     ]);
 
@@ -87,7 +97,7 @@ export default function AdminSettingsPage() {
           </div>
           <h1 className="text-2xl font-black text-navy-900 mt-1">Platform Parametreleri</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Komisyon oranları, zaman aşımları ve güvenlik yapılandırmaları. (Kodda hardcoded değer bulunmaz).
+            Komisyon oranları, ödeme modları, zaman aşımları ve güvenlik yapılandırmaları. (Kodda hardcoded değer bulunmaz).
           </p>
         </div>
       </div>
@@ -101,12 +111,29 @@ export default function AdminSettingsPage() {
 
       <form onSubmit={handleSave} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 1. Komisyon Ayarları */}
+          {/* 1. Komisyon ve Ödeme Modu Ayarları */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
             <h2 className="text-base font-extrabold text-navy-900 flex items-center gap-2 border-b pb-3">
               <Percent className="w-5 h-5 text-orange-500" />
-              Komisyon ve Finans Ayarları
+              Komisyon ve Ödeme Modu Ayarları
             </h2>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Global Ödeme Modu (Varsayılan: External)
+              </label>
+              <select
+                value={paymentMode}
+                onChange={(e: any) => setPaymentMode(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-navy-900 focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="external">Platform Dışı Doğrudan Ödeme (External - Varsayılan)</option>
+                <option value="platform">Platform Ödeme Güvencesi (iyzico Escrow / 3DS)</option>
+              </select>
+              <p className="text-[11px] text-slate-400 mt-1">
+                &quot;Platform&quot; seçildiğinde alıcılar iyzico lisanslı havuz hesabı güvencesiyle 3D Secure kart ödemesi yapabilir.
+              </p>
+            </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -129,19 +156,19 @@ export default function AdminSettingsPage() {
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                İş Teslimi Sonrası Hakediş Aktarım Bekleme Süresi (Gün)
+                Teslim Sonrası Alıcı İtiraz Penceresi (Saat)
               </label>
               <input
                 type="number"
-                min="0"
-                max="30"
+                min="1"
+                max="720"
                 required
-                value={escrowDays}
-                onChange={(e) => setEscrowDays(Number(e.target.value))}
+                value={disputeWindowHours}
+                onChange={(e) => setDisputeWindowHours(Number(e.target.value))}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500"
               />
               <p className="text-[11px] text-slate-400 mt-1">
-                Alıcının itiraz süresi dolduktan sonra iyzico üzerinden alt üye işyerinin IBAN&apos;ına otomatik EFT tetiklenir.
+                Teslimat bildiriminden sonra alıcının sorun bildirebileceği süre (Varsayılan 72 saat). Süre bitiminde otomatik aktarılır.
               </p>
             </div>
           </div>
