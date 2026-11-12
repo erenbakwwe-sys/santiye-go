@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { CATEGORIES, CITIES, DISTRICTS } from '@/lib/mock-data';
 import { createQuoteRequest } from '@/lib/services/quote-service';
+import { getActiveProfile } from '@/lib/services/auth-service';
 
 export default function MultiVendorQuotePage() {
   const router = useRouter();
@@ -75,10 +76,19 @@ export default function MultiVendorQuotePage() {
     setLoading(true);
     setErrorMessage('');
 
+    const profile = await getActiveProfile();
+    if (!profile) {
+      setErrorMessage('Teklif talebi oluşturabilmek için lütfen giriş yapınız.');
+      setLoading(false);
+      router.push('/giris?redirect=/teklif-iste');
+      return;
+    }
+
     const targetCity = CITIES.find((c) => c.id === Number(cityId));
     const targetDistrict = DISTRICTS.find((d) => d.id === Number(districtId));
 
     const res = await createQuoteRequest({
+      buyer_id: profile.id,
       request_type: 'multi_vendor',
       listing_id: null,
       category_id: selectedSubCat || selectedMainCat,

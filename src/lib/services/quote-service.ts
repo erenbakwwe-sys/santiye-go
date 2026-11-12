@@ -11,8 +11,12 @@ const STORAGE_QUOTES_KEY = 'santiyego_quotes_store';
 export const DEMO_QUOTES: Quote[] = [];
 export const DEMO_QUOTE_REQUESTS: QuoteRequest[] = [];
 
+// Node.js test ve SSR ortamı için in-memory defter
+const memQuoteRequests: QuoteRequest[] = [];
+const memQuotes: Quote[] = [];
+
 function getStoredQuoteRequests(): QuoteRequest[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === 'undefined') return [...memQuoteRequests];
   try {
     const raw = localStorage.getItem(STORAGE_QUOTE_REQUESTS_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -22,7 +26,15 @@ function getStoredQuoteRequests(): QuoteRequest[] {
 }
 
 function saveStoredQuoteRequest(req: QuoteRequest) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {
+    const idx = memQuoteRequests.findIndex((r) => r.id === req.id);
+    if (idx !== -1) {
+      memQuoteRequests[idx] = req;
+    } else {
+      memQuoteRequests.unshift(req);
+    }
+    return;
+  }
   try {
     const list = getStoredQuoteRequests();
     const existingIdx = list.findIndex((r) => r.id === req.id);
@@ -36,7 +48,7 @@ function saveStoredQuoteRequest(req: QuoteRequest) {
 }
 
 function getStoredQuotes(): Quote[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === 'undefined') return [...memQuotes];
   try {
     const raw = localStorage.getItem(STORAGE_QUOTES_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -46,7 +58,15 @@ function getStoredQuotes(): Quote[] {
 }
 
 function saveStoredQuote(quote: Quote) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {
+    const idx = memQuotes.findIndex((q) => q.id === quote.id);
+    if (idx !== -1) {
+      memQuotes[idx] = quote;
+    } else {
+      memQuotes.push(quote);
+    }
+    return;
+  }
   try {
     const list = getStoredQuotes();
     const existingIdx = list.findIndex((q) => q.id === quote.id);
