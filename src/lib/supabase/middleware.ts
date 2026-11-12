@@ -84,5 +84,14 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // Protect messages route
+  if (path.startsWith('/mesajlar')) {
+    if (!user) {
+      url.pathname = '/giris';
+      url.searchParams.set('redirect', path);
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }

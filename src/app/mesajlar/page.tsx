@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   MessageSquare,
   Search,
@@ -40,14 +41,17 @@ import {
 import RevealedContactCard from '@/components/common/RevealedContactCard';
 import { Message } from '@/types/database';
 import { createClient } from '@/lib/supabase/client';
+import { getActiveProfile } from '@/lib/services/auth-service';
 
 export default function MessagesPage() {
+  const router = useRouter();
   const [conversations, setConversations] = useState<DemoConversation[]>([]);
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(true);
 
   // Controlled Reveal State
   const [revealedDetails, setRevealedDetails] = useState<RevealedContactDetails | null>(null);
@@ -72,27 +76,42 @@ export default function MessagesPage() {
   const [disputeNote, setDisputeNote] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [currentUserId, setCurrentUserId] = useState('buyer-demo-001');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Load real authenticated user if available, fallback to demo
+  // Authenticate user: Giriş yapmamış kullanıcıyı koru ve yönlendir
   useEffect(() => {
     async function initUser() {
       try {
+        const activeProfile = await getActiveProfile();
+        if (activeProfile?.id) {
+          setCurrentUserId(activeProfile.id);
+          setIsAuthenticating(false);
+          return;
+        }
+
         const supabase = createClient();
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (user) {
+
+        if (user?.id) {
           setCurrentUserId(user.id);
+          setIsAuthenticating(false);
+        } else {
+          // Giriş yapılmamışsa doğrudan giriş sayfasına yönlendir
+          setIsAuthenticating(false);
+          router.replace('/giris?redirect=/mesajlar');
         }
       } catch {
-        // fallback to default demo user
+        setIsAuthenticating(false);
+        router.replace('/giris?redirect=/mesajlar');
       }
     }
     initUser();
-  }, []);
+  }, [router]);
 
   const loadData = async () => {
+    if (!currentUserId) return;
     setLoading(true);
     const convs = await getConversations(currentUserId);
     setConversations(convs);
@@ -103,14 +122,16 @@ export default function MessagesPage() {
   };
 
   useEffect(() => {
-    loadData();
+    if (currentUserId) {
+      loadData();
+    }
   }, [currentUserId]);
 
   const activeConv = conversations.find((c) => c.id === selectedConvId);
 
   // Load messages and check contact reveal status whenever active conversation changes
   useEffect(() => {
-    if (selectedConvId && activeConv) {
+    if (selectedConvId && activeConv && currentUserId) {
       getMessages(selectedConvId).then((msgs) => {
         setMessages(msgs);
         markConversationAsRead(selectedConvId, currentUserId);
@@ -138,7 +159,7 @@ export default function MessagesPage() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!inputText.trim() && !attachmentPreview) || !selectedConvId) return;
+    if ((!inputText.trim() && !attachmentPreview) || !selectedConvId || !currentUserId) return;
 
     const res = await sendMessage(
       selectedConvId,
@@ -179,7 +200,7 @@ export default function MessagesPage() {
   };
 
   const handleBlockUser = async () => {
-    if (!selectedConvId) return;
+    if (!selectedConvId || !currentUserId) return;
     if (confirm('Bu kullanıcıyı engellemek istediğinize emin misiniz?')) {
       await blockUser(selectedConvId, currentUserId);
       setActionNotice('Kullanıcı engellendi.');
@@ -190,7 +211,7 @@ export default function MessagesPage() {
 
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!targetMsgId) return;
+    if (!targetMsgId || !currentUserId) return;
     const fullReason = `${reportReason}: ${reportDetails || 'Açıklama belirtilmedi'}`;
     await reportMessage(targetMsgId, currentUserId, fullReason);
     setReportModalOpen(false);
@@ -212,7 +233,7 @@ export default function MessagesPage() {
   };
 
   const handleSoftModeReveal = async () => {
-    if (!activeConv) return;
+    if (!activeConv || !currentUserId) return;
     if (!confirm('Firmanın iletişim bilgilerini görüntülemek istiyor musunuz? (Bugün kalan hakkınız düşülecektir)')) return;
 
     const res = await logPhoneReveal(currentUserId, activeConv.company_id, activeConv.listing_title || '');
@@ -229,6 +250,36 @@ export default function MessagesPage() {
     setActionNotice(`İletişim bilgileri açıldı. Bugün kalan hakkınız: ${softQuota.remaining - 1}`);
     setTimeout(() => setActionNotice(''), 4000);
   };
+
+  if (isAuthenticating || !currentUserId) {
+    return (
+      <div className="bg-slate-100 min-h-[calc(100vh-80px)] flex items-center justify-center py-12 px-4">
+        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm max-w-md w-full text-center space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-black text-navy-900">Giriş Yapılması Gerekiyor</h2>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Mesajlarınızı ve görüşmelerinizi görüntülemek için lütfen hesabınıza giriş yapın veya ücretsiz kayıt olun.
+          </p>
+          <div className="flex items-center gap-3 pt-2">
+            <Link
+              href="/giris?redirect=/mesajlar"
+              className="flex-1 py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition shadow-sm"
+            >
+              Giriş Yap
+            </Link>
+            <Link
+              href="/kayit"
+              className="flex-1 py-2.5 px-4 bg-navy-900 hover:bg-navy-800 text-white rounded-xl text-xs font-bold transition shadow-sm"
+            >
+              Kayıt Ol
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const filteredConversations = conversations.filter((c) => {
     if (!searchQuery) return true;

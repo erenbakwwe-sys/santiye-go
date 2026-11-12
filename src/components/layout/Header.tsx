@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
   HardHat,
@@ -26,6 +27,7 @@ import {
 } from '@/lib/services/notification-service';
 
 export default function Header() {
+  const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -53,7 +55,15 @@ export default function Header() {
     checkAuth();
   }, []);
 
-  const unreadNotifsCount = notifications.filter((n) => !n.is_read).length;
+  const unreadNotifsCount = profile ? notifications.filter((n) => !n.is_read).length : 0;
+
+  const handleNotifClick = () => {
+    if (!profile) {
+      router.push('/giris?redirect=/alici-paneli');
+      return;
+    }
+    setNotifDropdownOpen(!notifDropdownOpen);
+  };
 
   const handleMarkAllRead = async () => {
     if (profile?.id) {
@@ -131,19 +141,21 @@ export default function Header() {
           <div className="hidden md:flex items-center gap-2.5">
             {/* Messages Button */}
             <Link
-              href="/mesajlar"
+              href={profile ? '/mesajlar' : '/giris?redirect=/mesajlar'}
               className="relative p-2 text-slate-300 hover:text-orange-500 transition-colors rounded-lg hover:bg-navy-800"
               title="Mesajlarım"
             >
               <MessageSquare className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500" />
+              {profile && (
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500" />
+              )}
             </Link>
 
             {/* Notification Bell Dropdown */}
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
+                onClick={handleNotifClick}
                 className="relative p-2 text-slate-300 hover:text-orange-500 transition-colors rounded-lg hover:bg-navy-800"
                 title="Bildirimler"
               >
@@ -156,7 +168,7 @@ export default function Header() {
               </button>
 
               {/* Notification Popover */}
-              {notifDropdownOpen && (
+              {profile && notifDropdownOpen && (
                 <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden text-navy-900 z-50 animate-in fade-in zoom-in-95">
                   <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                     <span className="text-xs font-black uppercase text-navy-900">
@@ -210,7 +222,7 @@ export default function Header() {
             </div>
 
             <Link
-              href="/favorilerim"
+              href={profile ? '/favorilerim' : '/giris?redirect=/favorilerim'}
               className="p-2 text-slate-300 hover:text-orange-500 transition-colors rounded-lg hover:bg-navy-800"
               title="Favorilerim"
             >
@@ -292,7 +304,7 @@ export default function Header() {
           {/* Mobile Hamburger Button */}
           <div className="flex md:hidden items-center gap-2">
             <Link
-              href="/mesajlar"
+              href={profile ? '/mesajlar' : '/giris?redirect=/mesajlar'}
               className="p-1.5 text-slate-300 hover:text-white"
             >
               <MessageSquare className="w-5 h-5" />
@@ -327,14 +339,14 @@ export default function Header() {
               ⚡ Çoklu Teklif Talebi Oluştur
             </Link>
             <Link
-              href="/alici-paneli/taleplerim"
+              href={profile ? '/alici-paneli/taleplerim' : '/giris?redirect=/alici-paneli/taleplerim'}
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded-md hover:bg-navy-800 text-slate-200"
             >
               Teklif Taleplerim & Karşılaştırma
             </Link>
             <Link
-              href="/mesajlar"
+              href={profile ? '/mesajlar' : '/giris?redirect=/mesajlar'}
               onClick={() => setMobileMenuOpen(false)}
               className="px-3 py-2 rounded-md hover:bg-navy-800 text-slate-200"
             >
