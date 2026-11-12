@@ -33,7 +33,6 @@ export interface CheckoutResult {
   checkoutFormContent?: string;
   paymentPageUrl?: string;
   error?: string;
-  rawResponse?: any;
 }
 
 export interface WebhookVerificationResult {
@@ -42,14 +41,12 @@ export interface WebhookVerificationResult {
   status?: 'paid' | 'failed';
   amountCents?: number;
   rawPayload?: any;
-  eventId?: string;
 }
 
 export interface TransferResult {
   success: boolean;
   transferId?: string;
   error?: string;
-  rawResponse?: any;
 }
 
 export interface RefundResult {
@@ -57,27 +54,6 @@ export interface RefundResult {
   refundId?: string;
   refundedAmountCents?: number;
   error?: string;
-  rawResponse?: any;
-}
-
-export interface CreateSubMerchantParams {
-  externalId: string;
-  subMerchantType: 'PERSONAL' | 'PRIVATE_COMPANY' | 'LIMITED_OR_JOINT_STOCK_COMPANY';
-  name: string;
-  email: string;
-  gsmNumber: string;
-  address: string;
-  iban: string;
-  identityNumber?: string;
-  taxNumber?: string;
-  taxOffice?: string;
-}
-
-export interface SubMerchantResult {
-  success: boolean;
-  subMerchantKey?: string;
-  error?: string;
-  rawResponse?: any;
 }
 
 export interface SubMerchantCreationParams {
@@ -118,13 +94,11 @@ export interface ReconciliationReportResult {
 
 /**
  * Universal Payment Gateway Adapter Interface
- * Allows seamless switching between iyzico, PayTR, or future banking adapters.
+ * Allows seamless switching between iyzico, PayTR, or local Mock provider.
  */
 export interface PaymentGatewayAdapter {
   readonly providerName: string;
 
-  isConfigured(): boolean;
-  createSubMerchant(params: CreateSubMerchantParams): Promise<SubMerchantResult>;
   initiateCheckout(params: InitiateCheckoutParams): Promise<CheckoutResult>;
   verifyWebhook(headers: Record<string, string>, body: any): Promise<WebhookVerificationResult>;
   createSubMerchant(params: SubMerchantCreationParams): Promise<SubMerchantCreationResult>;

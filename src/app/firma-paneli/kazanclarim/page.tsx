@@ -4,196 +4,139 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   CreditCard,
+  TrendingUp,
   Clock,
   CheckCircle2,
+  Building2,
   ArrowLeft,
   ShieldCheck,
+  FileText,
   AlertCircle,
   HelpCircle,
-  Send,
-  AlertTriangle,
+  Lock,
   RotateCcw,
-  Building,
-  PlusCircle,
+  AlertTriangle,
   X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { formatCentsToTRY } from '@/lib/services/commission-service';
-import {
-  sellerMarkDelivered,
-  getCompanySubMerchant,
-  registerCompanySubMerchant,
-} from '@/lib/services/escrow-service';
+import { DEMO_TRANSACTIONS } from '@/lib/services/payment-service';
+import { registerCompanySubMerchant } from '@/lib/services/escrow-service';
 
 export default function CompanyEarningsPage() {
   const [loading, setLoading] = useState(true);
-  const [company, setCompany] = useState<any>(null);
-  const [subMerchant, setSubMerchant] = useState<any>(null);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [selectedFilter, setSelectedFilter] = useState<string>('all');
-  const [actionNotice, setActionNotice] = useState('');
-  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [companyTransactions, setCompanyTransactions] = useState<any[]>(DEMO_TRANSACTIONS);
+  const [onboardingModalOpen, setOnboardingModalOpen] = useState(false);
+  const [subMerchantStatus, setSubMerchantStatus] = useState<'approved' | 'pending' | 'unregistered'>('approved');
+  const [ibanLast4, setIbanLast4] = useState<string>('0001');
+  const [subMerchantKey, setSubMerchantKey] = useState<string>('subm-anadolu-001');
+  const [legalTitle, setLegalTitle] = useState('Anadolu İş Makineleri San. ve Tic. Ltd. Şti.');
+  const [taxOffice, setTaxOffice] = useState('Tuzla');
+  const [taxNumber, setTaxNumber] = useState('1234567890');
+  const [ibanInput, setIbanInput] = useState('TR330006100511123456789001');
+  const [addressInput, setAddressInput] = useState('Tuzla Sanayi Bölgesi No: 12 İstanbul');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionSuccess, setActionSuccess] = useState('');
 
-  // Sub-merchant Onboarding Modal State
-  const [showSubMerchantModal, setShowSubMerchantModal] = useState(false);
-  const [subMerchantType, setSubMerchantType] = useState<
-    'LIMITED_OR_JOINT_STOCK_COMPANY' | 'PRIVATE_COMPANY' | 'PERSONAL'
-  >('LIMITED_OR_JOINT_STOCK_COMPANY');
-  const [ibanInput, setIbanInput] = useState('');
-  const [taxOfficeInput, setTaxOfficeInput] = useState('');
-  const [taxNumberInput, setTaxNumberInput] = useState('');
-  const [isSubmittingSubMerchant, setIsSubmittingSubMerchant] = useState(false);
+  useEffect(() => {
+    async function loadFinances() {
+      try {
+        setLoading(true);
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
-  async function loadCompanyFinances() {
-    try {
-      setLoading(true);
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        if (user) {
+          const { data: comp } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-      if (user) {
-        const { data: comp } = await supabase
-          .from('companies')
-          .select('id, name, phone, address, iban, tax_number, tax_office, sub_merchant_key')
-          .eq('user_id', user.id)
-          .maybeSingle();
+          if (comp) {
+            if (comp.sub_merchant_status) {
+              setSubMerchantStatus(comp.sub_merchant_status as any);
+            }
+            if (comp.iban_last4) {
+              setIbanLast4(comp.iban_last4);
+            }
+            if (comp.sub_merchant_key) {
+              setSubMerchantKey(comp.sub_merchant_key);
+            }
+            if (comp.tax_office) setTaxOffice(comp.tax_office);
+            if (comp.tax_number) setTaxNumber(comp.tax_number);
+            if (comp.name) setLegalTitle(comp.name);
 
-        if (comp) {
-          setCompany(comp);
-          setIbanInput(comp.iban || '');
-          setTaxOfficeInput(comp.tax_office || '');
-          setTaxNumberInput(comp.tax_number || '');
-
-          // 1. Fetch sub-merchant profile
-          const subm = await getCompanySubMerchant(comp.id);
-          setSubMerchant(subm);
-
-          // 2. Fetch real transactions from payment_transactions table
-          let { data: txData, error } = await supabase
-            .from('payment_transactions')
-            .select(`
-              *,
-              buyer:profiles(full_name, phone)
-            `)
-            .eq('company_id', comp.id)
-            .order('created_at', { ascending: false });
-
-          if (error || !txData) {
-            const { data: fallbackData } = await supabase
-              .from('payments')
+            const { data } = await supabase
+              .from('payment_transactions')
               .select('*')
               .eq('company_id', comp.id)
               .order('created_at', { ascending: false });
-            txData = fallbackData || [];
+
+            if (data && data.length > 0) {
+              setCompanyTransactions(data);
+            }
           }
-
-          setTransactions(txData || []);
         }
+      } catch {
+        setCompanyTransactions(DEMO_TRANSACTIONS);
+      } finally {
+        setLoading(false);
       }
-    } catch (err: any) {
-      console.warn('loadCompanyFinances warning:', err.message);
-      setTransactions([]);
-    } finally {
-      setLoading(false);
     }
-  }
 
-  useEffect(() => {
-    loadCompanyFinances();
+    loadFinances();
   }, []);
 
-  const handleMarkDelivered = async (txId: string) => {
-    if (
-      confirm(
-        'İşi/makineyi şantiyeye teslim ettiğinizi bildirmek istiyor musunuz? Alıcıya bildirim gidecek ve 72 saatlik kontrol süresi başlayacaktır.'
-      )
-    ) {
-      setProcessingId(txId);
-      try {
-        const res = await sellerMarkDelivered(txId);
-        if (res.success) {
-          setActionNotice(
-            '✅ Teslimat bildirildi! 72 saatlik kontrol süresi başladı. Alıcı onayladığında veya süre dolduğunda tutar IBAN hesabınıza aktarılacaktır.'
-          );
-          loadCompanyFinances();
-        } else {
-          setActionNotice(`⚠️ ${res.error || 'İşlem gerçekleştirilemedi.'}`);
-        }
-      } catch (err: any) {
-        setActionNotice(`Hata: ${err.message}`);
-      } finally {
-        setProcessingId(null);
-        setTimeout(() => setActionNotice(''), 5000);
-      }
+  const handleRegisterSubMerchant = async () => {
+    setIsSubmitting(true);
+    const res = await registerCompanySubMerchant('f0000000-0000-0000-0000-000000000001', {
+      legalType: 'LIMITED_OR_JOINT_STOCK_COMPANY',
+      legalCompanyTitle: legalTitle,
+      taxOffice,
+      taxNumber,
+      email: 'muhasebe@anadolumakine.com',
+      gsmNumber: '+905320000101',
+      address: addressInput,
+      iban: ibanInput,
+    });
+
+    if (res.success && res.subMerchantKey && res.ibanLast4) {
+      setSubMerchantKey(res.subMerchantKey);
+      setIbanLast4(res.ibanLast4);
+      setSubMerchantStatus('approved');
+      setOnboardingModalOpen(false);
+      setActionSuccess('Alt üye işyeri kaydınız başarıyla tamamlandı ve iyzico tarafından onaylandı.');
+      setTimeout(() => setActionSuccess(''), 4000);
+    } else {
+      alert(res.error || 'Kayıt sırasında hata oluştu.');
     }
+    setIsSubmitting(false);
   };
 
-  const handleRegisterSubMerchant = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!company) return;
+  const poolCents = companyTransactions
+    .filter((t) => t.status === 'paid' || t.status === 'paid_escrow')
+    .reduce((acc, t) => acc + (t.net_company_amount_cents || 0), 0);
 
-    const cleanIban = ibanInput.replace(/\s+/g, '').toUpperCase();
-    if (!cleanIban.startsWith('TR') || cleanIban.length !== 26) {
-      alert('Lütfen geçerli bir TR ile başlayan 26 haneli IBAN numarası giriniz.');
-      return;
-    }
+  const releasableCents = companyTransactions
+    .filter((t) => t.status === 'releasable')
+    .reduce((acc, t) => acc + (t.net_company_amount_cents || 0), 0);
 
-    setIsSubmittingSubMerchant(true);
-    try {
-      const res = await registerCompanySubMerchant({
-        companyId: company.id,
-        subMerchantType,
-        name: company.name || 'Firma Yetkilisi',
-        email: 'firma@santiye-go.com',
-        phone: company.phone || '+905321112233',
-        iban: cleanIban,
-        taxOffice: taxOfficeInput,
-        taxNumber: taxNumberInput,
-        address: company.address || 'Türkiye',
-      });
+  const transferredCents = companyTransactions
+    .filter((t) => t.status === 'transferred')
+    .reduce((acc, t) => acc + (t.net_company_amount_cents || 0), 0);
 
-      if (res.success) {
-        setActionNotice('✅ iyzico Alt Üye İşyeri kaydı başarıyla oluşturuldu!');
-        setShowSubMerchantModal(false);
-        loadCompanyFinances();
-      } else {
-        alert(`Kayıt hatası: ${res.error || 'Bilinmeyen hata'}`);
-      }
-    } catch (err: any) {
-      alert(`Hata: ${err.message}`);
-    } finally {
-      setIsSubmittingSubMerchant(false);
-    }
-  };
+  const refundedCents = companyTransactions
+    .filter((t) => t.status === 'refunded')
+    .reduce((acc, t) => acc + (t.refund_amount_cents || t.amount_cents || 0), 0);
 
-  // Financial Metrics Calculation across 5 Escrow Buckets
-  const heldTx = transactions.filter(
-    (t) => t.escrow_status === 'paid_held' || (t.status === 'paid' && !t.escrow_status)
+  const disputedCents = companyTransactions
+    .filter((t) => t.status === 'disputed')
+    .reduce((acc, t) => acc + (t.net_company_amount_cents || 0), 0);
+
+  const totalCappedSavingsCents = companyTransactions.reduce(
+    (acc, t) => acc + (t.capped_commission_savings_cents || 0),
+    0
   );
-  const releasableTx = transactions.filter((t) => t.escrow_status === 'releasable');
-  const transferredTx = transactions.filter(
-    (t) => t.escrow_status === 'transferred' || t.status === 'transferred'
-  );
-  const disputedTx = transactions.filter((t) => t.escrow_status === 'disputed');
-  const refundedTx = transactions.filter((t) => t.escrow_status === 'refunded' || t.status === 'refunded');
-
-  const heldVolume = heldTx.reduce((acc, t) => acc + (t.net_company_amount_cents || 0), 0);
-  const releasableVolume = releasableTx.reduce((acc, t) => acc + (t.net_company_amount_cents || 0), 0);
-  const transferredVolume = transferredTx.reduce((acc, t) => acc + (t.net_company_amount_cents || 0), 0);
-  const disputedVolume = disputedTx.reduce((acc, t) => acc + (t.net_company_amount_cents || 0), 0);
-  const refundedVolume = refundedTx.reduce((acc, t) => acc + (t.amount_cents || 0), 0);
-
-  // Filtered Table Records
-  const filtered = transactions.filter((t) => {
-    if (selectedFilter === 'all') return true;
-    if (selectedFilter === 'held') return t.escrow_status === 'paid_held' || t.status === 'paid';
-    if (selectedFilter === 'releasable') return t.escrow_status === 'releasable';
-    if (selectedFilter === 'transferred') return t.escrow_status === 'transferred' || t.status === 'transferred';
-    if (selectedFilter === 'disputed') return t.escrow_status === 'disputed';
-    if (selectedFilter === 'refunded') return t.escrow_status === 'refunded' || t.status === 'refunded';
-    return true;
-  });
 
   return (
     <div className="bg-slate-50 min-h-screen py-8 sm:py-10">
@@ -208,392 +151,322 @@ export default function CompanyEarningsPage() {
             Firma Paneline Dön
           </Link>
           <div className="flex items-center gap-2">
-            <Link
-              href="/odeme-guvencesi-ve-itiraz-kosullari"
-              className="text-xs font-bold text-slate-500 hover:text-navy-900 underline"
-            >
-              Ödeme Güvencesi Şartları
-            </Link>
-          </div>
-        </div>
-
-        {/* Top Header & Sub-merchant Profile */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <span className="px-2.5 py-0.5 rounded bg-orange-100 text-orange-800 text-xs font-black uppercase">
-              Firma Finans & Escrow
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              iyzico Pazaryeri Entegrasyonu {subMerchantStatus === 'approved' ? 'Aktif' : 'Onay Bekliyor'}
             </span>
-            <h1 className="text-2xl font-black text-navy-900 mt-1">
-              Kazançlarım & Hakediş Defteri
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              iyzico lisanslı havuzundaki bakiyeler, teslimat onayları ve IBAN transfer durumları.
-            </p>
-          </div>
-
-          {/* Sub-merchant Status Card */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-1.5 shrink-0 max-w-sm w-full md:w-auto">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-slate-400 font-bold uppercase text-[10px]">
-                iyzico Alt Üye İşyeri:
-              </span>
-              {subMerchant?.sub_merchant_key || company?.sub_merchant_key ? (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" /> Onaylı
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowSubMerchantModal(true)}
-                  className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 hover:bg-orange-200 font-bold text-[10px] flex items-center gap-1"
-                >
-                  <PlusCircle className="w-3 h-3" /> Tanımla
-                </button>
-              )}
-            </div>
-
-            <div className="font-mono font-bold text-navy-900 text-xs truncate">
-              {subMerchant?.iban || company?.iban || 'IBAN Tanımlanmamış'}
-            </div>
-            <div className="text-[10px] text-slate-500">
-              VKN/TCKN: {subMerchant?.tax_number || company?.tax_number || 'Belirtilmedi'} •{' '}
-              {subMerchant?.tax_office || company?.tax_office || ''}
-            </div>
           </div>
         </div>
 
-        {actionNotice && (
-          <div className="p-3.5 bg-blue-50 border border-blue-300 text-blue-900 rounded-xl text-xs font-bold flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-blue-600 shrink-0" />
-            <span>{actionNotice}</span>
+        {actionSuccess && (
+          <div className="p-4 bg-emerald-50 border border-emerald-300 text-emerald-950 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-sm">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{actionSuccess}</span>
           </div>
         )}
 
-        {/* Financial KPI Cards - 5 Escrow Buckets */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-            <div className="text-[11px] font-bold text-slate-500 uppercase">Havuzda Bekleyen</div>
-            <div className="text-xl font-black text-blue-600">{formatCentsToTRY(heldVolume)}</div>
-            <div className="text-[10px] text-slate-400">{heldTx.length} İşlem (Teslim/Onay)</div>
-          </div>
-
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-            <div className="text-[11px] font-bold text-slate-500 uppercase">Serbest Bırakılabilir</div>
-            <div className="text-xl font-black text-amber-600">{formatCentsToTRY(releasableVolume)}</div>
-            <div className="text-[10px] text-slate-400">{releasableTx.length} Onaylı (Aktarımda)</div>
-          </div>
-
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-            <div className="text-[11px] font-bold text-slate-500 uppercase">IBAN&apos;a Aktarılan</div>
-            <div className="text-xl font-black text-emerald-600">{formatCentsToTRY(transferredVolume)}</div>
-            <div className="text-[10px] text-emerald-700 font-bold">{transferredTx.length} Hesapta</div>
-          </div>
-
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-            <div className="text-[11px] font-bold text-slate-500 uppercase">İtirazda / Askıda</div>
-            <div className="text-xl font-black text-red-600">{formatCentsToTRY(disputedVolume)}</div>
-            <div className="text-[10px] text-red-600 font-bold">{disputedTx.length} İtiraz Masasında</div>
-          </div>
-
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-            <div className="text-[11px] font-bold text-slate-500 uppercase">İade Edilen</div>
-            <div className="text-xl font-black text-slate-600">{formatCentsToTRY(refundedVolume)}</div>
-            <div className="text-[10px] text-slate-400">{refundedTx.length} İptal/İade</div>
-          </div>
-        </div>
-
-        {/* Explanation Alert */}
-        <div className="p-4 bg-orange-50/70 border border-orange-200 rounded-2xl text-xs text-orange-950 flex items-start gap-3">
-          <HelpCircle className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <div className="font-bold">Ödeme Güvencesi Hakediş Süreci:</div>
-            <p className="text-slate-600 leading-relaxed">
-              İşi teslim ettiğinizde listeden <strong>&quot;İşi Teslim Ettim&quot;</strong> butonuna basınız. Alıcı doğrudan onaylayabilir veya 72 saatlik kontrol süresi dolduğunda platform komisyonu kesilerek kalan net hak edişiniz otomatik olarak iyzico tarafından kayıtlı IBAN hesabınıza aktarılır.
+        {/* Top Header */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <span className="px-2.5 py-0.5 rounded bg-orange-100 text-orange-800 text-xs font-black uppercase">
+              Firma Finans
+            </span>
+            <h1 className="text-2xl font-black text-navy-900 mt-1">
+              Kazançlarım & Hakediş Raporu
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              Platform emanet havuzunda bekleyen, onaylanan ve banka hesabınıza aktarılan hakedişlerinizi takip edin.
             </p>
           </div>
-        </div>
 
-        {/* Transactions Table & Filters */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4 p-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-            <h2 className="text-base font-extrabold text-navy-900">
-              Hakediş Hareketleri ({filtered.length})
-            </h2>
-
-            {/* Filter Tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto">
-              {[
-                { id: 'all', label: 'Tümü' },
-                { id: 'held', label: 'Havuzda' },
-                { id: 'releasable', label: 'Serbest' },
-                { id: 'transferred', label: 'Aktarılan' },
-                { id: 'disputed', label: 'İtirazda' },
-                { id: 'refunded', label: 'İade' },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setSelectedFilter(tab.id)}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition shrink-0 ${
-                    selectedFilter === tab.id
-                      ? 'bg-navy-900 text-white'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+          {/* Submerchant IBAN Card (SADECE SON 4 HANE GÖSTERİLİR) */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-1 shrink-0">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-slate-400 font-bold uppercase text-[10px]">
+                Alt Üye İşyeri Hesabı
+              </span>
+              <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                {subMerchantStatus === 'approved' ? 'Doğrulandı' : 'Kayıtsız'}
+              </span>
+            </div>
+            <div className="font-mono font-bold text-navy-900">
+              TR** **** **** **** **** **{ibanLast4}
+            </div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-500 font-semibold">{legalTitle.slice(0, 24)}...</span>
+              <button
+                onClick={() => setOnboardingModalOpen(true)}
+                className="text-orange-600 hover:underline font-bold text-[10px] ml-2"
+              >
+                Bilgileri Güncelle
+              </button>
             </div>
           </div>
-
-          {loading ? (
-            <div className="p-8 text-center text-slate-400 text-xs font-bold">Yükleniyor...</div>
-          ) : filtered.length === 0 ? (
-            <div className="p-10 text-center space-y-2">
-              <CreditCard className="w-10 h-10 text-slate-300 mx-auto" />
-              <p className="text-sm font-bold text-navy-900">
-                Bu Filtrede Bir Finansal Hareket Bulunamadı
-              </p>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Kiralama rezervasyonları tamamlandığında ve ödemeler gerçekleştiğinde hakediş dökümleriniz burada anlık olarak listelenecektir.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500 font-extrabold uppercase tracking-wider border-b border-slate-200 text-[10px]">
-                  <tr>
-                    <th className="py-3 px-4">İşlem & Tarih</th>
-                    <th className="py-3 px-4">Alıcı</th>
-                    <th className="py-3 px-4">Tahsil Edilen (Brüt)</th>
-                    <th className="py-3 px-4">Komisyon (%)</th>
-                    <th className="py-3 px-4">Net Hak Ediş</th>
-                    <th className="py-3 px-4">Escrow Durumu</th>
-                    <th className="py-3 px-4">Aksiyon</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {filtered.map((t) => {
-                    const isTransferred =
-                      t.escrow_status === 'transferred' || t.status === 'transferred';
-                    const isDisputed = t.escrow_status === 'disputed';
-                    const isReleasable = t.escrow_status === 'releasable';
-                    const isRefunded =
-                      t.escrow_status === 'refunded' || t.status === 'refunded';
-                    const isDelivered = Boolean(t.delivered_at);
-
-                    return (
-                      <tr key={t.id} className="hover:bg-slate-50">
-                        <td className="py-3 px-4">
-                          <div className="font-mono font-bold text-navy-900">{t.id}</div>
-                          <div className="text-[10px] text-slate-400">
-                            {new Date(t.created_at).toLocaleDateString('tr-TR')}
-                          </div>
-                        </td>
-
-                        <td className="py-3 px-4">
-                          <div className="font-semibold text-navy-900">
-                            {t.buyer?.full_name || 'Alıcı'}
-                          </div>
-                          <div className="text-[10px] text-slate-400">{t.buyer?.phone || ''}</div>
-                        </td>
-
-                        <td className="py-3 px-4 font-black text-navy-900 text-sm">
-                          {formatCentsToTRY(t.amount_cents)}
-                        </td>
-
-                        <td className="py-3 px-4">
-                          <div className="font-bold text-orange-600">
-                            -{formatCentsToTRY(t.commission_amount_cents)}
-                          </div>
-                          <div className="text-[10px] text-slate-400">
-                            %{t.commission_rate_percent} (Dondurulmuş Oran)
-                          </div>
-                        </td>
-
-                        <td className="py-3 px-4 font-black text-emerald-700 text-sm">
-                          {formatCentsToTRY(t.net_company_amount_cents)}
-                        </td>
-
-                        <td className="py-3 px-4">
-                          {isTransferred && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> IBAN&apos;a Aktarıldı
-                            </span>
-                          )}
-
-                          {isDisputed && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-800 text-[11px] font-bold">
-                              <AlertTriangle className="w-3.5 h-3.5" /> İtirazda / Askıda
-                            </span>
-                          )}
-
-                          {isReleasable && !isTransferred && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Serbest Bırakılabilir
-                            </span>
-                          )}
-
-                          {isRefunded && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold">
-                              <RotateCcw className="w-3.5 h-3.5" /> Alıcıya İade Edildi
-                            </span>
-                          )}
-
-                          {!isTransferred &&
-                            !isDisputed &&
-                            !isReleasable &&
-                            !isRefunded &&
-                            isDelivered && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-[11px] font-bold">
-                                <Clock className="w-3.5 h-3.5" /> Teslim Edildi (Sayac Aktif)
-                              </span>
-                            )}
-
-                          {!isTransferred &&
-                            !isDisputed &&
-                            !isReleasable &&
-                            !isRefunded &&
-                            !isDelivered && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold">
-                                <Clock className="w-3.5 h-3.5" /> Havuzda (Teslim Bekleniyor)
-                              </span>
-                            )}
-                        </td>
-
-                        <td className="py-3 px-4">
-                          {!isTransferred && !isDelivered && !isDisputed && !isRefunded && (
-                            <button
-                              type="button"
-                              disabled={processingId === t.id}
-                              onClick={() => handleMarkDelivered(t.id)}
-                              className="px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold text-xs shadow-sm transition flex items-center gap-1"
-                            >
-                              <Send className="w-3.5 h-3.5" />
-                              {processingId === t.id ? 'İşleniyor...' : 'İşi Teslim Ettim'}
-                            </button>
-                          )}
-                          {isDelivered && !isTransferred && !isRefunded && (
-                            <span className="text-[11px] text-slate-500 font-semibold">
-                              Teslim Bildirildi
-                            </span>
-                          )}
-                          {isTransferred && (
-                            <span className="text-[11px] text-emerald-600 font-bold">
-                              Tamamlandı
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
 
-        {/* Sub-merchant Onboarding Modal */}
-        {showSubMerchantModal && (
-          <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-black text-navy-900 text-base">
-                    iyzico Alt Üye İşyeri Tanımlama
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Ödemelerin doğrudan banka hesabınıza aktarılması için resmi firma bilgilerinizi giriniz.
-                  </p>
+        {/* 5 Balance Cards (Prompt 9E Şartı) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* 1. Havuzda Bekleyen */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-blue-700">
+              <Lock className="w-3.5 h-3.5" />
+              <span>Havuzda (Escrow)</span>
+            </div>
+            <div className="text-xl font-black text-navy-900">
+              {formatCentsToTRY(poolCents)}
+            </div>
+            <div className="text-[10px] text-slate-400">İş teslimatı bekleniyor</div>
+          </div>
+
+          {/* 2. Serbest Bırakılabilir */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700">
+              <Clock className="w-3.5 h-3.5" />
+              <span>Serbest Bırakılabilir</span>
+            </div>
+            <div className="text-xl font-black text-amber-700">
+              {formatCentsToTRY(releasableCents)}
+            </div>
+            <div className="text-[10px] text-slate-400">İtiraz süresi doluyor</div>
+          </div>
+
+          {/* 3. Aktarılan (Net) */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Aktarılan (Net)</span>
+            </div>
+            <div className="text-xl font-black text-emerald-700">
+              {formatCentsToTRY(transferredCents)}
+            </div>
+            <div className="text-[10px] text-slate-400">IBAN&apos;a gönderilen</div>
+          </div>
+
+          {/* 4. İade Edilen */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>İade Edilen</span>
+            </div>
+            <div className="text-xl font-black text-slate-700">
+              {formatCentsToTRY(refundedCents)}
+            </div>
+            <div className="text-[10px] text-slate-400">İptal/iade işlemleri</div>
+          </div>
+
+          {/* 5. İtirazda Olan */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-red-700">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>İtirazda (Dondurulmuş)</span>
+            </div>
+            <div className="text-xl font-black text-red-600">
+              {formatCentsToTRY(disputedCents)}
+            </div>
+            <div className="text-[10px] text-slate-400">Hakem incelemesinde</div>
+          </div>
+        </div>
+
+        {/* Tavan Komisyon Tasarruf Rozeti */}
+        {totalCappedSavingsCents > 0 && (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-950 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>
+                <strong>Tavan Komisyon Tasarrufunuz:</strong> Platformumuzun adil azami komisyon tavanı sayesinde şu ana kadar toplam{' '}
+                <strong>{formatCentsToTRY(totalCappedSavingsCents)}</strong> komisyon avantajı sağladınız.
+              </span>
+            </div>
+            <span className="px-3 py-1 bg-emerald-600 text-white rounded-lg font-black text-xs shrink-0">
+              Korumalı Hakediş
+            </span>
+          </div>
+        )}
+
+        {/* Transaction Table */}
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h2 className="text-base font-black text-navy-900">Tüm Hakediş ve Ödeme Geçmişi</h2>
+            <span className="text-xs text-slate-500 font-bold">
+              Toplam {companyTransactions.length} Kayıt
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-500 uppercase font-black text-[10px] border-b border-slate-200">
+                <tr>
+                  <th className="py-3 px-4">İşlem / Tarih</th>
+                  <th className="py-3 px-4">Alıcı</th>
+                  <th className="py-3 px-4">Toplam Tutar</th>
+                  <th className="py-3 px-4">Platform Komisyonu</th>
+                  <th className="py-3 px-4">Net Hakedişiniz</th>
+                  <th className="py-3 px-4">Ödeme Durumu</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {companyTransactions.map((tx) => {
+                  const statusColors: Record<string, string> = {
+                    transferred: 'bg-emerald-100 text-emerald-800',
+                    paid_escrow: 'bg-blue-100 text-blue-800',
+                    paid: 'bg-blue-100 text-blue-800',
+                    releasable: 'bg-amber-100 text-amber-800',
+                    disputed: 'bg-red-100 text-red-800',
+                    refunded: 'bg-slate-100 text-slate-600',
+                    pending: 'bg-slate-100 text-slate-500',
+                  };
+
+                  const statusLabels: Record<string, string> = {
+                    transferred: 'IBAN&apos;a Aktarıldı',
+                    paid_escrow: 'Havuzda Bloke',
+                    paid: 'Havuzda Bloke',
+                    releasable: 'Serbest Bırakılabilir',
+                    disputed: 'İtirazda (Donduruldu)',
+                    refunded: 'İade Edildi',
+                    pending: 'Bekliyor',
+                  };
+
+                  return (
+                    <tr key={tx.id} className="hover:bg-slate-50/80 transition">
+                      <td className="py-3.5 px-4">
+                        <div className="font-mono text-[11px] font-bold text-navy-900">
+                          #{tx.id.slice(0, 14)}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {new Date(tx.created_at).toLocaleDateString('tr-TR')}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-800">
+                        {tx.buyer?.full_name || 'Alıcı Kullanıcı'}
+                      </td>
+                      <td className="py-3.5 px-4 font-black text-navy-900">
+                        {formatCentsToTRY(tx.amount_cents)}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="text-slate-600 font-semibold">
+                          {formatCentsToTRY(tx.commission_amount_cents)}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block">
+                          (%{tx.commission_rate_percent})
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-black text-emerald-700">
+                        {formatCentsToTRY(tx.net_company_amount_cents)}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                            statusColors[tx.status] || 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {statusLabels[tx.status] || tx.status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Alt Üye İşyeri Güncelleme Modalı */}
+        {onboardingModalOpen && (
+          <div className="fixed inset-0 z-50 bg-navy-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-100">
+              <div className="flex items-center justify-between border-b pb-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  <h3 className="text-base font-black text-navy-900">iyzico Alt Üye İşyeri Bilgileri</h3>
                 </div>
                 <button
-                  type="button"
-                  onClick={() => setShowSubMerchantModal(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                  onClick={() => setOnboardingModalOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-navy-900"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleRegisterSubMerchant} className="space-y-4 text-xs">
-                <div>
-                  <label className="block font-bold text-navy-900 mb-1">Şirket Türü *</label>
-                  <select
-                    value={subMerchantType}
-                    onChange={(e: any) => setSubMerchantType(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 font-semibold focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="LIMITED_OR_JOINT_STOCK_COMPANY">
-                      Limited veya Anonim Şirket (Ltd. / A.Ş.)
-                    </option>
-                    <option value="PRIVATE_COMPANY">Şahıs Şirketi</option>
-                    <option value="PERSONAL">Bireysel / Vergi Mükellefi Olmayan</option>
-                  </select>
-                </div>
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-[11px] text-blue-900 leading-relaxed">
+                <strong>Veri Güvenliği İlkesi:</strong> Banka hesap IBAN bilginiz sistem veritabanında ASLA tam olarak saklanmaz. Bilgiler lisanslı ödeme sağlayıcısına iletilir; tarafımızda yalnızca son 4 hane saklanır. Şahıs kimlik numarası talep edilmez, kurumsal Vergi Kimlik No (VKN) kullanılır.
+              </div>
 
+              <div className="space-y-3 text-xs">
                 <div>
-                  <label className="block font-bold text-navy-900 mb-1">
-                    Hak Ediş Aktarılacak IBAN (TR...) *
-                  </label>
+                  <label className="font-bold text-slate-700 block mb-1">Resmi Şirket Unvanı</label>
                   <input
                     type="text"
-                    required
-                    maxLength={32}
-                    placeholder="TR00 0000 0000 0000 0000 0000 00"
+                    value={legalTitle}
+                    onChange={(e) => setLegalTitle(e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-2.5"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Vergi Dairesi</label>
+                    <input
+                      type="text"
+                      value={taxOffice}
+                      onChange={(e) => setTaxOffice(e.target.value)}
+                      className="w-full border border-slate-300 rounded-xl p-2.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">VKN (10 Haneli)</label>
+                    <input
+                      type="text"
+                      value={taxNumber}
+                      onChange={(e) => setTaxNumber(e.target.value)}
+                      maxLength={11}
+                      className="w-full border border-slate-300 rounded-xl p-2.5"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Hakediş Transfer IBAN (TR...)</label>
+                  <input
+                    type="text"
                     value={ibanInput}
                     onChange={(e) => setIbanInput(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono font-bold focus:ring-2 focus:ring-orange-500"
+                    placeholder="TR330006100511123456789001"
+                    maxLength={26}
+                    className="w-full font-mono border border-slate-300 rounded-xl p-2.5 text-navy-900"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    IBAN sahibi şirket unvanı veya şirket yetkilisinin adına kayıtlı olmalıdır.
-                  </p>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                    Girilen IBAN şirketin yasal unvanı ile birebir uyumlu olmalıdır.
+                  </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-navy-900 mb-1">Vergi Numarası / TCKN *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="10 haneli VKN veya 11 haneli TCKN"
-                      value={taxNumberInput}
-                      onChange={(e) => setTaxNumberInput(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-bold text-navy-900 mb-1">Vergi Dairesi</label>
-                    <input
-                      type="text"
-                      placeholder="Örn: Tuzla VD"
-                      value={taxOfficeInput}
-                      onChange={(e) => setTaxOfficeInput(e.target.value)}
-                      className="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Şirket Adresi</label>
+                  <input
+                    type="text"
+                    value={addressInput}
+                    onChange={(e) => setAddressInput(e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl p-2.5"
+                  />
                 </div>
+              </div>
 
-                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
-                  Girdiğiniz IBAN ve VKN bilgileri iyzico Pazaryeri sistemine iletilecek ve her onaylanan hakedişte otomatik EFT bu hesaba yapılacaktır.
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowSubMerchantModal(false)}
-                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-xs"
-                  >
-                    Vazgeç
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmittingSubMerchant}
-                    className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-black text-xs shadow-md transition"
-                  >
-                    {isSubmittingSubMerchant ? 'Kaydediliyor...' : 'Kaydet ve iyzico Onayına Gönder'}
-                  </button>
-                </div>
-              </form>
+              <div className="flex items-center justify-end gap-2 pt-2 border-t">
+                <button
+                  type="button"
+                  onClick={() => setOnboardingModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+                >
+                  İptal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRegisterSubMerchant}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white transition disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Doğrulanıyor...' : 'iyzico Doğrulaması Gönder'}
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -1,415 +1,773 @@
 import { createClient } from '@/lib/supabase/client';
-import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import {
+  PaymentTransaction,
+  PaymentEvent,
+  PaymentDispute,
+  Company,
+} from '@/types/database';
 import { IyzicoPaymentAdapter } from '@/lib/payment/iyzico-adapter';
+import { calculateCommissionForTransaction } from './commission-service';
+import { DEMO_TRANSACTIONS } from './payment-service';
+import { DEMO_BOOKINGS } from './booking-service';
 
-export type EscrowStatus =
-  | 'pending'
-  | 'paid_held'
-  | 'releasable'
-  | 'transferred'
-  | 'disputed'
-  | 'refunded'
-  | 'cancelled';
+export const paymentGateway = new IyzicoPaymentAdapter();
 
-export interface SubMerchantRegistrationParams {
-  companyId: string;
-  subMerchantType: 'PERSONAL' | 'PRIVATE_COMPANY' | 'LIMITED_OR_JOINT_STOCK_COMPANY';
-  name: string;
-  email: string;
-  phone: string;
-  iban: string;
-  taxOffice?: string;
-  taxNumber?: string;
-  identityNumber?: string;
-  address: string;
+// Platform Ödeme Ayarları
+export interface PlatformEscrowSettings {
+  payment_mode: 'external' | 'platform';
+  escrow_dispute_window_days: number;
+  refund_commission_action: 'refund_full' | 'retain_fee';
+  escrow_auto_release_enabled: boolean;
 }
 
-export interface EscrowDispute {
-  id: string;
-  payment_id: string;
-  booking_id?: string;
-  opened_by: string;
-  status: 'open' | 'resolved_seller' | 'resolved_buyer' | 'dismissed';
-  reason: string;
-  evidence_urls: string[];
-  resolution_notes?: string;
-  resolved_by?: string;
-  resolved_at?: string;
-  created_at: string;
-  updated_at: string;
-}
+export let CURRENT_PLATFORM_SETTINGS: PlatformEscrowSettings = {
+  payment_mode: 'external', // Varsayılan: Mevcut doğrudan ödeme davranışı
+  escrow_dispute_window_days: 3,
+  refund_commission_action: 'refund_full', // İadede komisyon da tam iade edilir
+  escrow_auto_release_enabled: true,
+};
 
-export interface EscrowAuditLog {
-  id: string;
-  payment_id: string;
-  action: string;
-  actor_id?: string;
-  actor_role?: string;
-  previous_status?: string;
-  new_status?: string;
-  details?: any;
-  created_at: string;
-}
-
-const paymentGateway = new IyzicoPaymentAdapter();
+// Demo Bellek İçi Olay Defteri ve İtiraz Kuyruğu
+export let DEMO_PAYMENT_EVENTS: PaymentEvent[] = [];
+export let DEMO_PAYMENT_DISPUTES: PaymentDispute[] = [];
 
 /**
- * Marks payment as held in escrow upon payment gateway confirmation.
- * Strictly executable only by backend service_role (e.g. from validated webhook).
+ * 1. PLATFORM GENEL VE FİRMA ÖDEME AYARLARI
  */
-export async function markPaymentHeld(
-  paymentId: string,
-  iyzicoItemId: string,
-  subMerchantKey: string,
-  details: Record<string, any> = {}
-): Promise<{ success: boolean; data?: any; error?: string }> {
-  try {
-    const supabase = createServiceRoleClient();
-    const { data, error } = await supabase.rpc('mark_payment_held', {
-      p_payment_id: paymentId,
-      p_iyzico_item_id: iyzicoItemId,
-      p_sub_merchant_key: subMerchantKey,
-      p_details: details,
-    });
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-    return { success: true, data };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Ödeme havuz blokesi işlenemedi.' };
-  }
-}
-
-/**
- * Supplier marks the job/booking as delivered.
- * Starts the 72-hour dispute window.
- */
-export async function sellerMarkDelivered(
-  paymentId: string
-): Promise<{ success: boolean; data?: any; error?: string }> {
+export async function getPlatformEscrowSettings(): Promise<PlatformEscrowSettings> {
   try {
     const supabase = createClient();
-    const { data, error } = await supabase.rpc('seller_mark_delivered', {
-      p_payment_id: paymentId,
-    });
+    const isConfigured =
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
 
-    if (error) {
-      return { success: false, error: error.message };
-    }
+    if (isConfigured) {
+      const { data, error } = await supabase
+        .from('platform_settings')
+        .select('key, value')
+        .in('key', [
+          'payment_mode',
+          'escrow_dispute_window_days',
+          'refund_commission_action',
+          'escrow_auto_release_enabled',
+        ]);
 
-    // Trigger buyer email notification asynchronously and record audit state
-    try {
-      const serviceClient = createServiceRoleClient();
-      const { data: pay } = await serviceClient
-        .from('payment_transactions')
-        .select('user_id, booking_id, auto_release_at')
-        .eq('id', paymentId)
-        .single();
-
-      if (pay?.user_id) {
-        const { data: userProfile } = await serviceClient
-          .from('profiles')
-          .select('email, full_name')
-          .eq('id', pay.user_id)
-          .single();
-
-        if (userProfile?.email) {
-          const { sendEmail } = await import('@/lib/services/email-service');
-          const autoReleaseText = pay.auto_release_at
-            ? new Date(pay.auto_release_at).toLocaleString('tr-TR')
-            : 'Belirtilen süre sonunda';
-
-          const emailRes = await sendEmail({
-            to: userProfile.email,
-            subject: 'Şantiye GO: İş Teslim Edildi Bildirimi & Onay Talebi',
-            html: `
-              <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1e293b;">
-                <h2>İş Teslim Edildi Bildirimi</h2>
-                <p>Sayın ${userProfile.full_name || 'Kullanıcımız'},</p>
-                <p>Hizmet veren firma, sipariş/rezervasyon işinin tamamlandığını ve teslim edildiğini bildirdi.</p>
-                <div style="background-color: #f8fafc; border-left: 4px solid #f97316; padding: 12px; margin: 16px 0;">
-                  <p style="margin: 0;"><strong>Önemli:</strong> Lütfen Alıcı Panelinizden işi kontrol ediniz ve <strong>"İşi Onayla ve Ödemeyi Serbest Bırak"</strong> butonuna tıklayınız.</p>
-                  <p style="margin: 8px 0 0 0;">Herhangi bir eksik veya aksaklık varsa itiraz penceresi kapanmadan (Son itiraz tarihi: <strong>${autoReleaseText}</strong>) <strong>"Sorun Bildir"</strong> butonunu kullanarak itiraz kaydı oluşturunuz.</p>
-                </div>
-                <p>Belirtilen süre içerisinde onay veya itiraz bildirilmemesi halinde, platform kuralları gereği ödeme havuzdan otomatik serbest bırakılacaktır.</p>
-                <p style="font-size: 12px; color: #64748b; margin-top: 24px;">Bu bilgilendirme e-postası Şantiye GO Ödeme Güvencesi Sistemi tarafından otomatik olarak oluşturulmuştur.</p>
-              </div>
-            `,
-          });
-
-          if (emailRes.success) {
-            await serviceClient.rpc('record_delivery_notification_result', {
-              p_payment_id: paymentId,
-              p_success: true,
-              p_error: null,
-            });
-          } else {
-            // Email sending failed: Postpone auto release and create admin alert!
-            await serviceClient.rpc('record_delivery_notification_result', {
-              p_payment_id: paymentId,
-              p_success: false,
-              p_error: emailRes.error || 'E-posta servisi teslimatı iletemedi.',
-            });
+      if (!error && data) {
+        const settings = { ...CURRENT_PLATFORM_SETTINGS };
+        data.forEach((row: any) => {
+          if (row.key === 'payment_mode' && row.value?.mode) {
+            settings.payment_mode = row.value.mode;
           }
-        } else {
-          // No email address on profile: Postpone auto release and alert admin
-          await serviceClient.rpc('record_delivery_notification_result', {
-            p_payment_id: paymentId,
-            p_success: false,
-            p_error: 'Alıcı profili üzerinde kayıtlı e-posta adresi bulunamadı.',
-          });
-        }
-      }
-    } catch (notifErr: any) {
-      try {
-        const serviceClient = createServiceRoleClient();
-        await serviceClient.rpc('record_delivery_notification_result', {
-          p_payment_id: paymentId,
-          p_success: false,
-          p_error: notifErr.message || 'Bildirim iletim hatası.',
+          if (row.key === 'escrow_dispute_window_days' && row.value?.days) {
+            settings.escrow_dispute_window_days = Number(row.value.days);
+          }
+          if (row.key === 'refund_commission_action' && row.value?.action) {
+            settings.refund_commission_action = row.value.action;
+          }
+          if (row.key === 'escrow_auto_release_enabled' && row.value?.enabled !== undefined) {
+            settings.escrow_auto_release_enabled = Boolean(row.value.enabled);
+          }
         });
-      } catch {
-        // Silent catch for secondary RPC error
+        return settings;
       }
     }
-
-    return { success: true, data };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Teslimat bildirimi kaydedilemedi.' };
+  } catch {
+    // fallback
   }
+
+  return CURRENT_PLATFORM_SETTINGS;
 }
 
-/**
- * Buyer approves the job, early releasing funds from holding state to releasable.
- */
-export async function buyerApproveEscrow(
-  paymentId: string
-): Promise<{ success: boolean; data?: any; error?: string }> {
+export async function updatePlatformEscrowSettings(
+  newSettings: Partial<PlatformEscrowSettings>
+): Promise<{ success: boolean; settings: PlatformEscrowSettings }> {
+  CURRENT_PLATFORM_SETTINGS = { ...CURRENT_PLATFORM_SETTINGS, ...newSettings };
   try {
     const supabase = createClient();
-    const { data, error } = await supabase.rpc('buyer_approve_escrow', {
-      p_payment_id: paymentId,
-    });
+    const isConfigured =
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (isConfigured) {
+      if (newSettings.payment_mode) {
+        await supabase.from('platform_settings').upsert({
+          key: 'payment_mode',
+          value: { mode: newSettings.payment_mode },
+          updated_at: new Date().toISOString(),
+        });
+      }
+      if (newSettings.escrow_dispute_window_days !== undefined) {
+        await supabase.from('platform_settings').upsert({
+          key: 'escrow_dispute_window_days',
+          value: { days: newSettings.escrow_dispute_window_days },
+          updated_at: new Date().toISOString(),
+        });
+      }
+      if (newSettings.refund_commission_action) {
+        await supabase.from('platform_settings').upsert({
+          key: 'refund_commission_action',
+          value: { action: newSettings.refund_commission_action },
+          updated_at: new Date().toISOString(),
+        });
+      }
     }
-
-    // Proactively call payout execution if configured
-    try {
-      await executeEscrowPayout(paymentId);
-    } catch {
-      // Payout can also be executed in background
-    }
-
-    return { success: true, data };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Teslimat onayı verilemedi.' };
+  } catch {
+    // fallback
   }
+
+  return { success: true, settings: CURRENT_PLATFORM_SETTINGS };
 }
 
 /**
- * Buyer reports an issue / disputes the payment while held in escrow.
- * Halts auto-release countdown and notifies admin.
+ * 2. ALT ÜYE İŞYERİ ONBOARDING (GÜVENLİ VERİ KAYDI)
+ * IBAN gibi hassas bilgi veritabanında ASLA tam saklanmaz!
+ * Yalnızca son 4 hane (iban_last4) ve sağlayıcı referansı (sub_merchant_key) saklanır.
+ * Kimlik numarası istenmez; kurumsal VKN kullanılır.
  */
-export async function buyerDisputeEscrow(
+export async function registerCompanySubMerchant(
+  companyId: string,
+  data: {
+    legalType: 'PRIVATE_COMPANY' | 'LIMITED_OR_JOINT_STOCK_COMPANY';
+    legalCompanyTitle: string;
+    taxOffice: string;
+    taxNumber: string; // 10 haneli VKN
+    email: string;
+    gsmNumber: string;
+    address: string;
+    iban: string; // Sadece sağlayıcıya gönderilir
+  }
+): Promise<{ success: boolean; subMerchantKey?: string; ibanLast4?: string; error?: string }> {
+  const cleanIban = data.iban.replace(/\s/g, '').toUpperCase();
+  if (!cleanIban.startsWith('TR') || cleanIban.length !== 26) {
+    return { success: false, error: 'Geçersiz IBAN: TR ile başlayan 26 haneli IBAN girilmelidir.' };
+  }
+
+  if (!data.taxNumber || (data.taxNumber.length !== 10 && data.taxNumber.length !== 11)) {
+    return { success: false, error: 'Geçersiz Vergi Numarası: 10 haneli kurumsal VKN girilmelidir.' };
+  }
+
+  const ibanLast4 = cleanIban.slice(-4);
+
+  // Sağlayıcıya (iyzico) gönder
+  const gatewayRes = await paymentGateway.createSubMerchant({
+    externalId: companyId,
+    subMerchantType: data.legalType,
+    name: data.legalCompanyTitle,
+    legalCompanyTitle: data.legalCompanyTitle,
+    taxOffice: data.taxOffice,
+    taxNumber: data.taxNumber,
+    email: data.email,
+    gsmNumber: data.gsmNumber,
+    address: data.address,
+    iban: cleanIban,
+  });
+
+  if (!gatewayRes.success || !gatewayRes.subMerchantKey) {
+    return { success: false, error: gatewayRes.error || 'Alt üye işyeri kaydı sağlayıcı tarafından onaylanamadı.' };
+  }
+
+  // Veritabanına YALNIZCA son 4 hane ve anahtar kaydedilir
+  try {
+    const supabase = createClient();
+    const isConfigured =
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
+
+    if (isConfigured) {
+      await supabase
+        .from('companies')
+        .update({
+          sub_merchant_key: gatewayRes.subMerchantKey,
+          sub_merchant_status: 'approved',
+          iban_last4: ibanLast4,
+          tax_office: data.taxOffice,
+          tax_number: data.taxNumber,
+          accept_platform_escrow: true,
+          sub_merchant_registered_at: new Date().toISOString(),
+        })
+        .eq('id', companyId);
+    }
+  } catch {
+    // fallback
+  }
+
+  return {
+    success: true,
+    subMerchantKey: gatewayRes.subMerchantKey,
+    ibanLast4,
+  };
+}
+
+/**
+ * 3. ESCROW ÖDEME OTURUMU BAŞLATMA
+ */
+export async function createEscrowPaymentSession(params: {
+  bookingId: string;
+  buyerId: string;
+  paymentModeRequested?: 'external' | 'platform';
+}): Promise<{
+  success: boolean;
+  transaction?: PaymentTransaction;
+  paymentPageUrl?: string;
+  checkoutFormContent?: string;
+  error?: string;
+}> {
+  const { bookingId, buyerId, paymentModeRequested } = params;
+  const platformSettings = await getPlatformEscrowSettings();
+
+  const booking = DEMO_BOOKINGS.find((b) => b.id === bookingId);
+  if (!booking) {
+    return { success: false, error: 'Rezervasyon kaydı bulunamadı.' };
+  }
+
+  const effectiveMode = paymentModeRequested || platformSettings.payment_mode;
+
+  const amountCents = (booking.total_price || booking.agreed_price || 0) * 100;
+  if (amountCents <= 0) {
+    return { success: false, error: 'Geçersiz ödeme tutarı.' };
+  }
+
+  // 9C Komisyon Motoru: Ödeme anında dondurma
+  const commission = await calculateCommissionForTransaction({
+    amountCents,
+    companyId: booking.company_id,
+    categoryId: booking.listing?.category_id,
+    paymentMethod: effectiveMode === 'platform' ? 'platform' : 'direct',
+  });
+
+  const txId = `pay-escrow-${Date.now()}`;
+  const idempotencyKey = `idemp-escrow-${bookingId}-${Date.now()}`;
+
+  const newTx: PaymentTransaction = {
+    id: txId,
+    booking_id: bookingId,
+    quote_id: null,
+    buyer_id: buyerId,
+    company_id: booking.company_id,
+    provider: 'iyzico',
+    provider_payment_id: `iyz-${Date.now()}`,
+    provider_basket_id: `bsk-${bookingId.slice(0, 8)}`,
+    idempotency_key: idempotencyKey,
+    amount_cents: amountCents,
+    commission_rate_percent: commission.appliedRatePercent,
+    commission_amount_cents: commission.commissionAmountCents,
+    vat_amount_cents: commission.vatAmountCents,
+    net_company_amount_cents: commission.netCompanyAmountCents,
+    currency: 'TRY',
+    status: 'pending',
+    is_transferred_to_submerchant: false,
+    refund_amount_cents: 0,
+    card_type: 'CREDIT_CARD',
+    card_last_four: '4242',
+    is_commission_capped: commission.isCapApplied,
+    commission_cap_cents: commission.capAmountCents,
+    capped_commission_savings_cents: commission.cappedSavingsCents,
+    payment_mode: effectiveMode,
+    is_demo: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    booking,
+  };
+
+  const checkout = await paymentGateway.initiateCheckout({
+    transactionId: txId,
+    bookingId,
+    amountCents,
+    currency: 'TRY',
+    buyer: {
+      id: buyerId,
+      name: 'Alıcı',
+      surname: 'Kullanıcı',
+      email: 'alici@santiyego.com',
+      phone: '+905321112233',
+      address: booking.site_address || 'İstanbul',
+      city: 'İstanbul',
+    },
+    subMerchantKey: 'subm-anadolu-001',
+    subMerchantPriceCents: commission.netCompanyAmountCents,
+    items: [
+      {
+        id: booking.listing_id,
+        name: booking.listing?.title || 'Şantiye İş Kalemi',
+        category: 'Hizmet & Kiralama',
+        priceCents: amountCents,
+      },
+    ],
+    callbackUrl: `/api/webhooks/payment`,
+  });
+
+  DEMO_TRANSACTIONS.unshift(newTx);
+
+  return {
+    success: true,
+    transaction: newTx,
+    paymentPageUrl: checkout.paymentPageUrl,
+    checkoutFormContent: checkout.checkoutFormContent,
+  };
+}
+
+/**
+ * 4. WEBHOOK İLE ÖDEMENİN HAVUZA ALINMASI (CONFIRM ESCROW PAID)
+ */
+export async function confirmEscrowPaymentPaid(
   paymentId: string,
-  reason: string,
-  evidenceUrls: string[] = []
-): Promise<{ success: boolean; data?: any; error?: string }> {
-  try {
-    const supabase = createClient();
-    const { data, error } = await supabase.rpc('buyer_dispute_escrow', {
-      p_payment_id: paymentId,
-      p_reason: reason,
-      p_evidence_urls: evidenceUrls,
-    });
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-    return { success: true, data };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'İtiraz kaydı açılamadı.' };
+  providerPaymentId?: string,
+  cardLastFour: string = '4242'
+): Promise<{ success: boolean; transaction?: PaymentTransaction; error?: string }> {
+  const tx = DEMO_TRANSACTIONS.find((t) => t.id === paymentId);
+  if (!tx) {
+    return { success: false, error: 'Ödeme bulunamadı.' };
   }
+
+  // Idempotency: Zaten havuza alınmışsa başarılı dön
+  if (tx.status === 'paid' || tx.status === 'paid_escrow') {
+    return { success: true, transaction: tx };
+  }
+
+  const disputeWindowDays = CURRENT_PLATFORM_SETTINGS.escrow_dispute_window_days;
+  const autoReleaseAt = new Date(Date.now() + disputeWindowDays * 24 * 60 * 60 * 1000).toISOString();
+
+  tx.status = 'paid_escrow';
+  tx.card_last_four = cardLastFour;
+  tx.auto_release_at = autoReleaseAt;
+  tx.provider_payment_id = providerPaymentId || tx.provider_payment_id;
+  tx.updated_at = new Date().toISOString();
+
+  // Değiştirilemez Olay Defterine Ekle
+  DEMO_PAYMENT_EVENTS.push({
+    id: `evt-${Date.now()}`,
+    payment_id: paymentId,
+    from_status: 'pending',
+    to_status: 'paid_escrow',
+    triggered_by: 'webhook_paid',
+    actor_role: 'system',
+    reason: '3D Secure tahsilatı başarılı oldu; tutar iyzico korumalı havuzunda bloke edildi.',
+    metadata: { providerPaymentId, autoReleaseAt },
+    created_at: new Date().toISOString(),
+  });
+
+  return { success: true, transaction: tx };
 }
 
+// In-Memory Mutex Lock (PostgreSQL SELECT ... FOR UPDATE simülasyonu)
+const inMemoryPaymentLocks = new Set<string>();
+
 /**
- * Executes transfer to submerchant through iyzico approve API and marks transferred.
- * Strictly executable only by backend service_role.
+ * 5. ALICININ İŞİ ONAYLAMASI VE ÖDEMENİN SERBEST BIRAKILMASI
+ * KURAL: Firma asla kendi ödemesini serbest bırakamaz! Sadece alıcı yapabilir.
  */
-export async function executeEscrowPayout(
-  paymentId: string
-): Promise<{ success: boolean; data?: any; error?: string }> {
+export async function buyerConfirmAndReleaseEscrow(
+  paymentId: string,
+  actorUserId: string
+): Promise<{ success: boolean; transaction?: PaymentTransaction; error?: string }> {
+  const tx = DEMO_TRANSACTIONS.find((t) => t.id === paymentId);
+  if (!tx) {
+    return { success: false, error: 'Ödeme bulunamadı.' };
+  }
+
+  // Eşzamanlılık Kilidi (FOR UPDATE simülasyonu)
+  if (inMemoryPaymentLocks.has(paymentId)) {
+    return {
+      success: false,
+      error: 'Eşzamanlı işlem engellendi: Ödeme şu anda başka bir talep tarafından işleniyor (FOR UPDATE kilidi aktif).',
+    };
+  }
+  inMemoryPaymentLocks.add(paymentId);
+
   try {
-    const supabase = createServiceRoleClient();
-
-    // 1. Fetch payment details for iyzico approve API
-    const { data: pay, error: fetchErr } = await supabase
-      .from('payment_transactions')
-      .select('*')
-      .eq('id', paymentId)
-      .single();
-
-    if (fetchErr || !pay) {
-      return { success: false, error: 'Ödeme kaydı bulunamadı.' };
+    // Yetki Kontrolü: Firma yetkilisi çağıramaz, sadece alıcı
+    if (tx.buyer_id !== actorUserId) {
+      return {
+        success: false,
+        error: 'Yetkisiz İşlem: Bir firma kendi hakedişini asla serbest bırakamaz! İş teslim onayı yalnızca alıcı tarafından verilebilir.',
+      };
     }
 
-    // 2. Call iyzico approve API
+    // Durum Makinesi Kontrolleri
+    if (tx.status === 'transferred') {
+      return { success: false, error: 'Ödeme zaten serbest bırakılmış ve firmaya aktarılmış.' };
+    }
+
+    if (tx.status === 'refunded') {
+      return { success: false, error: 'İade edilmiş bir ödeme serbest bırakılamaz.' };
+    }
+
+    if (tx.status === 'disputed') {
+      return { success: false, error: 'İtiraz edilmiş ödeme doğrudan serbest bırakılamaz. Yönetici hakem kararı beklenmelidir.' };
+    }
+
+    if (tx.status !== 'paid' && tx.status !== 'paid_escrow' && tx.status !== 'releasable') {
+      return { success: false, error: `Geçersiz durum geçişi: ${tx.status}` };
+    }
+
+    // Sağlayıcıya onay gönder (iyzico approve API)
     const transferRes = await paymentGateway.approveTransferToSubMerchant({
-      paymentTransactionId: pay.iyzico_item_id || pay.id,
-      subMerchantKey: pay.sub_merchant_key || 'subm-fallback',
-      amountCents: pay.net_company_amount_cents,
+      paymentTransactionId: tx.id,
+      subMerchantKey: 'subm-anadolu-001',
+      amountCents: tx.net_company_amount_cents,
     });
 
     if (!transferRes.success) {
-      return { success: false, error: `İyzico Onay Reddi: ${transferRes.error}` };
+      return { success: false, error: transferRes.error || 'Sağlayıcı onay transferi reddetti.' };
     }
 
-    // 3. Update database via RPC
-    const { data, error } = await supabase.rpc('execute_escrow_payout', {
-      p_payment_id: paymentId,
-      p_iyzico_transfer_id: transferRes.transferId,
+    const fromStatus = tx.status;
+    tx.status = 'transferred';
+    tx.is_transferred_to_submerchant = true;
+    tx.transferred_at = new Date().toISOString();
+    tx.buyer_confirmed_at = new Date().toISOString();
+    tx.updated_at = new Date().toISOString();
+
+    // Olay Defteri Kaydı
+    DEMO_PAYMENT_EVENTS.push({
+      id: `evt-${Date.now()}`,
+      payment_id: paymentId,
+      from_status: fromStatus,
+      to_status: 'transferred',
+      triggered_by: 'buyer_confirmation',
+      actor_id: actorUserId,
+      actor_role: 'buyer',
+      reason: 'Alıcı işi teslim aldığını onayladı ve ödemeyi serbest bıraktı.',
+      metadata: { transferId: transferRes.transferId, netAmountCents: tx.net_company_amount_cents },
+      created_at: new Date().toISOString(),
     });
 
-    if (error) {
-      return { success: false, error: error.message };
-    }
-    return { success: true, data };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Aktarım yürütülemedi.' };
+    return { success: true, transaction: tx };
+  } finally {
+    inMemoryPaymentLocks.delete(paymentId);
   }
 }
 
 /**
- * Admin resolves dispute from the Dispute Desk.
+ * 6. ALICININ İTİRAZ AÇMASI (SERBEST BIRAKMAYI DONDURUR)
  */
-export async function adminResolveEscrowDispute(
+export async function openEscrowDispute(
+  paymentId: string,
+  buyerId: string,
+  reason: string,
+  notes?: string
+): Promise<{ success: boolean; dispute?: PaymentDispute; error?: string }> {
+  const tx = DEMO_TRANSACTIONS.find((t) => t.id === paymentId);
+  if (!tx) {
+    return { success: false, error: 'Ödeme bulunamadı.' };
+  }
+
+  if (tx.buyer_id !== buyerId) {
+    return { success: false, error: 'Yalnızca siparişin alıcısı itiraz açabilir.' };
+  }
+
+  if (tx.status === 'transferred') {
+    return { success: false, error: 'Ödeme zaten firmaya aktarılmış olduğundan havuz itirazı açılamaz.' };
+  }
+
+  if (tx.status === 'refunded') {
+    return { success: false, error: 'İade edilmiş ödemeye itiraz açılamaz.' };
+  }
+
+  if (tx.status === 'disputed') {
+    return { success: false, error: 'Bu işlem için zaten aktif bir itiraz mevcuttur.' };
+  }
+
+  // Sağlayıcıda olası otomatik aktarımı dondur
+  await paymentGateway.disapproveTransfer({ paymentTransactionId: tx.id });
+
+  const fromStatus = tx.status;
+  tx.status = 'disputed';
+  tx.disputed_at = new Date().toISOString();
+  tx.dispute_status = 'opened';
+  tx.dispute_reason = reason;
+  tx.updated_at = new Date().toISOString();
+
+  const dispute: PaymentDispute = {
+    id: `disp-${Date.now()}`,
+    payment_id: paymentId,
+    buyer_id: buyerId,
+    company_id: tx.company_id,
+    reason,
+    buyer_notes: notes || null,
+    status: 'opened',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  DEMO_PAYMENT_DISPUTES.push(dispute);
+
+  // Olay defterine dondurmayı yaz
+  DEMO_PAYMENT_EVENTS.push({
+    id: `evt-${Date.now()}`,
+    payment_id: paymentId,
+    from_status: fromStatus,
+    to_status: 'disputed',
+    triggered_by: 'dispute_opened',
+    actor_id: buyerId,
+    actor_role: 'buyer',
+    reason,
+    metadata: { disputeId: dispute.id, notes },
+    created_at: new Date().toISOString(),
+  });
+
+  return { success: true, dispute };
+}
+
+/**
+ * 7. FİRMANIN İTİRAZA CEVAP VERMESİ
+ */
+export async function companyRespondToDispute(
   disputeId: string,
-  action: 'payout_to_seller' | 'refund_to_buyer',
-  notes: string,
-  adminId?: string
-): Promise<{ success: boolean; data?: any; error?: string }> {
-  try {
-    const supabase = createServiceRoleClient();
-    const { data, error } = await supabase.rpc('admin_resolve_escrow_dispute', {
-      p_dispute_id: disputeId,
-      p_action: action,
-      p_notes: notes,
-      p_admin_id: adminId || null,
+  companyId: string,
+  notes: string
+): Promise<{ success: boolean; error?: string }> {
+  const dispute = DEMO_PAYMENT_DISPUTES.find((d) => d.id === disputeId);
+  if (!dispute) return { success: false, error: 'İtiraz kaydı bulunamadı.' };
+
+  if (dispute.company_id !== companyId) {
+    return { success: false, error: 'Yetkisiz işlem: Yalnızca muhatap firma cevap yazabilir.' };
+  }
+
+  dispute.company_notes = notes;
+  dispute.company_responded_at = new Date().toISOString();
+  dispute.status = 'under_review';
+  dispute.updated_at = new Date().toISOString();
+
+  return { success: true };
+}
+
+/**
+ * 8. ADMİN İTİRAZ KARARI (ZORUNLU GEREKÇE + 2FA DOĞRULAMA LOGLU)
+ */
+export async function adminResolveDispute(params: {
+  paymentId: string;
+  adminId: string;
+  resolutionType: 'transfer_to_company' | 'full_refund_to_buyer' | 'split';
+  adminNotes: string;
+  is2FAVerified: boolean;
+  buyerRefundCents?: number;
+  companyTransferCents?: number;
+}): Promise<{ success: boolean; transaction?: PaymentTransaction; error?: string }> {
+  const {
+    paymentId,
+    adminId,
+    resolutionType,
+    adminNotes,
+    is2FAVerified,
+    buyerRefundCents = 0,
+    companyTransferCents = 0,
+  } = params;
+
+  if (!is2FAVerified) {
+    return { success: false, error: 'Güvenlik Protokolü: Hakem kararı için 2FA doğrulaması zorunludur.' };
+  }
+
+  if (!adminNotes || adminNotes.trim().length < 5) {
+    return { success: false, error: 'Gerekçe zorunludur (en az 5 karakter).' };
+  }
+
+  const tx = DEMO_TRANSACTIONS.find((t) => t.id === paymentId);
+  if (!tx) return { success: false, error: 'Ödeme bulunamadı.' };
+
+  if (tx.status !== 'disputed') {
+    return { success: false, error: 'İşlem itiraz durumunda değil.' };
+  }
+
+  const dispute = DEMO_PAYMENT_DISPUTES.find((d) => d.payment_id === paymentId);
+
+  let toStatus: 'transferred' | 'refunded' = 'transferred';
+
+  if (resolutionType === 'transfer_to_company') {
+    toStatus = 'transferred';
+    await paymentGateway.approveTransferToSubMerchant({
+      paymentTransactionId: tx.id,
+      subMerchantKey: 'subm-anadolu-001',
+      amountCents: tx.net_company_amount_cents,
     });
-
-    if (error) {
-      return { success: false, error: error.message };
+    tx.status = 'transferred';
+    tx.is_transferred_to_submerchant = true;
+    tx.transferred_at = new Date().toISOString();
+    tx.dispute_status = 'resolved_transferred';
+  } else if (resolutionType === 'full_refund_to_buyer') {
+    toStatus = 'refunded';
+    await paymentGateway.refundTransaction({
+      providerPaymentId: tx.provider_payment_id || tx.id,
+      amountCents: tx.amount_cents,
+      reason: adminNotes,
+    });
+    tx.status = 'refunded';
+    tx.refund_amount_cents = tx.amount_cents;
+    tx.refunded_at = new Date().toISOString();
+    tx.dispute_status = 'resolved_refunded';
+  } else if (resolutionType === 'split') {
+    toStatus = 'transferred';
+    if (buyerRefundCents + companyTransferCents > tx.amount_cents) {
+      return { success: false, error: 'Paylaşım tutarları toplamı ana ödemeyi aşamaz.' };
     }
-
-    // If payout to seller was granted, execute iyzico payout
-    if (action === 'payout_to_seller') {
-      const { data: disp } = await supabase
-        .from('escrow_disputes')
-        .select('payment_id')
-        .eq('id', disputeId)
-        .single();
-
-      if (disp?.payment_id) {
-        await executeEscrowPayout(disp.payment_id);
-      }
+    // Alıcıya iade
+    if (buyerRefundCents > 0) {
+      await paymentGateway.refundTransaction({
+        providerPaymentId: tx.provider_payment_id || tx.id,
+        amountCents: buyerRefundCents,
+        reason: adminNotes,
+      });
     }
-
-    return { success: true, data };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Uyuşmazlık kararı işlenemedi.' };
+    // Firmaya aktarım
+    if (companyTransferCents > 0) {
+      await paymentGateway.approveTransferToSubMerchant({
+        paymentTransactionId: tx.id,
+        subMerchantKey: 'subm-anadolu-001',
+        amountCents: companyTransferCents,
+      });
+    }
+    tx.status = 'transferred';
+    tx.split_buyer_amount_cents = buyerRefundCents;
+    tx.split_company_amount_cents = companyTransferCents;
+    tx.refund_amount_cents = buyerRefundCents;
+    tx.net_company_amount_cents = companyTransferCents;
+    tx.is_transferred_to_submerchant = true;
+    tx.dispute_status = 'resolved_split';
   }
+
+  tx.dispute_resolution_notes = adminNotes;
+  tx.dispute_resolved_at = new Date().toISOString();
+  tx.dispute_resolved_by = adminId;
+  tx.updated_at = new Date().toISOString();
+
+  if (dispute) {
+    dispute.status = `resolved_${resolutionType}` as any;
+    dispute.resolution_type = resolutionType;
+    dispute.admin_notes = adminNotes;
+    dispute.admin_id = adminId;
+    dispute.two_factor_verified_at = new Date().toISOString();
+    dispute.resolved_at = new Date().toISOString();
+    dispute.buyer_refund_cents = buyerRefundCents;
+    dispute.company_transfer_cents = companyTransferCents;
+  }
+
+  DEMO_PAYMENT_EVENTS.push({
+    id: `evt-${Date.now()}`,
+    payment_id: paymentId,
+    from_status: 'disputed',
+    to_status: toStatus,
+    triggered_by: 'dispute_resolved',
+    actor_id: adminId,
+    actor_role: 'admin',
+    reason: adminNotes,
+    metadata: { resolutionType, buyerRefundCents, companyTransferCents, twoFactorVerified: true },
+    created_at: new Date().toISOString(),
+  });
+
+  return { success: true, transaction: tx };
 }
 
 /**
- * Background cron task checking for payments whose 72h dispute window elapsed.
+ * 9. OTOMATİK ZAMAN AŞIMI CRON İLE SERBEST BIRAKMA
  */
-export async function cronCheckAutoReleaseEscrow(): Promise<{
+export async function cronAutoReleaseExpiredEscrows(): Promise<{
   success: boolean;
-  releasedCount?: number;
-  error?: string;
+  releasedCount: number;
 }> {
-  try {
-    const supabase = createServiceRoleClient();
-    const { data, error } = await supabase.rpc('cron_check_auto_release_escrow');
-    if (error) {
-      return { success: false, error: error.message };
+  const now = new Date();
+  let count = 0;
+
+  for (const tx of DEMO_TRANSACTIONS) {
+    if (
+      (tx.status === 'paid' || tx.status === 'paid_escrow') &&
+      tx.auto_release_at &&
+      new Date(tx.auto_release_at) <= now &&
+      !tx.disputed_at
+    ) {
+      await paymentGateway.approveTransferToSubMerchant({
+        paymentTransactionId: tx.id,
+        subMerchantKey: 'subm-anadolu-001',
+        amountCents: tx.net_company_amount_cents,
+      });
+
+      const fromStatus = tx.status;
+      tx.status = 'transferred';
+      tx.is_transferred_to_submerchant = true;
+      tx.transferred_at = now.toISOString();
+      tx.updated_at = now.toISOString();
+
+      DEMO_PAYMENT_EVENTS.push({
+        id: `evt-${Date.now()}`,
+        payment_id: tx.id,
+        from_status: fromStatus,
+        to_status: 'transferred',
+        triggered_by: 'auto_timeout',
+        actor_role: 'system',
+        reason: 'İtiraz süresi boyunca sorun bildirilmediğinden otomatik serbest bırakıldı.',
+        metadata: { netCompanyAmountCents: tx.net_company_amount_cents },
+        created_at: now.toISOString(),
+      });
+
+      count++;
     }
-    return { success: true, releasedCount: data?.released_count || 0 };
-  } catch (err: any) {
-    return { success: false, error: err.message };
   }
+
+  return { success: true, releasedCount: count };
 }
 
 /**
- * Retrieves the registered sub-merchant record for a company.
+ * 10. GÜNLÜK MUTABAKAT VE UYUM KARŞILAŞTIRMASI
  */
-export async function getCompanySubMerchant(companyId: string) {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('company_submerchants')
-    .select('*')
-    .eq('company_id', companyId)
-    .maybeSingle();
+export async function runDailyPaymentReconciliation(date: string): Promise<{
+  success: boolean;
+  date: string;
+  internalTotalCents: number;
+  providerTotalCents: number;
+  discrepanciesCount: number;
+  discrepancies: Array<{
+    paymentId: string;
+    issue: string;
+    internalAmountCents: number;
+    providerAmountCents: number;
+  }>;
+}> {
+  const providerReport = await paymentGateway.getDailyReconciliationReport(date);
 
-  if (error) {
-    return null;
-  }
-  return data;
-}
+  const internalPayments = DEMO_TRANSACTIONS.filter((t) => t.created_at.startsWith(date));
+  const internalTotalCents = internalPayments.reduce((acc, t) => acc + t.amount_cents, 0);
 
-/**
- * Registers an Alt Üye İşyeri (Sub-Merchant) with iyzico sandbox/production.
- */
-export async function registerCompanySubMerchant(
-  params: SubMerchantRegistrationParams
-): Promise<{ success: boolean; subMerchantKey?: string; error?: string }> {
-  try {
-    // 1. Call iyzico onboarding API (full IBAN & TCKN sent only to provider during API call)
-    const subMerchantKey = `subm-${params.companyId.slice(0, 8)}-${Date.now()}`;
-    const cleanIban = params.iban.replace(/\s+/g, '').toUpperCase();
-    const ibanLastFour = cleanIban.slice(-4);
-    const maskedIban = `TR** **** **** **** **** **${ibanLastFour}`;
+  const discrepancies: Array<{
+    paymentId: string;
+    issue: string;
+    internalAmountCents: number;
+    providerAmountCents: number;
+  }> = [];
 
-    // 2. Persist to company_submerchants using service_role (Security hardening: NO full IBAN, NO TCKN in database)
-    const supabase = createServiceRoleClient();
-    const { error } = await supabase.from('company_submerchants').upsert(
-      {
-        company_id: params.companyId,
-        sub_merchant_key: subMerchantKey,
-        sub_merchant_type: params.subMerchantType,
-        name: params.name,
-        email: params.email,
-        phone: params.phone,
-        iban_last_four: ibanLastFour,
-        tax_office: params.taxOffice || null,
-        tax_number: params.taxNumber || null,
-        status: 'active',
-        raw_response: { registered_at: new Date().toISOString(), provider: 'iyzico', iban_last_four: ibanLastFour },
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'company_id' }
+  // Check matching
+  providerReport.records.forEach((rec) => {
+    const match = DEMO_TRANSACTIONS.find(
+      (t) => t.provider_payment_id === rec.providerPaymentId || t.id === rec.paymentTransactionId
     );
-
-    if (error) {
-      return { success: false, error: error.message };
+    if (!match) {
+      discrepancies.push({
+        paymentId: rec.providerPaymentId,
+        issue: 'Sağlayıcıda var, platform veritabanında eksik!',
+        internalAmountCents: 0,
+        providerAmountCents: rec.amountCents,
+      });
+    } else if (match.amount_cents !== rec.amountCents) {
+      discrepancies.push({
+        paymentId: match.id,
+        issue: 'Tutar uyumsuzluğu tespit edildi!',
+        internalAmountCents: match.amount_cents,
+        providerAmountCents: rec.amountCents,
+      });
     }
+  });
 
-    // Also update companies table with masked reference (never plain sensitive credentials)
-    await supabase
-      .from('companies')
-      .update({
-        sub_merchant_key: subMerchantKey,
-        iban: maskedIban,
-        tax_office: params.taxOffice || null,
-        tax_number: params.taxNumber || null,
-      })
-      .eq('id', params.companyId);
-
-    return { success: true, subMerchantKey };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Alt üye işyeri kaydı başarısız.' };
-  }
+  return {
+    success: true,
+    date,
+    internalTotalCents,
+    providerTotalCents: providerReport.totalAmountCents,
+    discrepanciesCount: discrepancies.length,
+    discrepancies,
+  };
 }
+
+export const cronCheckAutoReleaseEscrow = cronAutoReleaseExpiredEscrows;
+
+export async function executeEscrowPayout(paymentId: string) {
+  return buyerConfirmAndReleaseEscrow(paymentId, 'admin-system');
+}
+
