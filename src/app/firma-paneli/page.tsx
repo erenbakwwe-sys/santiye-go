@@ -115,15 +115,30 @@ export default function CompanyDashboardPage() {
             .eq('company_id', comp.id)
             .order('created_at', { ascending: false });
 
+          let combinedListings: Listing[] = [];
           if (dbListings) {
-            const formatted: Listing[] = dbListings.map((l: any) => ({
+            combinedListings = dbListings.map((l: any) => ({
               ...l,
               city_name: l.city?.name || '',
               district_name: l.district?.name || '',
               category: l.category ? { id: l.category_id, name: l.category.name, slug: '' } : undefined,
             }));
-            setListings(formatted);
           }
+
+          // Yerel depoda oluşturulmuş ilanlar varsa birleştir (Hızlı ve güvenli görünüm)
+          try {
+            const rawLocal = localStorage.getItem('santiyego_my_listings');
+            if (rawLocal) {
+              const localListings: Listing[] = JSON.parse(rawLocal);
+              for (const loc of localListings) {
+                if (!combinedListings.some((c) => c.id === loc.id)) {
+                  combinedListings.unshift(loc);
+                }
+              }
+            }
+          } catch {}
+
+          setListings(combinedListings);
 
           // 3. Gelen Teklif Talepleri & Rezervasyon Sayıları
           const { count: quoteCount } = await supabase
@@ -135,11 +150,11 @@ export default function CompanyDashboardPage() {
             .select('*', { count: 'exact', head: true })
             .eq('company_id', comp.id);
 
-          const activeListings = dbListings?.filter((l: any) => l.status === 'active').length || 0;
+          const activeListings = combinedListings.filter((l: any) => l.status === 'active').length;
           setStats({
             activeCount: activeListings,
-            totalCount: dbListings?.length || 0,
-            viewsCount: (dbListings?.length || 0) * 12,
+            totalCount: combinedListings.length,
+            viewsCount: combinedListings.length * 12,
             pendingQuotes: quoteCount || 0,
             pendingBookings: bookingCount || 0,
           });
