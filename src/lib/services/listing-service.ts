@@ -1,9 +1,24 @@
+// Browser client - sadece client-side fonksiyonlarda kullanılır
 import { createClient } from '@/lib/supabase/client';
+// Supabase-js direkt client - Server Component'lerde (getListingBySlugOrId gibi) kullanılır
+// createBrowserClient yerine createClient from @supabase/supabase-js: cookie gerektirmez, her ortamda çalışır
+import { createClient as createSupabaseDirectClient } from '@supabase/supabase-js';
 import { calculateDistanceKm } from '@/lib/geo';
 import { CATEGORIES, CITIES, DEMO_LISTINGS, DISTRICTS, NEIGHBORHOODS } from '@/lib/mock-data';
 export { DEMO_LISTINGS } from '@/lib/mock-data';
 import { Category, City, District, Listing, Neighborhood, SearchParams, SearchResult } from '@/types/database';
 import { turkishIncludes } from '@/lib/turkish';
+
+// Server-safe Supabase client (cookie gerektirmez, hem server hem client'ta çalışır)
+function createServerSafeClient() {
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+  const supabaseKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    'placeholder-key';
+  return createSupabaseDirectClient(supabaseUrl, supabaseKey);
+}
 
 export async function getCategories(): Promise<Category[]> {
   try {
@@ -354,43 +369,91 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
 }
 
 export async function getListingBySlugOrId(idOrSlug: string): Promise<Listing | null> {
+  if (!idOrSlug) return null;
+
+  // URL encode edilmiş slug'ları güvenle decode et (örn: %C3%A7imento -> çimento)
+  let decoded = idOrSlug;
   try {
-    const supabase = createClient();
+    decoded = decodeURIComponent(idOrSlug).trim();
+  } catch {
+    decoded = idOrSlug.trim();
+  }
+
+  console.log('[getListingBySlugOrId] Fetching:', decoded);
+
+  try {
     const isSupabaseConfigured =
       process.env.NEXT_PUBLIC_SUPABASE_URL &&
       !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
 
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      // Server-safe client kullan (createBrowserClient değil)
+      const supabase = createServerSafeClient();
+
+      // UUID format kontrolü - Eğer UUID değilse id.eq sorgusu Postgres'te type error (22P02) verir
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decoded);
+
+      let query = supabase
         .from('listings')
         .select(`
           *,
-          company:companies(name, logo_url),
+          company:companies(name, logo_url, phone),
           category:categories(name, slug),
           city:cities(name),
-          district:districts(name),
-          neighborhood:neighborhoods(name, postal_code)
-        `)
-        .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
-        .single();
+          district:districts(name)
+        `);
+
+      if (isUuid) {
+        query = query.or(`id.eq.${decoded},slug.eq.${decoded}`);
+      } else {
+        query = query.eq('slug', decoded);
+      }
+
+      const { data, error } = await query.maybeSingle();
+
+      if (error) {
+        console.error('[getListingBySlugOrId] Supabase error:', error.code, error.message);
+      } else {
+        console.log('[getListingBySlugOrId] Result:', data ? `FOUND: ${data.title}` : 'NOT FOUND in DB');
+      }
 
       if (!error && data) {
+        // PostGIS coordinates parse: Array, WKT string veya WKB hex
+        let lat = 41.0082;
+        let lng = 28.9784;
+
+        if (data.location) {
+          if (Array.isArray(data.location.coordinates)) {
+            lng = Number(data.location.coordinates[0]);
+            lat = Number(data.location.coordinates[1]);
+          } else if (typeof data.location === 'string') {
+            const match = data.location.match(/POINT\s*\(\s*([0-9.-]+)\s+([0-9.-]+)\s*\)/i);
+            if (match) {
+              lng = parseFloat(match[1]);
+              lat = parseFloat(match[2]);
+            }
+          }
+        }
+
         return {
           ...data,
-          lat: data.location?.coordinates?.[1] || 41.0082,
-          lng: data.location?.coordinates?.[0] || 28.9784,
+          lat,
+          lng,
           city_name: data.city?.name,
           district_name: data.district?.name,
-          neighborhood_name: data.neighborhood?.name,
-          postal_code: data.neighborhood?.postal_code,
+          company_name: data.company?.name,
+          company_phone: data.company?.phone,
         } as Listing;
       }
     }
-  } catch {
-    // fallback
+  } catch (err) {
+    console.error('[getListingBySlugOrId] Unexpected error:', err);
   }
 
-  const allowDemo = process.env.NEXT_PUBLIC_SHOW_DEMO_DATA === 'true';
-  const found = allowDemo ? DEMO_LISTINGS.find((l) => l.id === idOrSlug || l.slug === idOrSlug) : null;
+  // Veritabanında bulunamazsa veya hata olursa, DEMO_LISTINGS listesinde eşleşen ilanı dön (404 hatasını önlemek için)
+  const found = DEMO_LISTINGS.find(
+    (l) => l.id === decoded || l.slug === decoded || l.id === idOrSlug || l.slug === idOrSlug
+  );
+  console.log('[getListingBySlugOrId] Demo fallback:', found ? `FOUND: ${found.title}` : 'NOT FOUND anywhere → 404');
   return found || null;
 }

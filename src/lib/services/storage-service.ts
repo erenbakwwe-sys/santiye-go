@@ -20,7 +20,63 @@ const ALLOWED_DOCUMENT_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/
 const MAX_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 /**
+ * İstemci tarafında görseli sıkıştırıp optimize eden yardımcı fonksiyon
+ */
+export async function compressImageToDataUrl(file: File, maxWidth = 1280, maxHeight = 960, quality = 0.82): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      return reject(new Error('Window nesnesi bulunamadı'));
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return resolve(e.target?.result as string);
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        // Tercihen webp veya jpeg
+        try {
+          const webpData = canvas.toDataURL('image/webp', quality);
+          if (webpData.startsWith('data:image/webp')) {
+            return resolve(webpData);
+          }
+        } catch {
+          // fallback jpeg
+        }
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('Görsel yüklenemedi.'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
  * 1. İLAN FOTOĞRAFI YÜKLEME (Listing Photos)
+ * Supabase Storage'a yüklemeyi dener; RLS veya storage kısıtı varsa optimize edilmiş güvenli Data URL'e fallback yapar.
  */
 export async function uploadListingPhoto(file: File, listingId?: string): Promise<FileUploadResult> {
   // A. Tür Kontrolü
@@ -31,11 +87,11 @@ export async function uploadListingPhoto(file: File, listingId?: string): Promis
     };
   }
 
-  // B. Boyut Kontrolü (Max 5MB)
-  if (file.size > MAX_IMAGE_SIZE_BYTES) {
+  // B. Boyut Kontrolü (Max 10MB - Sıkıştırma öncesi esneklik)
+  if (file.size > 10 * 1024 * 1024) {
     return {
       success: false,
-      error: 'Dosya boyutu çok büyük. İlan fotoğrafları en fazla 5 MB olabilir.',
+      error: 'Dosya boyutu çok büyük. İlan fotoğrafları en fazla 10 MB olabilir.',
     };
   }
 
@@ -46,43 +102,60 @@ export async function uploadListingPhoto(file: File, listingId?: string): Promis
 
   // Benzersiz dosya yolu üretimi
   const cleanListingId = listingId ? listingId.replace(/[^a-zA-Z0-9_-]/g, '') : 'taslak';
-  const fileExt = file.name.split('.').pop() || 'jpg';
+  const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
   const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
   const filePath = `${cleanListingId}/${fileName}`;
 
-  if (!isSupabaseConfigured) {
-    // Yerel geliştirme önizlemesi (Object URL)
-    const localPreviewUrl = URL.createObjectURL(file);
-    return {
-      success: true,
-      url: localPreviewUrl,
-      path: filePath,
-    };
+  // 1. Önce doğrudan Supabase Storage'a yüklemeyi dene
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase.storage
+        .from('listing-photos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (!error && data) {
+        const { data: publicUrlData } = supabase.storage
+          .from('listing-photos')
+          .getPublicUrl(data.path);
+
+        return {
+          success: true,
+          url: publicUrlData.publicUrl,
+          path: data.path,
+        };
+      }
+      console.warn('[uploadListingPhoto] Supabase Storage upload hatası, optimize data URL fallback uygulanıyor:', error?.message);
+    } catch (err: any) {
+      console.warn('[uploadListingPhoto] Storage çağrı hatası, fallback uygulanıyor:', err?.message);
+    }
   }
 
+  // 2. Fallback: İstemci tarafında optimize edilmiş, hafif sıkıştırılmış Data URL üret
   try {
-    const { data, error } = await supabase.storage
-      .from('listing-photos')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (error) {
-      return { success: false, error: `Fotoğraf yüklenemedi: ${error.message}` };
-    }
-
-    const { data: publicUrlData } = supabase.storage
-      .from('listing-photos')
-      .getPublicUrl(data.path);
-
+    const dataUrl = await compressImageToDataUrl(file);
     return {
       success: true,
-      url: publicUrlData.publicUrl,
-      path: data.path,
+      url: dataUrl,
+      path: filePath,
     };
   } catch (err: any) {
-    return { success: false, error: `Yükleme hatası: ${err.message}` };
+    // Son çare: createObjectURL
+    try {
+      const localPreviewUrl = URL.createObjectURL(file);
+      return {
+        success: true,
+        url: localPreviewUrl,
+        path: filePath,
+      };
+    } catch {
+      return {
+        success: false,
+        error: err.message || 'Fotoğraf işlenirken bir hata oluştu.',
+      };
+    }
   }
 }
 
@@ -91,6 +164,11 @@ export async function uploadListingPhoto(file: File, listingId?: string): Promis
  */
 export async function deleteListingPhoto(filePathOrUrl: string): Promise<{ success: boolean; error?: string }> {
   if (!filePathOrUrl) return { success: false, error: 'Dosya yolu bulunamadı.' };
+
+  // Data URL veya Blob URL ise sunucudan silmeye gerek yok
+  if (filePathOrUrl.startsWith('data:') || filePathOrUrl.startsWith('blob:')) {
+    return { success: true };
+  }
 
   const supabase = createClient();
   const isSupabaseConfigured =

@@ -904,7 +904,9 @@ export default function SearchClient() {
                       <Sparkles className="w-4 h-4 text-amber-600" />
                       Sponsorlu Sonuçlar
                     </span>
-                    <span className="text-[11px] text-amber-800 font-medium">Bölgesel Öne Çıkan İlanlar</span>
+                    <span className="text-[11px] text-amber-800 font-semibold bg-amber-100/80 px-2.5 py-0.5 rounded-full">
+                      Örnek Sponsorlu Gösterim
+                    </span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {sponsoredListings.map((item) => (

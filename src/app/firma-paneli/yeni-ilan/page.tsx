@@ -198,8 +198,20 @@ export default function NewListingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setImageError('');
+
     if (!title.trim() || !categoryId) {
       alert('Lütfen zorunlu alanları (Başlık ve Kategori) doldurunuz.');
+      return;
+    }
+
+    if (images.length === 0) {
+      setImageError('İlan verebilmek için en az 1 adet fotoğraf yüklemeniz zorunludur.');
+      alert('Lütfen en az 1 adet ilan fotoğrafı yükleyiniz.');
+      const photoSection = document.getElementById('photo-upload-section');
+      if (photoSection) {
+        photoSection.scrollIntoView({ behavior: 'smooth' });
+      }
       return;
     }
 
@@ -282,10 +294,7 @@ export default function NewListingPage() {
         service_radius_km: serviceRadiusKm ? Number(serviceRadiusKm) : 100,
       };
 
-      const finalImages =
-        images.length > 0
-          ? images
-          : ['https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=800&q=80'];
+      const finalImages = images;
 
       const effectiveCityId = cityId ? Number(cityId) : 34;
       const effectiveDistrictId = districtId ? Number(districtId) : 104;
@@ -812,25 +821,41 @@ export default function NewListingPage() {
           </div>
 
           {/* Section 6: Görseller */}
-          <div className="space-y-4">
+          <div id="photo-upload-section" className="space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h3 className="text-sm font-extrabold text-navy-900">
-                6. Gerçek İlan Fotoğrafları *
+              <h3 className="text-sm font-extrabold text-navy-900 flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-orange-500" />
+                <span>6. Gerçek İlan Fotoğrafları</span>
+                <span className="text-red-500 font-black text-xs bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                  * Zorunlu (En az 1 Adet)
+                </span>
               </h3>
-              <span className="text-[11px] font-semibold text-slate-500">
-                {images.length}/10 Fotoğraf Yüklendi
+              <span
+                className={`text-[11px] font-bold px-2 py-0.5 rounded ${
+                  images.length === 0
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                }`}
+              >
+                {images.length === 0 ? 'Henüz Fotoğraf Eklenmedi' : `${images.length}/10 Fotoğraf Yüklendi`}
               </span>
             </div>
 
             {imageError && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2 animate-pulse">
                 <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
-                <span>{imageError}</span>
+                <span className="font-bold">{imageError}</span>
               </div>
             )}
 
             {/* Dosya Yükleme Alanı */}
-            <label className="border-2 border-dashed border-slate-300 hover:border-orange-500 bg-slate-50 hover:bg-orange-50/30 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition text-center group">
+            <label
+              className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition text-center group ${
+                images.length === 0
+                  ? 'border-orange-300 bg-orange-50/20 hover:border-orange-500 hover:bg-orange-50/40'
+                  : 'border-slate-300 hover:border-orange-500 bg-slate-50 hover:bg-orange-50/30'
+              }`}
+            >
               <input
                 type="file"
                 multiple
@@ -847,46 +872,65 @@ export default function NewListingPage() {
                 )}
               </div>
               <p className="text-xs font-black text-navy-900">
-                {uploadingImage ? 'Fotoğraflar Yükleniyor...' : 'Fotoğrafları Seçin veya Buraya Sürükleyin'}
+                {uploadingImage ? 'Fotoğraflar Yükleniyor ve Optimize Ediliyor...' : 'Fotoğrafları Seçin veya Buraya Sürükleyin (En az 1 adet zorunlu)'}
               </p>
               <p className="text-[11px] text-slate-500 mt-1">
-                JPEG, PNG veya WebP formatında, her biri en fazla 5 MB (Maksimum 10 fotoğraf)
+                JPEG, PNG veya WebP formatında, her biri en fazla 10 MB (Maksimum 10 fotoğraf)
               </p>
             </label>
 
             {/* Yüklenen Fotoğrafların Önizleme Galerisi */}
             {images.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                {images.map((img, i) => (
-                  <div
-                    key={i}
-                    className="relative aspect-[16/10] rounded-xl overflow-hidden bg-slate-100 border border-slate-200 group shadow-sm"
-                  >
-                    <img src={img} alt={`İlan fotoğrafı ${i + 1}`} className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(i)}
-                      className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-red-600/90 hover:bg-red-600 text-white text-xs font-black flex items-center justify-center shadow transition"
-                      title="Fotoğrafı Sil"
+              <div className="space-y-2">
+                <div className="text-[11px] font-bold text-slate-500">
+                  İlk yüklenen fotoğraf arama sonuçlarında <span className="text-orange-600">kapak fotoğrafı</span> olarak kullanılır.
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                  {images.map((img, i) => (
+                    <div
+                      key={i}
+                      className="relative aspect-[16/10] rounded-xl overflow-hidden bg-slate-100 border-2 border-slate-200 group shadow-sm hover:border-orange-400 transition"
                     >
-                      ✕
-                    </button>
-                    {i === 0 && (
-                      <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-navy-900/80 text-white text-[10px] font-black">
-                        Kapak
-                      </span>
-                    )}
-                  </div>
-                ))}
+                      <img src={img} alt={`İlan fotoğrafı ${i + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(i)}
+                        className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-red-600/90 hover:bg-red-600 text-white text-xs font-black flex items-center justify-center shadow transition"
+                        title="Fotoğrafı Sil"
+                      >
+                        ✕
+                      </button>
+                      {i === 0 && (
+                        <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-navy-900/90 text-white text-[10px] font-black tracking-wider uppercase shadow">
+                          Kapak Fotoğrafı
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
-          <div className="pt-4 border-t border-slate-200 flex justify-end">
+          <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-xs">
+              {images.length === 0 ? (
+                <span className="text-red-600 font-bold flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  İlan yayınlayabilmek için en az 1 adet fotoğraf yüklemeniz gerekir.
+                </span>
+              ) : (
+                <span className="text-emerald-700 font-bold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  {images.length} adet fotoğraf hazır.
+                </span>
+              )}
+            </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="px-8 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-sm tracking-wide shadow-lg shadow-orange-500/30 flex items-center gap-2 transition disabled:opacity-50"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-sm tracking-wide shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2 transition disabled:opacity-50"
             >
               {loading ? (
                 <span>Kaydediliyor...</span>

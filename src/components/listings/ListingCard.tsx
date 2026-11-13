@@ -120,6 +120,12 @@ export default function ListingCard({
       ? listing.images[0]
       : 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=800&q=80';
 
+  const rawTitle = listing.title.replace(/^\[DEMO\]\s*/i, '');
+  const displayTitle = listing.is_demo
+    ? (rawTitle.toLowerCase().startsWith('örnek') ? rawTitle : `Örnek: ${rawTitle}`)
+    : rawTitle;
+  const displayCompanyName = (listing.company?.name || 'Onaylı Tedarikçi').replace(/^\[DEMO\]\s*/i, '');
+
   return (
     <div
       className={`group bg-white rounded-xl border overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 flex flex-col justify-between ${
@@ -135,7 +141,7 @@ export default function ListingCard({
         <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden">
           <Image
             src={imageSrc}
-            alt={listing.title}
+            alt={displayTitle}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -150,8 +156,8 @@ export default function ListingCard({
               </span>
             )}
             {listing.is_demo && (
-              <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-red-600 text-white shadow-sm">
-                DEMO
+              <span className="px-2 py-0.5 rounded text-[9px] font-bold tracking-wide bg-amber-600 text-white shadow-sm">
+                Örnek İlan
               </span>
             )}
             <span
@@ -240,7 +246,7 @@ export default function ListingCard({
             }}
           >
             <h3 className="font-bold text-navy-900 text-sm line-clamp-2 hover:text-orange-600 transition leading-snug">
-              {listing.title}
+              {displayTitle}
             </h3>
           </Link>
 
@@ -269,7 +275,7 @@ export default function ListingCard({
           {/* Company Name */}
           <div className="pt-0.5 text-[11px] text-slate-500 flex items-center gap-1 truncate">
             <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
-            <span className="truncate">{listing.company?.name || 'Onaylı Tedarikçi'}</span>
+            <span className="truncate">{displayCompanyName}</span>
           </div>
         </div>
       </div>

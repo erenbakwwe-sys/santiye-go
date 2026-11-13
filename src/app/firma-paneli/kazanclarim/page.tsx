@@ -25,16 +25,16 @@ import { registerCompanySubMerchant } from '@/lib/services/escrow-service';
 
 export default function CompanyEarningsPage() {
   const [loading, setLoading] = useState(true);
-  const [companyTransactions, setCompanyTransactions] = useState<any[]>(DEMO_TRANSACTIONS);
+  const [companyTransactions, setCompanyTransactions] = useState<any[]>([]);
   const [onboardingModalOpen, setOnboardingModalOpen] = useState(false);
-  const [subMerchantStatus, setSubMerchantStatus] = useState<'approved' | 'pending' | 'unregistered'>('approved');
-  const [ibanLast4, setIbanLast4] = useState<string>('0001');
-  const [subMerchantKey, setSubMerchantKey] = useState<string>('subm-anadolu-001');
-  const [legalTitle, setLegalTitle] = useState('Anadolu İş Makineleri San. ve Tic. Ltd. Şti.');
-  const [taxOffice, setTaxOffice] = useState('Tuzla');
-  const [taxNumber, setTaxNumber] = useState('1234567890');
-  const [ibanInput, setIbanInput] = useState('TR330006100511123456789001');
-  const [addressInput, setAddressInput] = useState('Tuzla Sanayi Bölgesi No: 12 İstanbul');
+  const [subMerchantStatus, setSubMerchantStatus] = useState<'approved' | 'pending' | 'unregistered'>('unregistered');
+  const [ibanLast4, setIbanLast4] = useState<string>('');
+  const [subMerchantKey, setSubMerchantKey] = useState<string>('');
+  const [legalTitle, setLegalTitle] = useState('Firma Hesabı');
+  const [taxOffice, setTaxOffice] = useState('');
+  const [taxNumber, setTaxNumber] = useState('');
+  const [ibanInput, setIbanInput] = useState('');
+  const [addressInput, setAddressInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionSuccess, setActionSuccess] = useState('');
 
@@ -53,6 +53,7 @@ export default function CompanyEarningsPage() {
             .maybeSingle();
 
           if (comp) {
+            setLegalTitle(comp.name || user.user_metadata?.company_name || 'Firma Hesabı');
             if (comp.sub_merchant_status) {
               setSubMerchantStatus(comp.sub_merchant_status as any);
             }
@@ -64,7 +65,6 @@ export default function CompanyEarningsPage() {
             }
             if (comp.tax_office) setTaxOffice(comp.tax_office);
             if (comp.tax_number) setTaxNumber(comp.tax_number);
-            if (comp.name) setLegalTitle(comp.name);
 
             const { data } = await supabase
               .from('payment_transactions')
@@ -72,13 +72,15 @@ export default function CompanyEarningsPage() {
               .eq('company_id', comp.id)
               .order('created_at', { ascending: false });
 
-            if (data && data.length > 0) {
-              setCompanyTransactions(data);
-            }
+            setCompanyTransactions(data || []);
+          } else {
+            setCompanyTransactions([]);
           }
+        } else {
+          setCompanyTransactions([]);
         }
       } catch {
-        setCompanyTransactions(DEMO_TRANSACTIONS);
+        setCompanyTransactions([]);
       } finally {
         setLoading(false);
       }
@@ -185,12 +187,18 @@ export default function CompanyEarningsPage() {
               <span className="text-slate-400 font-bold uppercase text-[10px]">
                 Alt Üye İşyeri Hesabı
               </span>
-              <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+              <span
+                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  subMerchantStatus === 'approved'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-slate-100 text-slate-600'
+                }`}
+              >
                 {subMerchantStatus === 'approved' ? 'Doğrulandı' : 'Kayıtsız'}
               </span>
             </div>
             <div className="font-mono font-bold text-navy-900">
-              TR** **** **** **** **** **{ibanLast4}
+              {ibanLast4 ? `TR** **** **** **** **** **${ibanLast4}` : 'IBAN Tanımlanmadı'}
             </div>
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-slate-500 font-semibold">{legalTitle.slice(0, 24)}...</span>
@@ -292,82 +300,96 @@ export default function CompanyEarningsPage() {
             </span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 uppercase font-black text-[10px] border-b border-slate-200">
-                <tr>
-                  <th className="py-3 px-4">İşlem / Tarih</th>
-                  <th className="py-3 px-4">Alıcı</th>
-                  <th className="py-3 px-4">Toplam Tutar</th>
-                  <th className="py-3 px-4">Platform Komisyonu</th>
-                  <th className="py-3 px-4">Net Hakedişiniz</th>
-                  <th className="py-3 px-4">Ödeme Durumu</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {companyTransactions.map((tx) => {
-                  const statusColors: Record<string, string> = {
-                    transferred: 'bg-emerald-100 text-emerald-800',
-                    paid_escrow: 'bg-blue-100 text-blue-800',
-                    paid: 'bg-blue-100 text-blue-800',
-                    releasable: 'bg-amber-100 text-amber-800',
-                    disputed: 'bg-red-100 text-red-800',
-                    refunded: 'bg-slate-100 text-slate-600',
-                    pending: 'bg-slate-100 text-slate-500',
-                  };
+          {companyTransactions.length === 0 ? (
+            <div className="p-12 text-center space-y-3 bg-slate-50/60">
+              <div className="w-12 h-12 rounded-2xl bg-orange-100/60 text-orange-600 flex items-center justify-center mx-auto">
+                <CreditCard className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-bold text-navy-900 text-sm">Henüz Bir Ödeme veya Hakediş Kaydı Yok</h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  Şantiye GO Güvenli Ödeme Sistemi üzerinden ilanlarınıza yapılan kiralama, satış veya hizmet ödemeleri burada listelenecektir.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-500 uppercase font-black text-[10px] border-b border-slate-200">
+                  <tr>
+                    <th className="py-3 px-4">İşlem / Tarih</th>
+                    <th className="py-3 px-4">Alıcı</th>
+                    <th className="py-3 px-4">Toplam Tutar</th>
+                    <th className="py-3 px-4">Platform Komisyonu</th>
+                    <th className="py-3 px-4">Net Hakedişiniz</th>
+                    <th className="py-3 px-4">Ödeme Durumu</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {companyTransactions.map((tx) => {
+                    const statusColors: Record<string, string> = {
+                      transferred: 'bg-emerald-100 text-emerald-800',
+                      paid_escrow: 'bg-blue-100 text-blue-800',
+                      paid: 'bg-blue-100 text-blue-800',
+                      releasable: 'bg-amber-100 text-amber-800',
+                      disputed: 'bg-red-100 text-red-800',
+                      refunded: 'bg-slate-100 text-slate-600',
+                      pending: 'bg-slate-100 text-slate-500',
+                    };
 
-                  const statusLabels: Record<string, string> = {
-                    transferred: 'IBAN&apos;a Aktarıldı',
-                    paid_escrow: 'Havuzda Bloke',
-                    paid: 'Havuzda Bloke',
-                    releasable: 'Serbest Bırakılabilir',
-                    disputed: 'İtirazda (Donduruldu)',
-                    refunded: 'İade Edildi',
-                    pending: 'Bekliyor',
-                  };
+                    const statusLabels: Record<string, string> = {
+                      transferred: 'IBAN&apos;a Aktarıldı',
+                      paid_escrow: 'Havuzda Bloke',
+                      paid: 'Havuzda Bloke',
+                      releasable: 'Serbest Bırakılabilir',
+                      disputed: 'İtirazda (Donduruldu)',
+                      refunded: 'İade Edildi',
+                      pending: 'Bekliyor',
+                    };
 
-                  return (
-                    <tr key={tx.id} className="hover:bg-slate-50/80 transition">
-                      <td className="py-3.5 px-4">
-                        <div className="font-mono text-[11px] font-bold text-navy-900">
-                          #{tx.id.slice(0, 14)}
-                        </div>
-                        <div className="text-[10px] text-slate-400">
-                          {new Date(tx.created_at).toLocaleDateString('tr-TR')}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 font-semibold text-slate-800">
-                        {tx.buyer?.full_name || 'Alıcı Kullanıcı'}
-                      </td>
-                      <td className="py-3.5 px-4 font-black text-navy-900">
-                        {formatCentsToTRY(tx.amount_cents)}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="text-slate-600 font-semibold">
-                          {formatCentsToTRY(tx.commission_amount_cents)}
-                        </span>
-                        <span className="text-[10px] text-slate-400 block">
-                          (%{tx.commission_rate_percent})
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 font-black text-emerald-700">
-                        {formatCentsToTRY(tx.net_company_amount_cents)}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                            statusColors[tx.status] || 'bg-slate-100 text-slate-600'
-                          }`}
-                        >
-                          {statusLabels[tx.status] || tx.status}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    return (
+                      <tr key={tx.id} className="hover:bg-slate-50/80 transition">
+                        <td className="py-3.5 px-4">
+                          <div className="font-mono text-[11px] font-bold text-navy-900">
+                            #{tx.id.slice(0, 14)}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            {new Date(tx.created_at).toLocaleDateString('tr-TR')}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 font-semibold text-slate-800">
+                          {tx.buyer?.full_name || 'Alıcı Kullanıcı'}
+                        </td>
+                        <td className="py-3.5 px-4 font-black text-navy-900">
+                          {formatCentsToTRY(tx.amount_cents)}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="text-slate-600 font-semibold">
+                            {formatCentsToTRY(tx.commission_amount_cents)}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            (%{tx.commission_rate_percent})
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 font-black text-emerald-700">
+                          {formatCentsToTRY(tx.net_company_amount_cents)}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span
+                            className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                              statusColors[tx.status] || 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {statusLabels[tx.status] || tx.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Alt Üye İşyeri Güncelleme Modalı */}

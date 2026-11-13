@@ -31,8 +31,13 @@ export async function generateMetadata({ params }: ListingPageProps) {
   const listing = await getListingBySlugOrId(id);
   if (!listing) return { title: 'İlan Bulunamadı | ŞANTİYE GO' };
 
+  const rawTitle = listing.title.replace(/^\[DEMO\]\s*/i, '');
+  const displayTitle = listing.is_demo
+    ? (rawTitle.toLowerCase().startsWith('örnek') ? rawTitle : `Örnek: ${rawTitle}`)
+    : rawTitle;
+
   return {
-    title: `${listing.title} | ŞANTİYE GO`,
+    title: `${displayTitle} | ŞANTİYE GO`,
     description: listing.description.slice(0, 160),
   };
 }
@@ -45,13 +50,19 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
     notFound();
   }
 
+  const rawTitle = listing.title.replace(/^\[DEMO\]\s*/i, '');
+  const displayTitle = listing.is_demo
+    ? (rawTitle.toLowerCase().startsWith('örnek') ? rawTitle : `Örnek: ${rawTitle}`)
+    : rawTitle;
+  const displayCompanyName = (listing.company?.name || 'Onaylı Şantiye GO Tedarikçisi').replace(/^\[DEMO\]\s*/i, '');
+
   const reviews = await getCompanyReviews(listing.company_id || 'f0000000-0000-0000-0000-000000000001');
 
   const companyPhone = listing.company?.phone || '+905320000000';
   const whatsappNumber = (listing.company?.whatsapp || companyPhone).replace(/[^0-9]/g, '');
 
   const whatsappMessage = encodeURIComponent(
-    `Merhaba, Şantiye GO üzerinden "${listing.title}" başlıklı ilanınız hakkında bilgi ve teklif almak istiyorum.`
+    `Merhaba, Şantiye GO üzerinden "${displayTitle}" başlıklı ilanınız hakkında bilgi ve teklif almak istiyorum.`
   );
 
   return (
@@ -68,8 +79,8 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
           </Link>
           <div className="flex items-center gap-2">
             {listing.is_demo && (
-              <span className="px-2.5 py-1 rounded bg-red-600 text-white text-xs font-black tracking-wider uppercase">
-                DEMO İLAN
+              <span className="px-2.5 py-1 rounded bg-amber-600 text-white text-xs font-bold tracking-wide">
+                Örnek İlan
               </span>
             )}
             <span
@@ -97,7 +108,7 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
           </div>
 
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-navy-900 leading-tight">
-            {listing.title}
+            {displayTitle}
           </h1>
         </div>
 
@@ -262,7 +273,7 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
             {/* Verified Reviews Section */}
             <ReviewList
               reviews={reviews}
-              companyName={listing.company?.name || 'Onaylı Tedarikçi'}
+              companyName={displayCompanyName}
             />
           </div>
 
@@ -274,11 +285,11 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-navy-900 text-orange-500 flex items-center justify-center font-black text-xl">
-                  {listing.company?.name?.[0] || 'Ş'}
+                  {displayCompanyName[0] || 'Ş'}
                 </div>
                 <div>
                   <h3 className="font-extrabold text-navy-900 text-sm sm:text-base leading-snug">
-                    {listing.company?.name || 'Onaylı Şantiye GO Tedarikçisi'}
+                    {displayCompanyName}
                   </h3>
                   <div className="flex items-center gap-1 text-xs text-emerald-600 font-bold mt-0.5">
                     <ShieldCheck className="w-4 h-4" />

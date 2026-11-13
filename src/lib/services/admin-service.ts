@@ -346,6 +346,16 @@ export async function moderateListing(
   adminId: string
 ): Promise<{ success: boolean }> {
   try {
+    // 1. Önce sunucu moderasyon API'sini çağır
+    if (typeof window !== 'undefined') {
+      await fetch('/api/admin/listings/moderate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId, action, reason }),
+      }).catch(() => {});
+    }
+
+    // 2. Doğrudan istemci supabase client güncellemesi
     const supabase = createClient();
     const newStatus = action === 'approve' ? 'active' : 'inactive';
     await supabase.from('listings').update({ status: newStatus }).eq('id', listingId);

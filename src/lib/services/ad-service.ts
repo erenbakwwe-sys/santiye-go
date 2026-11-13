@@ -61,7 +61,7 @@ export let DEMO_CAMPAIGNS: AdCampaign[] = [
     company_id: 'f0000000-0000-0000-0000-000000000001',
     product_id: 'sponsored_listing',
     listing_id: '10000000-0000-0000-0000-000000000001', // CAT 320D (İstanbul/Tuzla)
-    title: '[DEMO] CAT 320D Sponsorlu Arama',
+    title: 'Örnek: CAT 320D Sponsorlu Arama',
     target_city_id: 34, // İstanbul
     target_category_id: 'b0000000-0000-0000-0000-000000000001',
     target_radius_km: 50,
@@ -83,7 +83,7 @@ export let DEMO_CAMPAIGNS: AdCampaign[] = [
     company_id: 'f0000000-0000-0000-0000-000000000004',
     product_id: 'sponsored_listing',
     listing_id: '10000000-0000-0000-0000-000000000021', // Komatsu 21 Ton (Samsun/Tekkeköy)
-    title: '[DEMO] Komatsu 21 Ton Karadeniz Sponsorlu',
+    title: 'Örnek: Komatsu 21 Ton Karadeniz Sponsorlu',
     target_city_id: 55, // Samsun
     target_category_id: 'b0000000-0000-0000-0000-000000000001',
     target_radius_km: 50,
@@ -105,7 +105,7 @@ export let DEMO_CAMPAIGNS: AdCampaign[] = [
     company_id: 'f0000000-0000-0000-0000-000000000001',
     product_id: 'showcase_home',
     listing_id: '10000000-0000-0000-0000-000000000001',
-    title: '[DEMO] Ana Sayfa Vitrin Ekskavatör',
+    title: 'Örnek: Ana Sayfa Vitrin Ekskavatör',
     target_city_id: null,
     target_radius_km: null,
     pricing_model: 'fixed_duration',
@@ -126,7 +126,7 @@ export let DEMO_CAMPAIGNS: AdCampaign[] = [
     company_id: 'f0000000-0000-0000-0000-000000000002',
     product_id: 'sponsored_listing',
     listing_id: '10000000-0000-0000-0000-000000000003',
-    title: '[DEMO] Kocaeli Çimento Sponsorlu Arama',
+    title: 'Örnek: Kocaeli Çimento Sponsorlu Arama',
     target_city_id: 41, // Kocaeli
     pricing_model: 'fixed_duration',
     duration_days: 7,
