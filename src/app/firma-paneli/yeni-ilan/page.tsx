@@ -317,26 +317,19 @@ export default function NewListingPage() {
         is_demo: false,
       };
 
-      // 1. Yerel saklama alanına kaydet (Panelde hemen listelensin)
-      try {
-        const rawListings = localStorage.getItem('santiyego_my_listings');
-        const storedListings = rawListings ? JSON.parse(rawListings) : [];
-        storedListings.unshift({
-          id: `listing-${Date.now()}`,
-          ...listingData,
-          created_at: new Date().toISOString(),
-        });
-        localStorage.setItem('santiyego_my_listings', JSON.stringify(storedListings));
-      } catch {}
-
-      // 2. Canlı Supabase'e ekle
+      // Canlı Supabase'e ekle
       if (isSupabaseConfigured) {
         const { error: insertError } = await supabase.from('listings').insert(listingData);
         if (insertError) {
-          console.warn('[yeni-ilan] Supabase insert warning:', insertError.message);
-          // RLS veya yabancı anahtar durumunda sessizce yerel kayıt ile devam et
+          console.error('[yeni-ilan] Supabase insert error:', insertError.message);
+          throw new Error('İlan veritabanına kaydedilemedi: ' + insertError.message);
         }
       }
+
+      // Eski yerel demo artıklarını temizle
+      try {
+        localStorage.removeItem('santiyego_my_listings');
+      } catch {}
 
       setSuccess(true);
       setTimeout(() => {

@@ -254,7 +254,7 @@ export default function AdminCompaniesPage() {
                   <strong>Şirket Türü:</strong> {activeCompany.legal_type || '-'}
                 </div>
                 <div>
-                  <strong>IBAN:</strong> {activeCompany.iban || 'Girilmedi'}
+                  <strong>IBAN:</strong> {activeCompany.iban_last4 ? `TR** **** **** **** **** **${activeCompany.iban_last4}` : 'Girilmedi'}
                 </div>
               </div>
 

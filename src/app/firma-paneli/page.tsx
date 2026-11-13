@@ -125,17 +125,9 @@ export default function CompanyDashboardPage() {
             }));
           }
 
-          // Yerel depoda oluşturulmuş ilanlar varsa birleştir (Hızlı ve güvenli görünüm)
+          // Eski yerel demo artıklarını temizle
           try {
-            const rawLocal = localStorage.getItem('santiyego_my_listings');
-            if (rawLocal) {
-              const localListings: Listing[] = JSON.parse(rawLocal);
-              for (const loc of localListings) {
-                if (!combinedListings.some((c) => c.id === loc.id)) {
-                  combinedListings.unshift(loc);
-                }
-              }
-            }
+            localStorage.removeItem('santiyego_my_listings');
           } catch {}
 
           setListings(combinedListings);

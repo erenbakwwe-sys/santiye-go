@@ -1,62 +1,10 @@
 import { Category, City, District, Listing, Neighborhood } from '@/types/database';
+import { ALL_81_CITIES } from '@/lib/all-cities';
+import { ALL_973_DISTRICTS } from '@/lib/all-districts';
 
-export const CITIES: City[] = [
-  { id: 1, plate_code: 1, name: 'Adana', lat: 37.0000, lng: 35.3213 },
-  { id: 6, plate_code: 6, name: 'Ankara', lat: 39.9334, lng: 32.8597 },
-  { id: 7, plate_code: 7, name: 'Antalya', lat: 36.8969, lng: 30.7133 },
-  { id: 16, plate_code: 16, name: 'Bursa', lat: 40.1885, lng: 29.0610 },
-  { id: 21, plate_code: 21, name: 'Diyarbakır', lat: 37.9144, lng: 40.2189 },
-  { id: 27, plate_code: 27, name: 'Gaziantep', lat: 37.0662, lng: 37.3825 },
-  { id: 34, plate_code: 34, name: 'İstanbul', lat: 41.0082, lng: 28.9784 },
-  { id: 35, plate_code: 35, name: 'İzmir', lat: 38.4237, lng: 27.1428 },
-  { id: 41, plate_code: 41, name: 'Kocaeli', lat: 40.8533, lng: 29.9409 },
-  { id: 42, plate_code: 42, name: 'Konya', lat: 37.8667, lng: 32.4846 },
-  { id: 54, plate_code: 54, name: 'Sakarya', lat: 40.7569, lng: 30.4033 },
-  { id: 55, plate_code: 55, name: 'Samsun', lat: 41.2867, lng: 36.3360 },
-  { id: 61, plate_code: 61, name: 'Trabzon', lat: 41.0015, lng: 39.7168 },
-];
+export const CITIES: City[] = ALL_81_CITIES;
 
-export const DISTRICTS: District[] = [
-  // İstanbul
-  { id: 101, city_id: 34, name: 'Kadıköy', lat: 40.9911, lng: 29.0275 },
-  { id: 102, city_id: 34, name: 'Ümraniye', lat: 41.0264, lng: 29.1194 },
-  { id: 103, city_id: 34, name: 'Pendik', lat: 40.8739, lng: 29.2333 },
-  { id: 104, city_id: 34, name: 'Tuzla', lat: 40.8167, lng: 29.3014 },
-  { id: 105, city_id: 34, name: 'Başakşehir', lat: 41.0969, lng: 28.8028 },
-  { id: 106, city_id: 34, name: 'Esenyurt', lat: 41.0342, lng: 28.6739 },
-  { id: 107, city_id: 34, name: 'Sarıyer', lat: 41.1686, lng: 29.0531 },
-  { id: 108, city_id: 34, name: 'Beylikdüzü', lat: 40.9933, lng: 28.6439 },
-
-  // Ankara
-  { id: 201, city_id: 6, name: 'Çankaya', lat: 39.9000, lng: 32.8540 },
-  { id: 202, city_id: 6, name: 'Yenimahalle', lat: 39.9678, lng: 32.8050 },
-  { id: 203, city_id: 6, name: 'Etimesgut', lat: 39.9481, lng: 32.6667 },
-  { id: 204, city_id: 6, name: 'Sincan', lat: 39.9583, lng: 32.5767 },
-  { id: 205, city_id: 6, name: 'Ostim / İvedik', lat: 39.9767, lng: 32.7483 },
-
-  // Samsun
-  { id: 701, city_id: 55, name: 'Tekkeköy', lat: 41.2312, lng: 36.4456 },
-  { id: 702, city_id: 55, name: 'İlkadım', lat: 41.2854, lng: 36.3312 },
-  { id: 703, city_id: 55, name: 'Canik', lat: 41.2741, lng: 36.3654 },
-  { id: 704, city_id: 55, name: 'Atakum', lat: 41.3145, lng: 36.3125 },
-
-  // Kocaeli
-  { id: 401, city_id: 41, name: 'Gebze', lat: 40.8028, lng: 29.4306 },
-  { id: 402, city_id: 41, name: 'İzmit', lat: 40.7656, lng: 29.9194 },
-  { id: 404, city_id: 41, name: 'Dilovası', lat: 40.7853, lng: 29.5444 },
-
-  // İzmir
-  { id: 301, city_id: 35, name: 'Bornova', lat: 38.4650, lng: 27.2189 },
-  { id: 305, city_id: 35, name: 'Aliağa', lat: 38.7986, lng: 26.9722 },
-
-  // Bursa
-  { id: 501, city_id: 16, name: 'Nilüfer', lat: 40.2167, lng: 28.9833 },
-  { id: 502, city_id: 16, name: 'Osmangazi', lat: 40.2000, lng: 29.0500 },
-
-  // Antalya
-  { id: 601, city_id: 7, name: 'Muratpaşa', lat: 36.8833, lng: 30.7167 },
-  { id: 602, city_id: 7, name: 'Kepez', lat: 36.9333, lng: 30.6833 },
-];
+export const DISTRICTS: District[] = ALL_973_DISTRICTS;
 
 export const NEIGHBORHOODS: Neighborhood[] = [
   // İstanbul - Tuzla

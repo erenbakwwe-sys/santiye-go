@@ -46,8 +46,8 @@ export class IyzicoPaymentAdapter implements PaymentGatewayAdapter {
    * Zorunlu alanlar: subMerchantType, subMerchantExternalId, name, legalCompanyTitle, taxOffice, taxNumber, email, gsmNumber, address, iban
    */
   async createSubMerchant(params: SubMerchantCreationParams): Promise<SubMerchantCreationResult> {
-    if (!params.taxNumber || (params.taxNumber.length !== 10 && params.taxNumber.length !== 11)) {
-      return { success: false, error: 'Geçersiz Vergi Kimlik Numarası (10 haneli VKN veya 11 haneli şahıs firması numarası gereklidir).' };
+    if (!params.taxNumber || params.taxNumber.length !== 10) {
+      return { success: false, error: 'Geçersiz Vergi Kimlik Numarası (10 haneli VKN gereklidir. TCKN kabul edilmez).' };
     }
 
     if (!params.iban || !params.iban.replace(/\s/g, '').startsWith('TR') || params.iban.replace(/\s/g, '').length !== 26) {

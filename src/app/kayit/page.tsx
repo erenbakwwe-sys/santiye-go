@@ -142,12 +142,12 @@ export default function RegisterPage() {
         return;
       }
       const cleanTax = taxNumber.replace(/\D/g, '');
-      if (cleanTax.length !== 10 && cleanTax.length !== 11) {
-        setErrorMsg('Vergi Kimlik Numarası (VKN) 10 hane, Şahıs şirketi için T.C. Kimlik No 11 hane olmalıdır.');
+      if (cleanTax.length !== 10) {
+        setErrorMsg('Vergi Kimlik Numarası (VKN) tam 10 haneli olmalıdır. T.C. Kimlik Numarası kabul edilmemektedir.');
         return;
       }
-      if (/^(\d)\1+$/.test(cleanTax) || '12345678901'.includes(cleanTax)) {
-        setErrorMsg('Lütfen firmanıza ait resmi vergi kimlik numarasını giriniz.');
+      if (/^(\d)\1+$/.test(cleanTax) || '1234567890'.includes(cleanTax)) {
+        setErrorMsg('Lütfen firmanıza ait resmi 10 haneli vergi kimlik numarasını giriniz.');
         return;
       }
     }
@@ -307,15 +307,15 @@ export default function RegisterPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-navy-900 mb-1">
-                    Vergi Kimlik No (VKN / TCKN) *
+                    Vergi Kimlik No (VKN) *
                   </label>
                   <input
                     type="text"
                     required
-                    maxLength={11}
+                    maxLength={10}
                     value={taxNumber}
                     onChange={(e) => setTaxNumber(e.target.value.replace(/\D/g, ''))}
-                    placeholder="10 veya 11 hane"
+                    placeholder="10 haneli VKN"
                     className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono focus:border-orange-500 focus:outline-none"
                   />
                 </div>

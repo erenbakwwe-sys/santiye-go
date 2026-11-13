@@ -67,7 +67,6 @@ export interface Company {
   verified_at?: string | null;
   verified_by?: string | null;
   sub_merchant_key?: string | null;
-  iban?: string | null;
   accept_online_payments?: boolean;
   accept_platform_escrow?: boolean;
   sub_merchant_status?: 'unregistered' | 'pending' | 'approved' | 'rejected';

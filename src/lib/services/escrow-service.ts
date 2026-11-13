@@ -142,7 +142,7 @@ export async function registerCompanySubMerchant(
     return { success: false, error: 'Geçersiz IBAN: TR ile başlayan 26 haneli IBAN girilmelidir.' };
   }
 
-  if (!data.taxNumber || (data.taxNumber.length !== 10 && data.taxNumber.length !== 11)) {
+  if (!data.taxNumber || data.taxNumber.length !== 10) {
     return { success: false, error: 'Geçersiz Vergi Numarası: 10 haneli kurumsal VKN girilmelidir.' };
   }
 

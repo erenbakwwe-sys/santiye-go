@@ -146,6 +146,48 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
           countsByRadius,
         };
       }
+
+      // RPC hata verirse veya boş dönerse doğrudan Supabase tablosundan çek (Fallback)
+      if (error) {
+        console.warn('RPC search_listings_advanced error, fallback to direct query:', error.message);
+        let directQuery = supabase
+          .from('listings')
+          .select(`
+            *,
+            company:companies(name, logo_url),
+            category:categories(name, slug),
+            city:cities(name),
+            district:districts(name)
+          `, { count: 'exact' })
+          .eq('status', status || 'active');
+
+        if (category) directQuery = directQuery.eq('category_id', category);
+        if (city) directQuery = directQuery.eq('city_id', Number(city));
+        if (district) directQuery = directQuery.eq('district_id', Number(district));
+        if (q && q.trim()) directQuery = directQuery.ilike('title', `%${q.trim()}%`);
+
+        const { data: dbData, count } = await directQuery
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+
+        if (dbData && dbData.length > 0) {
+          const formatted = dbData.map((d: any) => ({
+            ...d,
+            city_name: d.city?.name,
+            district_name: d.district?.name,
+            category_name: d.category?.name,
+            company_name: d.company?.name,
+            company_logo: d.company?.logo_url,
+          }));
+          return {
+            listings: formatted as Listing[],
+            total: count || formatted.length,
+            page,
+            limit,
+            totalPages: Math.ceil((count || formatted.length) / limit) || 1,
+          };
+        }
+      }
     }
   } catch (err) {
     console.error('Supabase query error, fallback to local engine:', err);
@@ -323,7 +365,7 @@ export async function getListingBySlugOrId(idOrSlug: string): Promise<Listing | 
         .from('listings')
         .select(`
           *,
-          company:companies(name, phone, whatsapp, logo_url),
+          company:companies(name, logo_url),
           category:categories(name, slug),
           city:cities(name),
           district:districts(name),

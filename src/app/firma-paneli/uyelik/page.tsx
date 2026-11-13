@@ -19,11 +19,11 @@ import {
   checkCompanyLimits,
 } from '@/lib/services/membership-service';
 import { MembershipPlan, CompanySubscription } from '@/types/database';
+import { createClient } from '@/lib/supabase/client';
 
 export default function CompanyMembershipPage() {
-  const companyId = 'f0000000-0000-0000-0000-000000000001';
-
-  const [currentPlan, setCurrentPlan] = useState<MembershipPlan>(MEMBERSHIP_PLANS[1]);
+  const [companyId, setCompanyId] = useState<string>('');
+  const [currentPlan, setCurrentPlan] = useState<MembershipPlan>(MEMBERSHIP_PLANS[0]);
   const [subscription, setSubscription] = useState<CompanySubscription | null>(null);
   const [limits, setLimits] = useState<any>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
@@ -31,10 +31,15 @@ export default function CompanyMembershipPage() {
   const [upgrading, setUpgrading] = useState(false);
   const [notice, setNotice] = useState('');
 
-  const loadData = async () => {
+  const supabase = createClient();
+
+  const loadData = async (activeCompId?: string) => {
+    const targetId = activeCompId || companyId;
+    if (!targetId) return;
+
     const [{ subscription: s, plan: p }, l] = await Promise.all([
-      getCompanySubscription(companyId),
-      checkCompanyLimits(companyId),
+      getCompanySubscription(targetId),
+      checkCompanyLimits(targetId),
     ]);
     setSubscription(s);
     setCurrentPlan(p);
@@ -42,17 +47,36 @@ export default function CompanyMembershipPage() {
   };
 
   useEffect(() => {
-    loadData();
+    async function initUserCompany() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: comp } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (comp?.id) {
+          setCompanyId(comp.id);
+          loadData(comp.id);
+          return;
+        }
+      }
+      // Demo veya bulunamayan durum
+      loadData('default-company');
+    }
+    initUserCompany();
   }, []);
 
   const handleUpgrade = async (planId: 'pro' | 'premium') => {
+    if (!companyId) return;
     setUpgrading(true);
     await upgradeCompanyPlan(companyId, planId, billingCycle);
     setUpgrading(false);
     setNotice(
       `Tebrikler! ${planId === 'premium' ? 'Premium Tedarikçi' : 'Profesyonel'} paketine başarıyla geçtiniz.`
     );
-    loadData();
+    loadData(companyId);
     setTimeout(() => setNotice(''), 4000);
   };
 

@@ -150,7 +150,7 @@ export async function createQuoteRequest(
     quantity: data.quantity || 1,
     start_date: data.start_date || nowIso.split('T')[0],
     end_date: data.end_date || null,
-    city_id: data.city_id || null,
+    city_id: data.city_id || 0,
     district_id: data.district_id || null,
     address_detail: data.address_detail || null,
     lat: data.lat || null,

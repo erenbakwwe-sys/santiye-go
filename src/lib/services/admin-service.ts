@@ -100,7 +100,7 @@ export const DEMO_COMPANIES_FOR_VERIFICATION: Company[] = [
     signature_circular_url: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80',
     verification_status: 'approved',
     sub_merchant_key: 'subm-anadolu-001',
-    iban: 'TR330006100511123456789001',
+    iban_last4: '9001',
     accept_online_payments: true,
     phone: '+90 532 000 0101',
     city_name: 'İstanbul',
@@ -121,7 +121,7 @@ export const DEMO_COMPANIES_FOR_VERIFICATION: Company[] = [
     signature_circular_url: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80',
     verification_status: 'pending',
     sub_merchant_key: null,
-    iban: 'TR550006100511123456789002',
+    iban_last4: '9002',
     accept_online_payments: true,
     phone: '+90 532 000 0102',
     city_name: 'Kocaeli',
@@ -183,13 +183,41 @@ export async function logAdminAction(
 
 // Dashboard Metrics
 export async function getAdminDashboardMetrics() {
+  try {
+    const supabase = createClient();
+    const [
+      { count: totalUsers },
+      { count: totalCompanies },
+      { count: activeListings },
+      { count: pendingVerifications },
+    ] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('companies').select('*', { count: 'exact', head: true }),
+      supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+      supabase.from('companies').select('*', { count: 'exact', head: true }).eq('is_verified', false),
+    ]);
+
+    return {
+      totalUsers: totalUsers ?? 6,
+      totalCompanies: totalCompanies ?? 5,
+      activeListings: activeListings ?? 1,
+      monthBookings: 0,
+      totalVolumeCents: 0,
+      totalCommissionCents: 0,
+      pendingVerifications: pendingVerifications ?? 5,
+      pendingReports: 0,
+    };
+  } catch (err) {
+    console.warn('[admin-service] getAdminDashboardMetrics error:', err);
+  }
+
   return {
-    totalUsers: 142,
+    totalUsers: 6,
     totalCompanies: DEMO_COMPANIES_FOR_VERIFICATION.length,
     activeListings: DEMO_LISTINGS.filter((l) => l.status === 'active').length,
     monthBookings: 28,
-    totalVolumeCents: 184500000, // 1.845.000 ₺
-    totalCommissionCents: 14760000, // 147.600 ₺
+    totalVolumeCents: 184500000,
+    totalCommissionCents: 14760000,
     pendingVerifications: DEMO_COMPANIES_FOR_VERIFICATION.filter(
       (c) => c.verification_status === 'pending'
     ).length,
@@ -199,6 +227,27 @@ export async function getAdminDashboardMetrics() {
 
 // Company Verification Workflow
 export async function getCompaniesForVerification(): Promise<Company[]> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('companies')
+      .select(`
+        *,
+        city:cities(name),
+        district:districts(name)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (!error && data && data.length > 0) {
+      return data.map((c) => ({
+        ...c,
+        city_name: c.city?.name || 'Belirtilmedi',
+        district_name: c.district?.name || '',
+      }));
+    }
+  } catch (err) {
+    console.warn('[admin-service] getCompanies error:', err);
+  }
   return DEMO_COMPANIES_FOR_VERIFICATION;
 }
 
@@ -208,6 +257,31 @@ export async function verifyCompany(
   notes: string,
   adminId: string
 ): Promise<{ success: boolean }> {
+  try {
+    const supabase = createClient();
+    const updatePayload: Record<string, any> = {
+      is_verified: status === 'approved',
+      verification_status: status,
+      verification_notes: notes || null,
+      verified_at: new Date().toISOString(),
+      verified_by: adminId,
+    };
+    if (status === 'approved') {
+      updatePayload.sub_merchant_status = 'approved';
+    }
+
+    const { error } = await supabase
+      .from('companies')
+      .update(updatePayload)
+      .eq('id', companyId);
+
+    if (error) {
+      console.warn('[admin-service] verifyCompany update error:', error);
+    }
+  } catch (err) {
+    console.warn('[admin-service] verifyCompany error:', err);
+  }
+
   const comp = DEMO_COMPANIES_FOR_VERIFICATION.find((c) => c.id === companyId);
   if (comp) {
     comp.verification_status = status;
@@ -215,9 +289,6 @@ export async function verifyCompany(
     comp.verification_notes = notes || null;
     comp.verified_at = new Date().toISOString();
     comp.verified_by = adminId;
-    if (status === 'approved' && !comp.sub_merchant_key) {
-      comp.sub_merchant_key = `subm-${comp.id.slice(0, 8)}`;
-    }
   }
 
   await logAdminAction(
@@ -232,7 +303,38 @@ export async function verifyCompany(
 }
 
 // Listing Moderation
-export async function getAdminListings(statusFilter: string = 'all'): Promise<Listing[]> {
+export async function getAdminListings(statusFilter = 'all'): Promise<Listing[]> {
+  try {
+    const supabase = createClient();
+    let query = supabase
+      .from('listings')
+      .select(`
+        *,
+        company:companies(name, logo_url, phone),
+        category:categories(name, slug),
+        city:cities(name),
+        district:districts(name)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (statusFilter !== 'all') {
+      query = query.eq('status', statusFilter);
+    }
+
+    const { data, error } = await query;
+    if (!error && data && data.length > 0) {
+      return data.map((l) => ({
+        ...l,
+        company_name: l.company?.name || 'Firma',
+        category_name: l.category?.name || 'Genel',
+        city_name: l.city?.name || '',
+        district_name: l.district?.name || '',
+      }));
+    }
+  } catch (err) {
+    console.warn('[admin-service] getAdminListings error:', err);
+  }
+
   if (statusFilter === 'all') return DEMO_LISTINGS;
   return DEMO_LISTINGS.filter((l) => l.status === statusFilter);
 }
@@ -243,6 +345,14 @@ export async function moderateListing(
   reason: string,
   adminId: string
 ): Promise<{ success: boolean }> {
+  try {
+    const supabase = createClient();
+    const newStatus = action === 'approve' ? 'active' : 'inactive';
+    await supabase.from('listings').update({ status: newStatus }).eq('id', listingId);
+  } catch (err) {
+    console.warn('[admin-service] moderateListing error:', err);
+  }
+
   const listing = DEMO_LISTINGS.find((l) => l.id === listingId);
   if (listing) {
     if (action === 'approve') listing.status = 'active';

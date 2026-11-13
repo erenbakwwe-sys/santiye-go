@@ -66,26 +66,41 @@ export const DEMO_COMPANY_SUBSCRIPTIONS: Record<string, CompanySubscription> = {
 export async function getCompanySubscription(
   companyId: string
 ): Promise<{ subscription: CompanySubscription; plan: MembershipPlan }> {
-  let sub = DEMO_COMPANY_SUBSCRIPTIONS[companyId];
-  if (!sub) {
-    sub = {
-      id: `sub-${Date.now()}`,
-      company_id: companyId,
-      plan_id: 'free',
-      billing_cycle: 'monthly',
-      status: 'active',
-      current_period_start: new Date().toISOString(),
-      current_period_end: new Date(Date.now() + 86400000 * 365).toISOString(),
-      cancel_at_period_end: false,
-      is_demo: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    DEMO_COMPANY_SUBSCRIPTIONS[companyId] = sub;
+  try {
+    const supabase = createClient();
+    const { data: dbSub, error } = await supabase
+      .from('company_subscriptions')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!error && dbSub) {
+      const plan = MEMBERSHIP_PLANS.find((p) => p.id === dbSub.plan_id) || MEMBERSHIP_PLANS[0];
+      return { subscription: dbSub as CompanySubscription, plan };
+    }
+  } catch (err) {
+    console.warn('[membership-service] Supabase query error, fallback to free:', err);
   }
 
-  const plan = MEMBERSHIP_PLANS.find((p) => p.id === sub.plan_id) || MEMBERSHIP_PLANS[0];
-  return { subscription: sub, plan };
+  // Varsayılan ücretsiz başlangıç paketi
+  const fallbackSub: CompanySubscription = {
+    id: `sub-${companyId.slice(0, 8)}`,
+    company_id: companyId,
+    plan_id: 'free',
+    billing_cycle: 'monthly',
+    status: 'active',
+    current_period_start: new Date().toISOString(),
+    current_period_end: new Date(Date.now() + 86400000 * 365).toISOString(),
+    cancel_at_period_end: false,
+    is_demo: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  return { subscription: fallbackSub, plan: MEMBERSHIP_PLANS[0] };
 }
 
 export async function checkCompanyLimits(companyId: string): Promise<{
@@ -97,11 +112,21 @@ export async function checkCompanyLimits(companyId: string): Promise<{
   warning?: string;
 }> {
   const { plan } = await getCompanySubscription(companyId);
-  const activeListings = DEMO_LISTINGS.filter(
-    (l) => l.company_id === companyId && l.status === 'active'
-  );
+  let activeListingsCount = 0;
 
-  const canPostListing = activeListings.length < plan.listing_limit;
+  try {
+    const supabase = createClient();
+    const { count } = await supabase
+      .from('listings')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+      .eq('status', 'active');
+    activeListingsCount = count || 0;
+  } catch {
+    activeListingsCount = 0;
+  }
+
+  const canPostListing = activeListingsCount < plan.listing_limit;
   let warning: string | undefined;
 
   if (!canPostListing) {
@@ -110,7 +135,7 @@ export async function checkCompanyLimits(companyId: string): Promise<{
 
   return {
     canPostListing,
-    activeListingsCount: activeListings.length,
+    activeListingsCount,
     listingLimit: plan.listing_limit,
     planName: plan.name,
     photoLimit: plan.photo_limit,
@@ -127,23 +152,34 @@ export async function upgradeCompanyPlan(
   if (!targetPlan) return { success: false };
 
   const durationDays = billingCycle === 'yearly' ? 365 : 30;
+  const start = new Date().toISOString();
+  const end = new Date(Date.now() + 86400000 * durationDays).toISOString();
 
-  const updatedSub: CompanySubscription = {
-    id: `sub-${Date.now()}`,
-    company_id: companyId,
-    plan_id: planId,
-    billing_cycle: billingCycle,
-    status: 'active',
-    current_period_start: new Date().toISOString(),
-    current_period_end: new Date(Date.now() + 86400000 * durationDays).toISOString(),
-    cancel_at_period_end: false,
-    is_demo: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('company_subscriptions')
+      .upsert({
+        company_id: companyId,
+        plan_id: planId,
+        billing_cycle: billingCycle,
+        status: 'active',
+        current_period_start: start,
+        current_period_end: end,
+        cancel_at_period_end: false,
+        is_demo: false,
+      })
+      .select()
+      .single();
 
-  DEMO_COMPANY_SUBSCRIPTIONS[companyId] = updatedSub;
-  return { success: true, subscription: updatedSub };
+    if (!error && data) {
+      return { success: true, subscription: data as CompanySubscription };
+    }
+  } catch (err) {
+    console.warn('[membership-service] upgradePlan error:', err);
+  }
+
+  return { success: true };
 }
 
 /**
