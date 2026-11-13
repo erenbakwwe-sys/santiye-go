@@ -67,8 +67,6 @@ SELECT
     city_id,
     district_id,
     is_verified,
-    rating,
-    review_count,
     created_at
 FROM public.companies;
 
