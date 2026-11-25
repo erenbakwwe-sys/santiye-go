@@ -51,8 +51,6 @@ export default function ListingActionBox({ listing }: ListingActionBoxProps) {
     ((listing.company as any)?.user_id === currentUserId || listing.company_id === currentUserId)
   );
 
-  const companyPhone = listing.company?.phone || '+905320000000';
-  const whatsappNumber = (listing.company?.whatsapp || companyPhone).replace(/[^0-9]/g, '');
   const whatsappMessage = encodeURIComponent(
     `Merhaba, ŞantiyeGO üzerinden "${listing.title}" başlıklı ilanınız hakkında bilgi ve teklif almak istiyorum.`
   );
@@ -129,7 +127,7 @@ export default function ListingActionBox({ listing }: ListingActionBoxProps) {
           </button>
         </div>
 
-        {/* Kontrollü İletişim & Güvenlik Koruma Kutusu (Prompt 9A) */}
+        {/* Kontrollü İletişim & Güvenlik Koruma Kutusu */}
         <div className="space-y-3 pt-2 border-t border-slate-100">
           {isOwner ? (
             <div className="w-full py-3 px-4 rounded-xl bg-slate-100 text-slate-500 font-bold text-xs flex items-center justify-center gap-2 border border-slate-200 cursor-not-allowed">
@@ -246,7 +244,7 @@ export default function ListingActionBox({ listing }: ListingActionBoxProps) {
                 )}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Şikayet Nedeni (Prompt 9A):
+                    Şikayet nedeni
                   </label>
                   <select
                     value={reportReason}

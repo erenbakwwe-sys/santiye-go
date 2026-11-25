@@ -305,7 +305,7 @@ export default function AdminListingsPage() {
 
             <div className="space-y-3">
               <label className="block text-xs font-bold text-slate-700">
-                Kaldırma / Red Gerekçesi (Prompt 9A):
+                Kaldırma / ret gerekçesi:
               </label>
               <select
                 value={rejectReason}

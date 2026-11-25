@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import { ArrowLeft, ShieldAlert, Award, FileCheck, DollarSign, Building } from 'lucide-react';
 
+export const metadata = {
+  title: 'Üyelik sözleşmesi | ŞantiyeGO',
+};
+
 export default function MembershipAgreementPage() {
   return (
     <div className="bg-slate-50 min-h-screen py-10">

@@ -26,3 +26,22 @@ export function listingCompanyName(listing: {
   const raw = listing.company?.name?.trim() || listing.company_name?.trim() || 'Tedarikçi';
   return raw.replace(/^\[DEMO\]\s*/i, '');
 }
+
+/** Dolu olan il/ilçe parçalarını virgülle birleştirir; ikisi de boşsa null (satır çizilmez). */
+export function formatLocation(city?: string | null, district?: string | null): string | null {
+  const parts = [city, district]
+    .map((p) => (typeof p === 'string' ? p.trim() : ''))
+    .filter((p) => p.length > 0);
+  return parts.length > 0 ? parts.join(', ') : null;
+}
+
+/**
+ * Firma doğrulanmış mı? İç içe (company.is_verified) ya da düz (company_is_verified) alan
+ * kesin `true` ise doğrulanmıştır; bilgi hiç yoksa false (rozet gösterilmez).
+ */
+export function isCompanyVerified(listing: {
+  company?: { name?: string | null; is_verified?: boolean | null } | null;
+  company_is_verified?: boolean | null;
+}): boolean {
+  return listing.company?.is_verified === true || listing.company_is_verified === true;
+}

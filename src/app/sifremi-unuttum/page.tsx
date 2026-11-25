@@ -6,6 +6,7 @@ import { Mail, ArrowLeft, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { sendPasswordResetEmail } from '@/lib/services/email-service';
 import { checkRateLimit } from '@/lib/security/rate-limiter';
+import { resetOutcome } from '@/lib/utils/form-helpers';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -28,32 +29,46 @@ export default function ForgotPasswordPage() {
 
     setLoading(true);
 
+    let threw = false;
+    let status = 200;
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     try {
       const isSupabaseConfigured =
         process.env.NEXT_PUBLIC_SUPABASE_URL &&
         !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder');
 
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-      const resetLink = `${baseUrl}/sifre-sifirla?email=${encodeURIComponent(email.trim())}`;
-
       if (isSupabaseConfigured) {
         // Supabase Password Reset Email
-        await supabase.auth.resetPasswordForEmail(email.trim(), {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
           redirectTo: `${baseUrl}/sifre-sifirla`,
         });
+        if (error) {
+          // Ağ hatası (AuthRetryableFetchError) istek tamamlanamadıysa; diğerleri sunucu cevabıdır.
+          status = error.status ?? 0;
+          threw = error.name === 'AuthRetryableFetchError' || error.status === undefined;
+        }
       }
-
-      // Ayrıca özel markalı HTML şablonumuzla e-posta gönder
-      await sendPasswordResetEmail(email.trim(), 'Değerli Kullanıcımız', resetLink);
-
-      // Prompt 8 Kuralı: Kullanıcı var/yok bilgisini sızdırmayan genel mesaj
-      setSubmitted(true);
-    } catch (err: any) {
-      // Hata olsa dahi güvenlik gereği genel bilgi verilir
-      setSubmitted(true);
-    } finally {
-      setLoading(false);
+    } catch {
+      threw = true;
     }
+
+    const outcome = resetOutcome({ threw, status });
+    if (outcome === 'retry') {
+      setErrorMsg('Şu anda bağlantı kurulamadı, lütfen tekrar deneyin.');
+    } else if (outcome === 'rate_limited') {
+      setErrorMsg('Çok sık denediniz. Birkaç dakika sonra tekrar deneyin.');
+    } else {
+      // Birinci çağrı tamamlandı: ikincil markalı e-posta kendi try/catch'inde; hatası kullanıcıya yansımaz
+      try {
+        const resetLink = `${baseUrl}/sifre-sifirla?email=${encodeURIComponent(email.trim())}`;
+        await sendPasswordResetEmail(email.trim(), 'Değerli Kullanıcımız', resetLink);
+      } catch (err) {
+        console.error('Markalı şifre sıfırlama e-postası gönderilemedi:', err);
+      }
+      // Kullanıcı var/yok bilgisini sızdırmayan aynı genel başarı ekranı
+      setSubmitted(true);
+    }
+    setLoading(false);
   };
 
   return (

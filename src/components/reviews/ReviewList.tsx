@@ -61,7 +61,7 @@ export default function ReviewList({
         <div>
           <h2 className="text-base sm:text-lg font-black text-navy-900 flex items-center gap-2">
             <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
-            Doğrulanmış Değerlendirmeler & Yorumlar
+            Değerlendirmeler ve yorumlar
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             Yalnızca platform üzerinden makine kiralayan veya sipariş tamamlayan müteahhitlerin yorumlarıdır.
@@ -78,7 +78,7 @@ export default function ReviewList({
                 <span className="text-xs text-slate-400 font-bold">/ 5.0</span>
               </div>
               <div className="text-[10px] text-slate-500">
-                {stats.totalCount} Değerlendirme • Bayesian: {stats.bayesianScore}
+                {stats.totalCount} Değerlendirme
               </div>
             </div>
           </div>

@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import { ArrowLeft, ShieldAlert } from 'lucide-react';
 
+export const metadata = {
+  title: 'Mesafeli satış sözleşmesi | ŞantiyeGO',
+};
+
 export default function DistanceSalesAgreementPage() {
   return (
     <div className="bg-slate-50 min-h-screen py-10">

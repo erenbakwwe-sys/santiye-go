@@ -213,7 +213,7 @@ function CompanyEarningsPage() {
           </div>
         </div>
 
-        {/* 5 Balance Cards (Prompt 9E Şartı) */}
+        {/* 5 Balance Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* 1. Havuzda Bekleyen */}
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">

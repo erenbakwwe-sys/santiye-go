@@ -266,9 +266,19 @@ async function runUnitTests() {
 
   process.env.IYZICO_API_KEY = '';
   process.env.IYZICO_SECRET_KEY = '';
-  const unconfiguredAdapter = new IyzicoPaymentAdapter();
-
-  const unconfiguredRes = await unconfiguredAdapter.initiateCheckout(checkoutPayloadSent as any);
+  // Adaptör "yapılandırılmamış" hatasını yalnız NODE_ENV === 'production' iken verir
+  // (çağrı anında okunur); bu adım için production'a alınır, sonra eski değer geri konur.
+  const env = process.env as Record<string, string | undefined>;
+  const previousNodeEnv = env.NODE_ENV;
+  let unconfiguredRes;
+  try {
+    env.NODE_ENV = 'production';
+    const unconfiguredAdapter = new IyzicoPaymentAdapter();
+    unconfiguredRes = await unconfiguredAdapter.initiateCheckout(checkoutPayloadSent as any);
+  } finally {
+    if (previousNodeEnv === undefined) delete env.NODE_ENV;
+    else env.NODE_ENV = previousNodeEnv;
+  }
   assert(
     unconfiguredRes.success === false && unconfiguredRes.error?.includes('yapılandırılmamış'),
     '7.1 Anahtarlar eksik olduğunda sessizce başarılı dönülmedi, açık hata verildi.'

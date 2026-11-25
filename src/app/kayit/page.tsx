@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Building2,
   User,
@@ -26,10 +26,12 @@ import { isDisposableEmail, sendEmailVerification } from '@/lib/services/email-s
 import { checkRateLimit } from '@/lib/security/rate-limiter';
 import { registerUser } from '@/lib/services/auth-service';
 import { LogoMark } from '@/components/brand/Logo';
+import { initialRoleFromParam } from '@/lib/utils/form-helpers';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
-  const [role, setRole] = useState<UserRole>('buyer');
+  const searchParams = useSearchParams();
+  const [role, setRole] = useState<UserRole>(() => initialRoleFromParam(searchParams.get('role')));
   const [fullName, setFullName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [taxNumber, setTaxNumber] = useState('');
@@ -179,7 +181,7 @@ export default function RegisterPage() {
         throw new Error(res.error || 'Kayıt işlemi sırasında bir hata oluştu.');
       }
 
-      // E-posta ve SMS üzerinden gerçek 6 haneli güvenlik kodunu gönder
+      // E-posta ile 6 haneli güvenlik kodunu gönder
       try {
         await fetch('/api/auth/send-otp', {
           method: 'POST',
@@ -392,7 +394,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Cep Telefonu (SMS OTP için) *
+                Cep telefonu *
               </label>
               <div className="relative flex items-center">
                 <Phone className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
@@ -451,7 +453,7 @@ export default function RegisterPage() {
                 >
                   KVKK Aydınlatma Metni
                 </button>
-                &apos;ni okudum, kişisel verilerimin işlenmesini onaylıyorum (v1.0).
+                &apos;ni okudum, kişisel verilerimin işlenmesini onaylıyorum.
               </span>
             </label>
 
@@ -498,5 +500,13 @@ export default function RegisterPage() {
 
       <KvkkModal isOpen={kvkkModalOpen} onClose={() => setKvkkModalOpen(false)} />
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterForm />
+    </Suspense>
   );
 }

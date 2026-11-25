@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { formatDistance, listingCompanyName } from '@/lib/utils/listing-display';
+import { formatDistance, isCompanyVerified, listingCompanyName } from '@/lib/utils/listing-display';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Listing } from '@/types/database';
 import { formatTechnicalSpecLabel } from '@/lib/services/attribute-service';
-import { X, Check, ArrowRight, ShieldCheck, PhoneCall, Layers, Trash2 } from 'lucide-react';
+import { X, Check, ArrowRight, ShieldCheck, Layers, Trash2 } from 'lucide-react';
 
 interface CompareDrawerProps {
   selectedListings: Listing[];
@@ -149,7 +149,9 @@ export default function CompareDrawer({
                         {l.title}
                       </h4>
                       <p className="text-xs text-slate-500 flex items-center gap-1 mb-3">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        {isCompanyVerified(l) && (
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        )}
                         <span>{listingCompanyName(l)}</span>
                       </p>
 
@@ -233,13 +235,6 @@ export default function CompareDrawer({
                       >
                         İlan Detayına Git
                       </Link>
-                      <a
-                        href={`tel:${l.company?.phone || '+905320000000'}`}
-                        className="w-full py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-lg text-center flex items-center justify-center gap-1 transition"
-                      >
-                        <PhoneCall className="w-3.5 h-3.5" />
-                        <span>Firmayı Ara</span>
-                      </a>
                     </div>
                   </div>
                 ))}

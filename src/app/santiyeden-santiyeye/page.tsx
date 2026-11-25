@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowRight, BadgePercent, CalendarDays, ClipboardList, MapPin, Package, Phone, Plus, Recycle, Truck, X } from 'lucide-react';
 import { ALL_81_CITIES } from '@/lib/all-cities';
+import { isDemoFallbackAllowed } from '@/lib/config/runtime';
+import { realCount, visibleItems } from '@/lib/utils/sample-content';
 import {
   LIMITS, LISTING_TYPE_LABEL, MarketListing, MyListing, Inquiry, ListingType, NewListing,
   addDays, categoriesFor, createListing, currentUserId, discountPercent, exampleListings, fetchInquiriesFor, fetchListings,
@@ -33,7 +35,7 @@ export default function CircularMarketPage() {
     setLoading(true);
     fetchListings()
       .then(data => { if (active) { setRows(data); setNotice(''); } })
-      .catch(() => { if (active) { setRows(exampleListings()); setNotice('Canlı ilanlar alınamadı. Örnek ilanlar gösteriliyor.'); } })
+      .catch(() => { if (active) { setRows([]); setNotice(isDemoFallbackAllowed() ? 'Canlı ilanlar alınamadı. Örnek ilanlar gösteriliyor.' : 'Canlı ilanlar alınamadı. Lütfen daha sonra tekrar deneyin.'); } })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [reloadKey]);
@@ -44,11 +46,14 @@ export default function CircularMarketPage() {
     return () => { active = false; };
   }, []);
 
-  const onlyExamples = rows.length > 0 && rows.every(r => isDemo(r.id));
-  const inTab = rows.filter(r => r.listing_type === tab);
+  const demoAllowed = isDemoFallbackAllowed();
+  const realRows = rows.filter(r => !isDemo(r.id));
+  const shownRows = visibleItems(realRows, exampleListings(), demoAllowed);
+  const onlyExamples = realRows.length === 0 && shownRows.length > 0;
+  const inTab = shownRows.filter(r => r.listing_type === tab);
   const results = inTab.filter(r =>
     (!city || r.origin_city === city || r.dest_city === city) && (!category || r.category === category));
-  const count = (t: ListingType) => rows.filter(r => r.listing_type === t).length;
+  const count = (t: ListingType) => realCount(realRows.filter(r => r.listing_type === t));
   const truck = tab === 'BACKHAUL_TRUCK';
 
   return (
@@ -111,11 +116,16 @@ export default function CircularMarketPage() {
         {loading && <p role="status">Yükleniyor…</p>}
         {!loading && notice && <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{notice}</p>}
         {!loading && !notice && onlyExamples && (
-          <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Henüz yayında ilan yok. Pazarın nasıl göründüğü için örnek ilanlar gösteriliyor; ilk gerçek ilanı siz verin.</p>
+          <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Henüz yayında ilan yok. Aşağıdakiler örnek ilandır; talep gönderilemez.</p>
         )}
-        {!loading && !results.length && (
+        {!loading && !notice && !results.length && (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
-            <p className="font-bold">Bu filtrelerle eşleşen ilan bulunamadı.</p>
+            {shownRows.length === 0 ? (
+              <>
+                <h2 className="text-xl font-black">Henüz yayında ilan yok</h2>
+                <p className="mt-2">Artan malzeme ve boş dönüş araç ilanları yayınlandıkça burada listelenecek.</p>
+              </>
+            ) : <p className="font-bold">Bu filtrelerle eşleşen ilan bulunamadı.</p>}
             <button type="button" className={action + ' mt-4'} onClick={() => setCreating(true)}>İlk ilanı siz verin</button>
           </div>
         )}
@@ -177,9 +187,11 @@ function ListingCard({ item, onInquire }: { item: MarketListing; onInquire: () =
         <p className="text-2xl font-black">{formatPrice(item.price)}</p>
         {item.discount_note && <p className="text-xs font-semibold text-emerald-700">{item.discount_note}</p>}
       </div>
-      <button type="button" className={action} onClick={onInquire} disabled={item.is_mine}>
-        {item.is_mine ? 'Bu sizin ilanınız' : 'Hemen Talep Gönder / İletişime Geç'}
-      </button>
+      {!isDemo(item.id) && (
+        <button type="button" className={action} onClick={onInquire} disabled={item.is_mine}>
+          {item.is_mine ? 'Bu sizin ilanınız' : 'Hemen Talep Gönder / İletişime Geç'}
+        </button>
+      )}
     </article>
   );
 }

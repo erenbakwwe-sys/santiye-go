@@ -268,7 +268,7 @@ function DuvarTab({ onQuote }: { onQuote: (title: string, desc: string, qty: num
 
   const malzemeLabels: Record<DuvarMalzeme, string> = {
     tugla: 'Delikli Tuğla (19×19×8.5 cm)',
-    bims: '⬜ Bims Blok (40×20×20 cm)',
+    bims: 'Bims Blok (40×20×20 cm)',
     gazbeton: 'Gazbeton / AAC (60×20×25 cm)',
   };
 

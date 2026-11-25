@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { formatDistance, listingCompanyName } from '@/lib/utils/listing-display';
+import { formatDistance, isCompanyVerified, listingCompanyName } from '@/lib/utils/listing-display';
 import Link from 'next/link';
 import { Listing } from '@/types/database';
 import { ArrowUpDown, Check, X, ShieldCheck, MapPin, ExternalLink, Zap } from 'lucide-react';
@@ -115,11 +115,11 @@ export default function ComparisonTable({
         <div className="text-xs font-semibold text-slate-500 flex items-center gap-3">
           <span className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-            En Ucuz Teklif
+            En ucuz teklif
           </span>
           <span className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />
-            En Yakın Mesafe
+            En yakın mesafe
           </span>
         </div>
       </div>
@@ -195,12 +195,12 @@ export default function ComparisonTable({
                     <div className="flex items-center gap-1.5 mb-0.5">
                       {isCheapestDaily && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-emerald-600 text-white shadow-sm">
-                          EN UCUZ
+                          En ucuz
                         </span>
                       )}
                       {isClosest && (
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-orange-500 text-white shadow-sm">
-                          EN YAKIN
+                          En yakın
                         </span>
                       )}
                     </div>
@@ -211,7 +211,9 @@ export default function ComparisonTable({
                       {l.title}
                     </Link>
                     <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5 truncate">
-                      <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
+                      {isCompanyVerified(l) && (
+                        <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
+                      )}
                       <span className="truncate">{listingCompanyName(l)}</span>
                     </div>
                   </td>
