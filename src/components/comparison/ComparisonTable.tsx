@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { formatDistance } from '@/lib/utils/listing-display';
+import { formatDistance, listingCompanyName } from '@/lib/utils/listing-display';
 import Link from 'next/link';
 import { Listing } from '@/types/database';
 import { ArrowUpDown, Check, X, ShieldCheck, MapPin, ExternalLink, Zap } from 'lucide-react';
@@ -212,7 +212,7 @@ export default function ComparisonTable({
                     </Link>
                     <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5 truncate">
                       <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
-                      <span className="truncate">{l.company?.name || 'Onaylı Firma'}</span>
+                      <span className="truncate">{listingCompanyName(l)}</span>
                     </div>
                   </td>
 

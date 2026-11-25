@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { listingCompanyName } from '@/lib/utils/listing-display';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -55,7 +56,7 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
   const displayTitle = listing.is_demo
     ? (rawTitle.toLowerCase().startsWith('örnek') ? rawTitle : `Örnek: ${rawTitle}`)
     : rawTitle;
-  const displayCompanyName = (listing.company?.name || 'Onaylı ŞantiyeGO Tedarikçisi').replace(/^\[DEMO\]\s*/i, '');
+  const displayCompanyName = listingCompanyName(listing);
 
   const reviews = await getCompanyReviews(listing.company_id || 'f0000000-0000-0000-0000-000000000001');
 

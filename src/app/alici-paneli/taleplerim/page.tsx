@@ -271,7 +271,7 @@ export default function BuyerQuoteRequestsPage() {
                                   >
                                     <td className="p-3">
                                       <div className="font-extrabold text-navy-900 text-sm">
-                                        {q.company?.name || 'Onaylı Tedarikçi'}
+                                        {q.company?.name || 'Tedarikçi'}
                                       </div>
                                       <div className="flex items-center gap-1 text-[11px] text-amber-600 font-bold mt-0.5">
                                         <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
@@ -361,7 +361,7 @@ export default function BuyerQuoteRequestsPage() {
                                         )}
 
                                         <Link
-                                          href={`/mesajlar?companyId=${q.company_id || ''}&quoteId=${q.id}&listingTitle=${encodeURIComponent(req.title || 'Talep Teklifi')}&companyName=${encodeURIComponent(q.company?.name || 'Onaylı Tedarikçi')}`}
+                                          href={`/mesajlar?companyId=${q.company_id || ''}&quoteId=${q.id}&listingTitle=${encodeURIComponent(req.title || 'Talep Teklifi')}&companyName=${encodeURIComponent(q.company?.name || 'Tedarikçi')}`}
                                           className="p-1.5 rounded-lg border border-slate-300 text-slate-600 hover:text-navy-900 hover:bg-slate-100 transition"
                                           title="Firmaya Soru Sor"
                                         >

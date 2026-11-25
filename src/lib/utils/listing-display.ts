@@ -14,3 +14,15 @@ export function shouldShowNearbySection(nearby: { id: string }[], newest: { id: 
   const newestIds = new Set(newest.map((l) => l.id));
   return nearby.some((l) => !newestIds.has(l.id));
 }
+
+/**
+ * İlan kartında gösterilecek firma adı. Arama fonksiyonu adı düz alanda (company_name),
+ * doğrudan tablo sorgusu iç içe (company.name) döndürür; ikisine de bakılır.
+ */
+export function listingCompanyName(listing: {
+  company?: { name?: string | null } | null;
+  company_name?: string | null;
+}): string {
+  const raw = listing.company?.name?.trim() || listing.company_name?.trim() || 'Tedarikçi';
+  return raw.replace(/^\[DEMO\]\s*/i, '');
+}

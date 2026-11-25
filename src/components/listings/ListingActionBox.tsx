@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { listingCompanyName } from '@/lib/utils/listing-display';
 import Link from 'next/link';
 import {
   MessageSquare,
@@ -137,7 +138,7 @@ export default function ListingActionBox({ listing }: ListingActionBoxProps) {
             </div>
           ) : (
             <Link
-              href={`/mesajlar?companyId=${listing.company_id || ''}&listingId=${listing.id}&listingTitle=${encodeURIComponent(listing.title)}&companyName=${encodeURIComponent(listing.company?.name || (listing as any).company_name || 'Firma')}`}
+              href={`/mesajlar?companyId=${listing.company_id || ''}&listingId=${listing.id}&listingTitle=${encodeURIComponent(listing.title)}&companyName=${encodeURIComponent(listingCompanyName(listing))}`}
               className="w-full py-3 px-4 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-sm"
             >
               <MessageSquare className="w-4 h-4 text-orange-400" />
@@ -309,7 +310,7 @@ export default function ListingActionBox({ listing }: ListingActionBoxProps) {
 
       <ReviewModal
         companyId={listing.company_id || 'f0000000-0000-0000-0000-000000000001'}
-        companyName={listing.company?.name || 'Onaylı Tedarikçi'}
+        companyName={listingCompanyName(listing)}
         listingId={listing.id}
         isOpen={reviewModalOpen}
         onClose={() => setReviewModalOpen(false)}

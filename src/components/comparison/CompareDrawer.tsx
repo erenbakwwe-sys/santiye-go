@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { formatDistance } from '@/lib/utils/listing-display';
+import { formatDistance, listingCompanyName } from '@/lib/utils/listing-display';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Listing } from '@/types/database';
@@ -150,7 +150,7 @@ export default function CompareDrawer({
                       </h4>
                       <p className="text-xs text-slate-500 flex items-center gap-1 mb-3">
                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{l.company?.name || 'Onaylı Firma'}</span>
+                        <span>{listingCompanyName(l)}</span>
                       </p>
 
                       {/* Pricing Box */}
