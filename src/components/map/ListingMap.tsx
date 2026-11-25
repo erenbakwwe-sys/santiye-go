@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { formatDistance } from '@/lib/utils/listing-display';
 import { Listing } from '@/types/database';
 import { Search, RefreshCw } from 'lucide-react';
 
@@ -204,7 +205,7 @@ export default function ListingMap({
               </div>
               <div style="font-size: 11px; color: #64748B; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
                 <span>📍 ${listing.city_name || ''}${listing.district_name ? ', ' + listing.district_name : ''}</span>
-                ${listing.distance_km !== undefined ? `<strong style="color: #C75512;">${listing.distance_km} km</strong>` : ''}
+                ${formatDistance(listing.distance_km) ? `<strong style="color: #C75512;">${formatDistance(listing.distance_km)}</strong>` : ''}
               </div>
               <div style="font-size: 14px; font-weight: 700; color: #17191C; margin-bottom: 8px;">
                 ${priceText}

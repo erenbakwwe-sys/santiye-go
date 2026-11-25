@@ -199,11 +199,8 @@ function MultiVendorQuoteForm() {
         {/* Header Hero Banner */}
         <div className="bg-navy-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl mb-8 relative overflow-hidden">
           <div className="relative z-10 max-w-2xl">
-            <span className="px-3 py-1 rounded-full bg-orange-500 text-white text-[11px] font-black inline-block mb-3">
-              Çoklu Firma Teklif Dağıtımı
-            </span>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-snug">
-              İhtiyacınızı Bir Kez Yazın, Bölgenizdeki En İyi Firmalardan Teklif Alın!
+              İhtiyacınızı bir kez yazın, bölgenizdeki firmalardan teklif alın
             </h1>
             <p className="text-sm text-slate-300 mt-2 leading-relaxed">
               İş makinesi, yapı malzemesi veya nakliye ihtiyacınızı belirtin. Sistem seçtiğiniz

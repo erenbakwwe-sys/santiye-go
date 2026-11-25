@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { formatDistance } from '@/lib/utils/listing-display';
 import Link from 'next/link';
 import { Listing } from '@/types/database';
 import { ArrowUpDown, Check, X, ShieldCheck, MapPin, ExternalLink, Zap } from 'lucide-react';
@@ -41,7 +42,7 @@ export default function ComparisonTable({
         minSale = l.price_sale;
         minSaleId = l.id;
       }
-      if (l.distance_km !== undefined && l.distance_km < minDistance) {
+      if (typeof l.distance_km === 'number' && l.distance_km < minDistance) {
         minDistance = l.distance_km;
         minDistanceId = l.id;
       }
@@ -222,8 +223,8 @@ export default function ComparisonTable({
                       <span>{l.city_name}{l.district_name ? `, ${l.district_name}` : ''}</span>
                     </div>
                     <div className="text-[11px] text-slate-500">
-                      {l.distance_km !== undefined ? (
-                        <strong className="text-orange-600">{l.distance_km} km</strong>
+                      {formatDistance(l.distance_km) ? (
+                        <strong className="text-orange-600">{formatDistance(l.distance_km)}</strong>
                       ) : (
                         'Mesafe hesapsız'
                       )}

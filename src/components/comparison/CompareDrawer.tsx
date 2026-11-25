@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { formatDistance } from '@/lib/utils/listing-display';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Listing } from '@/types/database';
@@ -190,7 +191,7 @@ export default function CompareDrawer({
                       <div className="text-xs text-slate-600 mb-3 py-1.5 px-2.5 rounded bg-slate-100 flex items-center justify-between">
                         <span>Konum & Mesafe:</span>
                         <strong className="text-navy-900">
-                          {l.city_name} {l.distance_km !== undefined ? `(${l.distance_km} km)` : ''}
+                          {l.city_name} {formatDistance(l.distance_km) ? `(${formatDistance(l.distance_km)})` : ''}
                         </strong>
                       </div>
 

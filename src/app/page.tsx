@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { shouldShowNearbySection } from '@/lib/utils/listing-display';
 import {
   Wrench,
   Boxes,
@@ -99,6 +100,7 @@ export default async function HomePage() {
 
   const nearbyListings = nearbyRes.listings;
   const newestListings = newestRes.listings;
+  const showNearby = shouldShowNearbySection(nearbyListings, newestListings);
 
   return (
     <div className="pb-16">
@@ -169,23 +171,18 @@ export default async function HomePage() {
           </section>
         )}
 
-        {/* Yakındaki ilanlar */}
-        <section>
-          <SectionHeader
-            title="Size yakın ilanlar"
-            description="Konumunuza göre en yakın firmalar"
-            href="/ilanlar?sort=distance"
-            linkLabel="Tümünü gör"
-          />
-          {nearbyListings.length === 0 ? (
-            <EmptyListings
-              title="Bölgenizde henüz ilan yok"
-              text="Bölgenizdeki makine sahipleri ve tedarikçilerden fiyat almak için ücretsiz teklif talebi oluşturabilirsiniz."
+        {/* Yakındaki ilanlar: yalnız son eklenenlerden farklıysa gösterilir */}
+        {showNearby && (
+          <section>
+            <SectionHeader
+              title="Size yakın ilanlar"
+              description="Konumunuza göre en yakın firmalar"
+              href="/ilanlar?sort=distance"
+              linkLabel="Tümünü gör"
             />
-          ) : (
             <ListingGrid listings={nearbyListings} />
-          )}
-        </section>
+          </section>
+        )}
 
         {/* Teklif akışı */}
         <section className="bg-white border border-slate-200 rounded-md">

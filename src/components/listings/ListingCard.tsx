@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { formatDistance } from '@/lib/utils/listing-display';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Heart, Scale, CameraOff } from 'lucide-react';
@@ -101,6 +102,7 @@ export default function ListingCard({
       ? rawTitle
       : `Örnek: ${rawTitle}`
     : rawTitle;
+  const distanceLabel = formatDistance(listing.distance_km);
   const displayCompanyName = (listing.company?.name || 'Tedarikçi').replace(/^\[DEMO\]\s*/i, '');
   const href = `/ilan/${listing.slug || listing.id}`;
   const typeLabel =
@@ -154,9 +156,9 @@ export default function ListingCard({
           )}
         </div>
 
-        {listing.distance_km !== undefined && (
+        {distanceLabel && (
           <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded-sm bg-navy-900/85 text-white text-[11px] font-medium tabular">
-            {listing.distance_km} km
+            {distanceLabel}
           </span>
         )}
       </Link>
