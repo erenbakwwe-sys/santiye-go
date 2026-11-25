@@ -28,18 +28,6 @@ export default function AdminAnalyticsPage() {
   const [supplyDemandReports] = useState(getRegionalSupplyDemandReports());
   const [zeroResultQueries] = useState(getZeroResultSearchQueries());
 
-  // Revenue breakdown summary
-  const revenueSummary = {
-    membershipCents: 4470000, // 44.700 TL
-    commissionCents: 5897500, // 58.975 TL
-    advertisingCents: 2185000, // 21.850 TL
-    totalCents: 12552500, // 125.525 TL
-  };
-
-  const formatTRY = (cents: number) => {
-    return (cents / 100).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ₺';
-  };
-
   const handleExportCSV = () => {
     const headers = [
       'Bolge / Il',
@@ -87,7 +75,7 @@ export default function AdminAnalyticsPage() {
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Türkiye genelinde hangi şantiyelerin hangi makineleri aradığını, nerede makine açığı olduğunu ve gelir kalemlerinizi analiz edin.
+            Türkiye genelinde hangi şantiyelerin hangi makineleri aradığını, nerede makine açığı olduğunu gösterir.
           </p>
         </div>
 
@@ -101,40 +89,9 @@ export default function AdminAnalyticsPage() {
         </button>
       </div>
 
-      {/* Revenue Breakdown Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-1">
-          <span className="text-xs font-bold text-slate-500">Toplam Platform Geliri</span>
-          <div className="text-2xl sm:text-3xl font-black text-navy-900">
-            {formatTRY(revenueSummary.totalCents)}
-          </div>
-          <span className="text-[11px] text-emerald-600 font-bold block">Bu ayki toplam hacim</span>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-1">
-          <span className="text-xs font-bold text-emerald-700">Rezervasyon Komisyonları</span>
-          <div className="text-2xl font-black text-emerald-950">
-            {formatTRY(revenueSummary.commissionCents)}
-          </div>
-          <span className="text-[11px] text-slate-500 block">Kiralama ve satış kesintileri</span>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-1">
-          <span className="text-xs font-bold text-blue-700">Firma Üyelik Paketleri</span>
-          <div className="text-2xl font-black text-blue-950">
-            {formatTRY(revenueSummary.membershipCents)}
-          </div>
-          <span className="text-[11px] text-slate-500 block">Pro & Premium abonelikler</span>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-1">
-          <span className="text-xs font-bold text-orange-600">Reklam & Vitrin Geliri</span>
-          <div className="text-2xl font-black text-orange-600">
-            {formatTRY(revenueSummary.advertisingCents)}
-          </div>
-          <span className="text-[11px] text-slate-500 block">Sponsorlu arama & vitrinler</span>
-        </div>
-      </div>
+      <p className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        Bu sayfadaki tablolar örnek veridir; gerçek arama ve ilan ölçümü henüz bağlı değil. Karar verirken kullanmayın.
+      </p>
 
       {/* High-Value Supply-Demand Gap Table ("Çok Aranıyor / Az İlan Var") */}
       <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm space-y-4 p-6">
