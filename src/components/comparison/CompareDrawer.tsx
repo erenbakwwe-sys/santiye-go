@@ -5,8 +5,9 @@ import { formatDistance, isCompanyVerified, listingCompanyName } from '@/lib/uti
 import Image from 'next/image';
 import Link from 'next/link';
 import { Listing } from '@/types/database';
-import { formatTechnicalSpecLabel } from '@/lib/services/attribute-service';
-import { X, Check, ArrowRight, ShieldCheck, Layers, Trash2 } from 'lucide-react';
+import { visibleSpecs } from '@/lib/utils/listing-specs';
+import { comparablePrices, unitRatePrice } from '@/lib/utils/listing-price';
+import { X, ArrowRight, ShieldCheck, Trash2 } from 'lucide-react';
 
 interface CompareDrawerProps {
   selectedListings: Listing[];
@@ -22,6 +23,15 @@ export default function CompareDrawer({
   const [modalOpen, setModalOpen] = useState(false);
 
   if (selectedListings.length === 0) return null;
+
+  // Teknik özellikler: iki üç ilanın etiketlerinin birleşimi (ilk görülme sırasıyla)
+  const specsPerListing = selectedListings.map((l) => visibleSpecs(l.technical_specs));
+  const specLabels: string[] = [];
+  specsPerListing.forEach((specs) =>
+    specs.forEach((sp) => {
+      if (!specLabels.includes(sp.label)) specLabels.push(sp.label);
+    }),
+  );
 
   return (
     <>
@@ -117,7 +127,11 @@ export default function CompareDrawer({
                     : 'grid-cols-1 sm:grid-cols-3'
                 }`}
               >
-                {selectedListings.map((l) => (
+                {selectedListings.map((l) => {
+                  const prices = comparablePrices(l);
+                  const unitRate = unitRatePrice(l);
+                  const noPrice = unitRate === null && prices.daily === null && prices.sale === null && prices.weekly === null && prices.monthly === null;
+                  return (
                   <div
                     key={l.id}
                     className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 flex flex-col justify-between space-y-4 shadow-sm"
@@ -158,32 +172,49 @@ export default function CompareDrawer({
                       {/* Pricing Box */}
                       <div className="bg-white p-3 rounded-lg border border-slate-200 mb-3 space-y-1">
                         <div className="text-[11px] font-bold text-slate-500">Fiyat Tarifesi</div>
-                        {l.pricing_type === 'custom_quote' || (!l.price_daily && !l.price_sale) ? (
+                        {l.pricing_type === 'custom_quote' || noPrice ? (
                           <div>
                             <div className="text-base font-black text-navy-900">Teklife Göre</div>
                             <div className="text-[10px] text-slate-500 font-semibold">Keşif & Proje Bazlı</div>
                           </div>
+                        ) : unitRate ? (
+                          <div className="text-lg font-black text-orange-600">
+                            {unitRate.amount.toLocaleString('tr-TR')} ₺ <span className="text-xs font-semibold text-slate-500">/ {unitRate.unit}</span>
+                          </div>
                         ) : (
                           <>
-                            {l.price_daily && (
-                              <div className="text-lg font-black text-orange-600">
-                                {Number(l.price_daily).toLocaleString('tr-TR')} ₺ <span className="text-xs font-semibold text-slate-500">/ gün</span>
-                              </div>
-                            )}
-                            {l.price_sale && (
+                            {l.listing_type === 'sale' ? (
                               <div className="text-lg font-black text-navy-900">
-                                {Number(l.price_sale).toLocaleString('tr-TR')} ₺ <span className="text-xs font-semibold text-slate-500">Satış</span>
+                                {prices.sale !== null ? (
+                                  <>
+                                    {prices.sale.toLocaleString('tr-TR')} ₺ <span className="text-xs font-semibold text-slate-500">Satış</span>
+                                  </>
+                                ) : (
+                                  '—'
+                                )}
                               </div>
-                            )}
-                            {l.price_weekly && (
-                              <div className="text-xs text-slate-600">
-                                Haftalık: <strong>{Number(l.price_weekly).toLocaleString('tr-TR')} ₺</strong>
-                              </div>
-                            )}
-                            {l.price_monthly && (
-                              <div className="text-xs text-slate-600">
-                                Aylık: <strong>{Number(l.price_monthly).toLocaleString('tr-TR')} ₺</strong>
-                              </div>
+                            ) : (
+                              <>
+                                <div className="text-lg font-black text-orange-600">
+                                  {prices.daily !== null ? (
+                                    <>
+                                      {prices.daily.toLocaleString('tr-TR')} ₺ <span className="text-xs font-semibold text-slate-500">/ gün</span>
+                                    </>
+                                  ) : (
+                                    '—'
+                                  )}
+                                </div>
+                                {prices.weekly !== null && (
+                                  <div className="text-xs text-slate-600">
+                                    Haftalık: <strong>{prices.weekly.toLocaleString('tr-TR')} ₺</strong>
+                                  </div>
+                                )}
+                                {prices.monthly !== null && (
+                                  <div className="text-xs text-slate-600">
+                                    Aylık: <strong>{prices.monthly.toLocaleString('tr-TR')} ₺</strong>
+                                  </div>
+                                )}
+                              </>
                             )}
                           </>
                         )}
@@ -193,7 +224,7 @@ export default function CompareDrawer({
                       <div className="text-xs text-slate-600 mb-3 py-1.5 px-2.5 rounded bg-slate-100 flex items-center justify-between">
                         <span>Konum & Mesafe:</span>
                         <strong className="text-navy-900">
-                          {l.city_name} {formatDistance(l.distance_km) ? `(${formatDistance(l.distance_km)})` : ''}
+                          {l.city_name || '—'} {formatDistance(l.distance_km) ? `(${formatDistance(l.distance_km)})` : ''}
                         </strong>
                       </div>
 
@@ -213,18 +244,6 @@ export default function CompareDrawer({
                         </div>
                       </div>
 
-                      {/* Technical Specs */}
-                      {l.technical_specs && Object.keys(l.technical_specs).length > 0 && (
-                        <div className="space-y-1 text-xs text-slate-600 border-t border-slate-200 pt-2">
-                          <div className="text-[10px] font-bold text-slate-400">Teknik Parametreler</div>
-                          {Object.entries(l.technical_specs).slice(0, 5).map(([key, val]) => (
-                            <div key={key} className="flex items-center justify-between text-[11px]">
-                              <span className="text-slate-500">{formatTechnicalSpecLabel(key)}:</span>
-                              <span className="font-semibold text-navy-900">{typeof val === 'boolean' ? (val ? 'Evet' : 'Hayır') : String(val)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
 
                     {/* Actions */}
@@ -237,8 +256,42 @@ export default function CompareDrawer({
                       </Link>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
+
+              {/* Technical Specs: iki ilandan gelen etiketlerin birleşimi */}
+              {specLabels.length > 0 && (
+                <div className="mt-5 border-t border-slate-200 pt-3">
+                  <div className="text-[10px] font-bold text-slate-400 mb-2">Teknik Parametreler</div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left border-collapse">
+                      <thead>
+                        <tr className="text-[11px] text-slate-500">
+                          <th className="py-1.5 pr-3 font-semibold" />
+                          {selectedListings.map((l) => (
+                            <th key={l.id} className="py-1.5 px-2 font-bold text-navy-900 max-w-[10rem] truncate">
+                              {l.title}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {specLabels.map((label) => (
+                          <tr key={label}>
+                            <td className="py-1.5 pr-3 text-slate-500">{label}</td>
+                            {specsPerListing.map((specs, i) => (
+                              <td key={selectedListings[i].id} className="py-1.5 px-2 font-semibold text-navy-900">
+                                {specs.find((sp) => sp.label === label)?.value ?? '—'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

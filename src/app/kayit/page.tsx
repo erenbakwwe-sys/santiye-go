@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { CITIES, DISTRICTS } from '@/lib/mock-data';
+import { sortByTurkishName } from '@/lib/utils/city-sort';
 import KvkkModal from '@/components/kvkk/KvkkModal';
 import { UserRole } from '@/types/database';
 import { normalizeTurkishPhone, sendPhoneOtp } from '@/lib/services/sms-service';
@@ -210,7 +211,7 @@ function RegisterForm() {
     }
   };
 
-  const filteredDistricts = DISTRICTS.filter((d) => !cityId || d.city_id === Number(cityId));
+  const filteredDistricts = sortByTurkishName(DISTRICTS.filter((d) => !cityId || d.city_id === Number(cityId)));
 
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 bg-slate-50 flex items-center justify-center">
@@ -346,7 +347,7 @@ function RegisterForm() {
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold focus:border-orange-500 focus:outline-none"
                   >
                     <option value="">İl Seçiniz</option>
-                    {CITIES.map((c) => (
+                    {sortByTurkishName(CITIES).map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
                       </option>

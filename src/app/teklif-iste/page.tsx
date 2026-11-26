@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -23,6 +23,13 @@ import { CATEGORIES, CITIES, DISTRICTS } from '@/lib/mock-data';
 import { createQuoteRequest } from '@/lib/services/quote-service';
 import { getActiveProfile } from '@/lib/services/auth-service';
 import { sortByTurkishName } from '@/lib/utils/city-sort';
+import { serializeDraft, parseDraft } from '@/lib/utils/form-draft';
+
+const DRAFT_KEY = 'santiyego_teklif_taslak';
+const DRAFT_FIELDS = [
+  'selectedMainCat', 'selectedSubCat', 'title', 'description', 'quantity', 'startDate', 'endDate',
+  'cityId', 'districtId', 'addressDetail', 'searchRadiusKm', 'needOperator', 'needFuel', 'needTransport',
+] as const;
 
 const MAX_TITLE_LEN = 250; // quote_requests.title VARCHAR(250)
 const MAX_DESC_LEN = 5000;
@@ -80,6 +87,68 @@ function MultiVendorQuoteForm() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [loggedOut, setLoggedOut] = useState(false);
+
+  // Giriş durumunu sayfa açılışında öğren (yalnız bilgi satırı için)
+  useEffect(() => {
+    let cancelled = false;
+    getActiveProfile()
+      .then((p) => {
+        if (!cancelled && !p) setLoggedOut(true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Girişten dönünce taslağı geri yükle (adres parametresinden gelen değerler öncelikli)
+  useEffect(() => {
+    let raw: string | null = null;
+    try {
+      raw = sessionStorage.getItem(DRAFT_KEY);
+    } catch {}
+    const d = parseDraft(raw, DRAFT_FIELDS);
+    // parseDraft geçerli alan yoksa null verir; boş taslakta "geri yüklendi" satırı çıkmaz.
+    if (!d || Object.keys(d).length === 0) return;
+    const str = (k: string) => (typeof d[k] === 'string' ? (d[k] as string) : null);
+    const bool = (k: string) => (typeof d[k] === 'boolean' ? (d[k] as boolean) : null);
+
+    if (!calcCat) {
+      const main = CATEGORIES.find((c) => c.id === str('selectedMainCat'));
+      if (main) {
+        setSelectedMainCat(main.id);
+        const sub = main.subcategories?.find((sc) => sc.id === str('selectedSubCat'));
+        if (sub) setSelectedSubCat(sub.id);
+        else if (main.subcategories?.[0]) setSelectedSubCat(main.subcategories[0].id);
+      }
+    }
+    if (!calcTitle && str('title') !== null) setTitle(str('title')!.slice(0, MAX_TITLE_LEN));
+    if (!calcDescription && str('description') !== null) setDescription(str('description')!.slice(0, MAX_DESC_LEN));
+    if (!fromCalc && typeof d.quantity === 'number') setQuantity(clampQty(d.quantity));
+    if (str('startDate') !== null) setStartDate(str('startDate')!);
+    if (str('endDate') !== null) setEndDate(str('endDate')!);
+    const city = CITIES.find((c) => c.id === Number(d.cityId));
+    if (city) {
+      setCityId(city.id);
+      const dist = DISTRICTS.find((x) => x.id === Number(d.districtId) && x.city_id === city.id);
+      if (dist) setDistrictId(dist.id);
+      else {
+        const first = DISTRICTS.find((x) => x.city_id === city.id);
+        if (first) setDistrictId(first.id);
+      }
+    }
+    if (str('addressDetail') !== null) setAddressDetail(str('addressDetail')!);
+    if (typeof d.searchRadiusKm === 'number' && [5, 10, 25, 50, 100, 500].includes(d.searchRadiusKm)) {
+      setSearchRadiusKm(d.searchRadiusKm);
+    }
+    if (bool('needOperator') !== null) setNeedOperator(bool('needOperator')!);
+    if (bool('needFuel') !== null) setNeedFuel(bool('needFuel')!);
+    if (bool('needTransport') !== null) setNeedTransport(bool('needTransport')!);
+    setDraftRestored(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const availableDistricts = sortByTurkishName(DISTRICTS.filter((d) => d.city_id === Number(cityId)));
 
@@ -121,6 +190,16 @@ function MultiVendorQuoteForm() {
     if (!profile) {
       setErrorMessage('Teklif talebi oluşturabilmek için lütfen giriş yapınız.');
       setLoading(false);
+      // Yazılanlar girişten sonra korunsun (yalnız form alanları, sekme kapanınca silinir)
+      try {
+        sessionStorage.setItem(
+          DRAFT_KEY,
+          serializeDraft({
+            selectedMainCat, selectedSubCat, title, description, quantity, startDate, endDate,
+            cityId, districtId, addressDetail, searchRadiusKm, needOperator, needFuel, needTransport,
+          }),
+        );
+      } catch {}
       // Hesaplayıcıdan gelen parametreler giriş sonrası kaybolmasın
       const qs = searchParams.toString();
       router.push(`/giris?redirect=${encodeURIComponent(qs ? `/teklif-iste?${qs}` : '/teklif-iste')}`);
@@ -155,6 +234,9 @@ function MultiVendorQuoteForm() {
     setLoading(false);
 
     if (res.success) {
+      try {
+        sessionStorage.removeItem(DRAFT_KEY);
+      } catch {}
       setSuccess(true);
       setTimeout(() => {
         router.push('/alici-paneli/taleplerim');
@@ -194,6 +276,19 @@ function MultiVendorQuoteForm() {
                 Konumunuzu belirleyip doğrudan gönderebilirsiniz.
               </p>
             </div>
+          </div>
+        )}
+
+        {draftRestored && (
+          <div role="status" className="mb-6 p-4 bg-orange-50 border border-orange-300 rounded-2xl flex items-start gap-3 text-sm font-bold text-navy-900">
+            <Info className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+            <span>Yazdıklarınız geri yüklendi.</span>
+          </div>
+        )}
+        {loggedOut && (
+          <div className="mb-6 p-4 bg-orange-50 border border-orange-300 rounded-2xl flex items-start gap-3 text-sm font-bold text-navy-900">
+            <Info className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+            <span>Talep göndermek için giriş yapmanız gerekir. Formu doldurabilirsiniz; yazdıklarınız girişten sonra korunur.</span>
           </div>
         )}
 

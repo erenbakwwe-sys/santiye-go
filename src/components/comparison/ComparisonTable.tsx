@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { formatDistance, isCompanyVerified, listingCompanyName } from '@/lib/utils/listing-display';
+import { comparablePrices, cheapestId, unitRatePrice } from '@/lib/utils/listing-price';
 import Link from 'next/link';
 import { Listing } from '@/types/database';
 import { ArrowUpDown, Check, X, ShieldCheck, MapPin, ExternalLink, Zap } from 'lucide-react';
@@ -24,24 +25,10 @@ export default function ComparisonTable({
 
   // Identify cheapest and closest listings for visual badge highlights
   const { cheapestDailyId, cheapestSaleId, closestId } = useMemo(() => {
-    let minDaily = Infinity;
-    let minDailyId: string | null = null;
-
-    let minSale = Infinity;
-    let minSaleId: string | null = null;
-
     let minDistance = Infinity;
     let minDistanceId: string | null = null;
 
     listings.forEach((l) => {
-      if (l.price_daily && l.price_daily < minDaily) {
-        minDaily = l.price_daily;
-        minDailyId = l.id;
-      }
-      if (l.price_sale && l.price_sale < minSale) {
-        minSale = l.price_sale;
-        minSaleId = l.id;
-      }
       if (typeof l.distance_km === 'number' && l.distance_km < minDistance) {
         minDistance = l.distance_km;
         minDistanceId = l.id;
@@ -49,8 +36,8 @@ export default function ComparisonTable({
     });
 
     return {
-      cheapestDailyId: minDailyId,
-      cheapestSaleId: minSaleId,
+      cheapestDailyId: cheapestId(listings, 'daily'),
+      cheapestSaleId: cheapestId(listings, 'sale'),
       closestId: minDistanceId,
     };
   }, [listings]);
@@ -66,11 +53,11 @@ export default function ComparisonTable({
         valA = a.distance_km ?? 999999;
         valB = b.distance_km ?? 999999;
       } else if (sortField === 'price_daily') {
-        valA = a.price_daily ?? 99999999;
-        valB = b.price_daily ?? 99999999;
+        valA = comparablePrices(a).daily ?? 99999999;
+        valB = comparablePrices(b).daily ?? 99999999;
       } else if (sortField === 'price_sale') {
-        valA = a.price_sale ?? 99999999;
-        valB = b.price_sale ?? 99999999;
+        valA = comparablePrices(a).sale ?? 99999999;
+        valB = comparablePrices(b).sale ?? 99999999;
       } else {
         valA = a.title.toLowerCase();
         valB = b.title.toLowerCase();
@@ -168,8 +155,9 @@ export default function ComparisonTable({
           <tbody className="divide-y divide-slate-100">
             {sortedListings.map((l) => {
               const isSelected = selectedCompareIds.includes(l.id);
-              const isCheapestDaily = l.id === cheapestDailyId;
-              const isCheapestSale = l.id === cheapestSaleId;
+              const prices = comparablePrices(l);
+              const unitRate = unitRatePrice(l);
+              const isCheapestDaily = l.id === cheapestDailyId || l.id === cheapestSaleId;
               const isClosest = l.id === closestId;
 
               return (
@@ -222,7 +210,7 @@ export default function ComparisonTable({
                   <td className="py-3 px-4 whitespace-nowrap">
                     <div className="font-semibold text-slate-700 flex items-center gap-1">
                       <MapPin className="w-3 h-3 text-orange-500 shrink-0" />
-                      <span>{l.city_name}{l.district_name ? `, ${l.district_name}` : ''}</span>
+                      <span>{l.city_name || '—'}{l.city_name && l.district_name ? `, ${l.district_name}` : ''}</span>
                     </div>
                     <div className="text-[11px] text-slate-500">
                       {formatDistance(l.distance_km) ? (
@@ -235,37 +223,42 @@ export default function ComparisonTable({
 
                   {/* Daily Price */}
                   <td className="py-3 px-4 whitespace-nowrap">
-                    {l.pricing_type === 'custom_quote' || (!l.price_daily && !l.price_sale && l.listing_type === 'service') ? (
+                    {unitRate ? (
+                      <span className="font-black text-navy-900 text-sm">
+                        {unitRate.amount.toLocaleString('tr-TR')} ₺
+                        <span className="text-[11px] font-semibold text-slate-500"> / {unitRate.unit}</span>
+                      </span>
+                    ) : l.pricing_type === 'custom_quote' || (prices.daily === null && prices.sale === null && l.listing_type === 'service') ? (
                       <span className="font-bold text-navy-900 text-xs px-2 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200">
                         Teklife Göre
                       </span>
-                    ) : l.price_daily ? (
+                    ) : prices.daily !== null ? (
                       <span className="font-black text-navy-900 text-sm">
-                        {Number(l.price_daily).toLocaleString('tr-TR')} ₺
+                        {prices.daily.toLocaleString('tr-TR')} ₺
                       </span>
                     ) : (
-                      <span className="text-slate-400 italic">Belirtilmemiş</span>
+                      <span className="text-slate-400">—</span>
                     )}
                   </td>
 
                   {/* Weekly / Monthly */}
                   <td className="py-3 px-4 whitespace-nowrap text-[11px] text-slate-600">
                     <div>
-                      Haftalık: {l.price_weekly ? `${Number(l.price_weekly).toLocaleString('tr-TR')} ₺` : 'Belirtilmemiş'}
+                      Haftalık: {prices.weekly !== null ? `${prices.weekly.toLocaleString('tr-TR')} ₺` : '—'}
                     </div>
                     <div>
-                      Aylık: {l.price_monthly ? `${Number(l.price_monthly).toLocaleString('tr-TR')} ₺` : 'Belirtilmemiş'}
+                      Aylık: {prices.monthly !== null ? `${prices.monthly.toLocaleString('tr-TR')} ₺` : '—'}
                     </div>
                   </td>
 
                   {/* Sale Price */}
                   <td className="py-3 px-4 whitespace-nowrap">
-                    {l.price_sale ? (
+                    {prices.sale !== null ? (
                       <span className="font-black text-navy-900 text-sm">
-                        {Number(l.price_sale).toLocaleString('tr-TR')} ₺
+                        {prices.sale.toLocaleString('tr-TR')} ₺
                       </span>
                     ) : (
-                      <span className="text-slate-400 italic">Belirtilmemiş</span>
+                      <span className="text-slate-400">—</span>
                     )}
                   </td>
 
