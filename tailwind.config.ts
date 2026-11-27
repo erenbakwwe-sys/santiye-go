@@ -3,9 +3,9 @@ import type { Config } from "tailwindcss";
 /**
  * ŞantiyeGO tasarım sistemi
  *
- * - navy   : grafit / mürekkep tonları (marka koyu rengi)
- * - orange : iş güvenliği turuncusu, yalnızca vurgu ve birincil eylemler için
- * - slate  : nötr, hafif sıcak gri skala (soğuk mavi-gri yerine)
+ * - navy   : logodaki lacivert (#0F2846) skalası
+ * - orange : logodaki turuncu (#EE7513), vurgu ve birincil eylemler için
+ * - slate  : nötr gri skala
  * - Köşeler küçük, gölgeler hafif, yazı ağırlıkları ölçülü tutulur.
  */
 export default {
@@ -18,23 +18,23 @@ export default {
     extend: {
       colors: {
         navy: {
-          600: "#3A3F45",
-          700: "#2C3035",
-          800: "#202327",
-          900: "#17191C",
-          950: "#0F1113",
+          600: "#2E4F7A",
+          700: "#203E66",
+          800: "#163257",
+          900: "#0F2846",
+          950: "#0A1D35",
         },
         orange: {
-          50: "#FFF5EE",
-          100: "#FDE7D7",
-          200: "#F9CDAE",
-          300: "#F3AA78",
-          400: "#EC8645",
-          500: "#E0661B",
-          600: "#C75512",
-          700: "#A2440E",
-          800: "#7E360D",
-          900: "#5F2A0C",
+          50: "#FFF5EC",
+          100: "#FEE7D3",
+          200: "#FCCBA2",
+          300: "#F8A96A",
+          400: "#F38D3B",
+          500: "#EE7513",
+          600: "#D2620B",
+          700: "#AD4F0B",
+          800: "#8A3F0E",
+          900: "#6E340F",
         },
         yellow: {
           400: "#F2C230",
@@ -42,21 +42,21 @@ export default {
           600: "#B88A0A",
         },
         slate: {
-          50: "#F7F7F5",
-          100: "#EFEFEC",
-          200: "#E2E2DE",
-          300: "#CDCDC8",
-          400: "#9C9C96",
-          500: "#6E6E69",
-          600: "#53534F",
-          700: "#3D3D3A",
-          800: "#2A2A28",
-          900: "#1C1C1A",
+          50: "#F6F7F9",
+          100: "#EEF0F3",
+          200: "#E1E4E9",
+          300: "#CBD0D8",
+          400: "#9AA1AD",
+          500: "#6B7280",
+          600: "#4F5663",
+          700: "#3A404B",
+          800: "#272C35",
+          900: "#1A1E25",
         },
         surface: {
-          50: "#F7F7F5",
-          100: "#EFEFEC",
-          200: "#E2E2DE",
+          50: "#F6F7F9",
+          100: "#EEF0F3",
+          200: "#E1E4E9",
         },
       },
       fontFamily: {

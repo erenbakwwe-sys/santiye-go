@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { getActiveProfile } from '@/lib/services/auth-service';
-import { LogoMark } from '@/components/brand/Logo';
+import Logo from '@/components/brand/Logo';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -140,15 +140,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div>
           {/* Brand header */}
           <div className="p-5 border-b border-navy-800/80">
-            <Link href="/admin" className="flex items-center gap-2.5">
-              <LogoMark className="w-8 h-8" />
-              <div>
-                <div className="font-semibold text-base tracking-tight">
-                  Şantiye<span className="text-orange-400">GO</span>
-                  <span className="ml-2 text-xs font-normal text-slate-400">Yönetim</span>
-                </div>
-              </div>
-            </Link>
+            <div className="flex items-center gap-2.5">
+              <Logo tone="light" href="/admin" height={30} />
+              <span className="text-xs text-slate-400 border-l border-navy-700 pl-2.5">Yönetim</span>
+            </div>
           </div>
 
           {/* Nav Items */}

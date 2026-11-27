@@ -35,7 +35,6 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-192.svg', type: 'image/svg+xml' },
     ],
     // iOS ana ekran simgesi SVG'yi desteklemez; push bildirimleri için uygulamanın ana ekrana eklenmesi gerekir
     apple: '/apple-touch-icon.png',
@@ -43,7 +42,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#17191C',
+  themeColor: '#0F2846',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,

@@ -38,7 +38,7 @@ export default function LocationPicker({
           className: 'picker-marker',
           html: `
             <div style="
-              background-color: #C75512;
+              background-color: #D2620B;
               color: white;
               width: 32px;
               height: 32px;

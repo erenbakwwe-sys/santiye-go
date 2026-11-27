@@ -211,9 +211,9 @@ export default function Header() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 md:h-16 gap-6">
+        <div className="flex items-center justify-between h-16 md:h-[72px] gap-6">
           <div className="flex items-center gap-8 min-w-0">
-            <Logo />
+            <Logo height={46} />
             <nav className="hidden lg:flex items-center gap-1 text-sm font-medium text-slate-700">
               {primaryNav.map((item) => (
                 <Link
@@ -391,7 +391,7 @@ export default function Header() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 bg-white max-h-[calc(100vh-56px)] overflow-y-auto">
+        <div className="md:hidden border-t border-slate-200 bg-white max-h-[calc(100vh-64px)] overflow-y-auto">
           <nav className="px-4 py-2 divide-y divide-slate-100 text-[15px]">
             {[...primaryNav, ...secondaryNav].map((item) => (
               <Link
