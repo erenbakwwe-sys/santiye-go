@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Listing } from '@/types/database';
+import { listingCompanyName } from '@/lib/utils/listing-display';
 import { createBookingRequest } from '@/lib/services/booking-service';
 import {
   X,
@@ -108,7 +109,7 @@ export default function BookingModal({ listing, isOpen, onClose }: BookingModalP
             <h3 className="font-black text-navy-900 text-base line-clamp-1">
               {listing.title}
             </h3>
-            <p className="text-xs text-slate-500">{listing.company?.name}</p>
+            <p className="text-xs text-slate-500">{listingCompanyName(listing)}</p>
           </div>
           <button
             type="button"
@@ -125,7 +126,7 @@ export default function BookingModal({ listing, isOpen, onClose }: BookingModalP
             <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
               <span>
-                Rezervasyon talebiniz firmaya iletildi! Firma 48 saat içinde onayladığında rezervasyonunuz kesinleşecektir.
+                Rezervasyon talebiniz firmaya iletildi. Firma 48 saat içinde onayladığında rezervasyonunuz kesinleşecektir.
               </span>
             </div>
           )}
@@ -274,7 +275,7 @@ export default function BookingModal({ listing, isOpen, onClose }: BookingModalP
               disabled={loading || success || dayCount <= 0}
               className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-xs shadow-md transition disabled:opacity-50"
             >
-              {loading ? 'İletiliyor...' : 'REZERVASYON TALEBİ GÖNDER'}
+              {loading ? 'İletiliyor...' : 'Rezervasyon talebi gönder'}
             </button>
           </div>
         </form>

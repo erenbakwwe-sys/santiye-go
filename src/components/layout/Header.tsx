@@ -211,15 +211,15 @@ export default function Header() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 md:h-[72px] gap-6">
-          <div className="flex items-center gap-8 min-w-0">
+        <div className="flex items-center justify-between h-16 md:h-[72px] gap-3 xl:gap-6">
+          <div className="flex items-center gap-4 xl:gap-8 min-w-0">
             <Logo height={46} />
-            <nav className="hidden lg:flex items-center gap-1 text-sm font-medium text-slate-700">
+            <nav className="hidden lg:flex items-center gap-1 text-sm font-medium text-slate-700 whitespace-nowrap">
               {primaryNav.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="px-3 py-2 rounded-md hover:bg-slate-100 hover:text-navy-900 transition-colors"
+                  className="px-2 xl:px-3 py-2 rounded-md hover:bg-slate-100 hover:text-navy-900 transition-colors"
                 >
                   {item.label}
                 </Link>
@@ -228,7 +228,7 @@ export default function Header() {
           </div>
 
           {/* Masaüstü eylemler */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1 whitespace-nowrap shrink-0">
             <Link
               href={profile ? '/mesajlar' : '/giris?redirect=/mesajlar'}
               className={iconBtn}

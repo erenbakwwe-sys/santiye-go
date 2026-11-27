@@ -1,5 +1,9 @@
 import { ShieldCheck, AlertTriangle, FileText, Lock } from 'lucide-react';
 
+export const metadata = {
+  title: 'KVKK aydınlatma metni | ŞantiyeGO',
+};
+
 export default function KvkkPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">

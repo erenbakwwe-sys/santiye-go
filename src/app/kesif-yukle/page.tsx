@@ -35,7 +35,11 @@ export default function BoqPage(){
     try{
       const response=await fetch('/api/boq/parse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text}),signal:AbortSignal.timeout(10000)});
       if(response.ok){const data=await response.json();if(Array.isArray(data.items))items=data.items;}
-    }catch{/* Local parsing stays available offline. */}
+    }catch(err){
+      // Yerel ayrıştırma çevrimdışı da çalışır; yalnız hiç kalem çıkmadıysa kullanıcıya bildir.
+      console.error('BOQ ayrıştırma isteği başarısız:',err);
+      if(!items.length)throw new Error('Dosya okunamadı. Farklı bir dosya deneyin ya da listeyi yapıştırın.');
+    }
     token.current='';setRows(items);setNotice(items.length+' kalem okundu. Göndermeden önce miktarları ve birimleri kontrol edin.');
   }
   function upload(file?:File){if(file)void work(async()=>parse(await readBoqFile(file)));}
@@ -45,11 +49,11 @@ export default function BoqPage(){
     if(!(await db.auth.getUser()).data.user)throw new Error('Dağıtım için önce oturum açın.');
     token.current ||= crypto.randomUUID();
     const {data,error}=await db.rpc('submit_boq',{p_token:token.current,p_items:selected,p_city:Number(city),p_district:Number(district),p_date:date});
-    if(error)throw new Error('Dağıtım doğrulanamadı: '+error.message);
+    if(error){console.error('submit_boq hatası:',error);throw new Error('Talebiniz şu an iletilemedi. Lütfen seçili kalemleri ve bağlantınızı kontrol edip tekrar deneyin.');}
     setSummary(data as Group[]);
   }
   return <main className="mx-auto max-w-7xl space-y-5 px-4 py-8 text-navy-900">
-    <header className="rounded-2xl bg-navy-900 p-6 text-white"><h1 className="text-3xl font-black">Keşif / BOQ Yükle</h1></header>
+    <header className="rounded-2xl bg-navy-900 p-6 text-white"><h1 className="text-3xl font-black">Keşif listesi yükle</h1></header>
     {summary ? <section className="space-y-3 rounded-2xl border bg-white p-5 shadow-sm"><h2 className="text-xl font-black">Dağıtım özeti</h2>
       <p>{summary.length} kategori için talep kaydedildi. {summary.filter(g=>g.recipients>0).length} kategoride tedarikçi eşleşti.</p>
       {summary.map(g=><p key={g.request_id}>{g.category} · {g.recipients?g.recipients+' tedarikçiye iletildi':'Uygun tedarikçi bulunamadı'}</p>)}

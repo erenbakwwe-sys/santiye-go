@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import { ArrowLeft, ShieldAlert, Sparkles, AlertOctagon, RotateCcw, CheckCircle2 } from 'lucide-react';
 
+export const metadata = {
+  title: 'Reklam koşulları | ŞantiyeGO',
+};
+
 export default function AdvertisingTermsPage() {
   return (
     <div className="bg-slate-50 min-h-screen py-10">

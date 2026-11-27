@@ -241,7 +241,7 @@ function PhoneVerificationForm() {
               {resendCooldown > 0
                 ? `Tekrar Kod Gönder (${resendCooldown}s)`
                 : resendCount >= 3
-                ? 'Maksimum SMS sınırına ulaşıldı'
+                ? 'Kod gönderme sınırına ulaşıldı'
                 : 'Yeni Kod Gönder'}
             </span>
           </button>

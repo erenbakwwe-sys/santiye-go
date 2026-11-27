@@ -232,8 +232,6 @@ export default function AdminCreditsPage() {
             <span className="px-2.5 py-0.5 rounded bg-orange-100 text-orange-800 text-[11px] font-black">
               Gelir & Para Kazanma Motoru
             </span>
-            <span className="text-slate-400">•</span>
-            <span className="text-xs text-slate-500 font-semibold">Prompt 9B</span>
           </div>
           <h1 className="text-2xl font-black text-navy-900 mt-1 flex items-center gap-2">
             <Coins className="w-6 h-6 text-orange-500" />

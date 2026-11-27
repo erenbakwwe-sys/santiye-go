@@ -2,8 +2,11 @@
 import Link from 'next/link';
 import { useEffect,useRef,useState } from 'react';
 import { directory,examples,fold,machines,OperatorCard,sendRequest,today } from '@/lib/operator-service';
+import { isDemoFallbackAllowed } from '@/lib/config/runtime';
+import { visibleItems } from '@/lib/utils/sample-content';
 
 const input='w-full rounded-lg border border-slate-300 p-2 text-navy-900';
+const isSample=(o:OperatorCard)=>o.id.startsWith('demo-');
 const action='inline-block rounded-lg bg-orange-500 px-4 py-3 font-bold text-navy-900 hover:bg-orange-400 disabled:opacity-50';
 
 export default function OperatorPool(){
@@ -12,8 +15,11 @@ export default function OperatorPool(){
   const [available,setAvailable]=useState(false),[verified,setVerified]=useState(false);
   const [selected,setSelected]=useState<OperatorCard|null>(null);
   useEffect(()=>{let active=true;directory().then(data=>{if(active){setRows(data);setMessage('');}})
-    .catch(()=>{if(active){setRows(examples);setMessage('Canlı liste alınamadı. Örnek profiller gösteriliyor.');}});return ()=>{active=false;};},[]);
-  const results=rows.filter(o=>(!machine || o.machine_types.includes(machine)) && fold(o.city).includes(fold(city))
+    .catch(()=>{if(active){setRows([]);setMessage(isDemoFallbackAllowed()?'Canlı liste alınamadı. Örnek profiller gösteriliyor.':'Canlı liste alınamadı. Lütfen daha sonra tekrar deneyin.');}});return ()=>{active=false;};},[]);
+  const demoAllowed=isDemoFallbackAllowed();
+  const realRows=rows.filter(o=>!isSample(o));
+  const shown=visibleItems(realRows,examples,demoAllowed);
+  const results=shown.filter(o=>(!machine || o.machine_types.includes(machine)) && fold(o.city).includes(fold(city))
     && fold(o.district).includes(fold(district)) && (!available || o.is_available) && (!verified || o.verified));
   return <main className="mx-auto max-w-7xl space-y-5 px-4 py-8 text-navy-900">
     <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-navy-900 p-6 text-white">
@@ -25,14 +31,18 @@ export default function OperatorPool(){
       <label><input type="checkbox" checked={available} onChange={e=>setAvailable(e.target.checked)}/> Sadece müsait olanlar</label>
       <label><input type="checkbox" checked={verified} onChange={e=>setVerified(e.target.checked)}/> Belge onaylı</label></section>
     {message && <p role="status">{message}</p>}
-    {!message && !results.length && <p>Bu filtrelerle eşleşen operatör bulunamadı.</p>}
+    {!message && !shown.length && <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+      <h2 className="text-xl font-black">Henüz kayıtlı operatör yok</h2>
+      <p className="mt-2">Operatörler kayıt oldukça burada listelenecek. Operatörseniz profilinizi oluşturabilirsiniz.</p>
+      <Link className={action+' mt-4'} href="/operator-paneli">Operatör olarak kayıt ol</Link></section>}
+    {!message && shown.length>0 && !results.length && <p>Bu filtrelerle eşleşen operatör bulunamadı.</p>}
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{results.map(o=><article key={o.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap justify-between gap-1"><strong className={o.is_available?'text-green-700':'text-orange-700'}>{o.is_available?'Şu An Müsait':'Şantiyede'}</strong>{o.id.startsWith('demo-') && <small>Örnek profil</small>}</div>
+      <div className="flex flex-wrap justify-between gap-1"><strong className={o.is_available?'text-green-700':'text-orange-700'}>{o.is_available?'Şu An Müsait':'Şantiyede'}</strong>{isSample(o) && <small>Örnek profil</small>}</div>
       <h2 className="text-xl font-black">{o.full_name}</h2><p>{o.city} / {o.district} · {o.experience_years} yıl deneyim</p>
       <div className="flex flex-wrap gap-1">{[...o.machine_types,...o.license_classes].map(s=><span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-bold" key={s}>{s}</span>)}</div>
-      <p>{o.verified && '✓ Belge onaylı '}{o.rating!==null && '★ '+o.rating}</p><p>{o.reference_projects}</p>
+      {!isSample(o) && <p>{o.verified && '✓ Belge onaylı '}{o.rating!==null && '★ '+o.rating}</p>}<p>{o.reference_projects}</p>
       <strong className="mt-auto">{o.daily_rate.toLocaleString('tr-TR')} ₺ / gün</strong>
-      <button className={action} disabled={!o.is_available} onClick={()=>setSelected(o)}>Operatörü Çağır / Teklif İste</button></article>)}</div>
+      {!isSample(o) && <button className={action} disabled={!o.is_available} onClick={()=>setSelected(o)}>Operatörü Çağır / Teklif İste</button>}</article>)}</div>
     {selected && <RequestDialog operator={selected} close={()=>setSelected(null)}/>}
   </main>;
 }

@@ -120,7 +120,7 @@ export default function ReviewModal({
           {success && (
             <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              <span>Değerlendirmeniz yayınlandı! ŞantiyeGO topluluğuna katkınız için teşekkür ederiz.</span>
+              <span>Değerlendirmeniz yayınlandı. ŞantiyeGO topluluğuna katkınız için teşekkür ederiz.</span>
             </div>
           )}
 
@@ -153,7 +153,7 @@ export default function ReviewModal({
           </div>
 
           <div className="p-2.5 bg-slate-50 rounded-xl text-[11px] text-slate-500 leading-relaxed border border-slate-100">
-            Puanınız Bayesian ağırlıklı algoritmayla hesaplanacak ve diğer müteahhitler için şeffaf bir referans oluşturacaktır.
+            Puanınız firmanın genel değerlendirme ortalamasına yansıtılır.
           </div>
 
           {/* Submit */}
@@ -170,7 +170,7 @@ export default function ReviewModal({
               disabled={loading || success}
               className="px-6 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-xs shadow-md transition disabled:opacity-50"
             >
-              {loading ? 'Kaydediliyor...' : 'YORUMU YAYINLA'}
+              {loading ? 'Kaydediliyor...' : 'Yorumu yayınla'}
             </button>
           </div>
         </form>

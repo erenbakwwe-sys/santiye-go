@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { listingCompanyName, isCompanyVerified, formatLocation } from '@/lib/utils/listing-display';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -21,7 +22,7 @@ import { getCompanyReviews } from '@/lib/services/review-service';
 import ListingMap from '@/components/map/ListingMap';
 import ListingActionBox from '@/components/listings/ListingActionBox';
 import ReviewList from '@/components/reviews/ReviewList';
-import { specLabel, specValue } from '@/lib/spec-labels';
+import { visibleSpecs } from '@/lib/utils/listing-specs';
 
 interface ListingPageProps {
   params: Promise<{ id: string }>;
@@ -55,16 +56,14 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
   const displayTitle = listing.is_demo
     ? (rawTitle.toLowerCase().startsWith('örnek') ? rawTitle : `Örnek: ${rawTitle}`)
     : rawTitle;
-  const displayCompanyName = (listing.company?.name || 'Onaylı ŞantiyeGO Tedarikçisi').replace(/^\[DEMO\]\s*/i, '');
+  const displayCompanyName = listingCompanyName(listing);
 
   const reviews = await getCompanyReviews(listing.company_id || 'f0000000-0000-0000-0000-000000000001');
-
-  const companyPhone = listing.company?.phone || '+905320000000';
-  const whatsappNumber = (listing.company?.whatsapp || companyPhone).replace(/[^0-9]/g, '');
 
   const whatsappMessage = encodeURIComponent(
     `Merhaba, ŞantiyeGO üzerinden "${displayTitle}" başlıklı ilanınız hakkında bilgi ve teklif almak istiyorum.`
   );
+  const specRows = visibleSpecs(listing.technical_specs);
 
   return (
     <div className="bg-slate-50 min-h-screen py-6 sm:py-10">
@@ -230,20 +229,20 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
             </div>
 
             {/* Technical Specs Table */}
-            {listing.technical_specs && Object.keys(listing.technical_specs).length > 0 && (
+            {specRows.length > 0 && (
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
                 <h2 className="text-base font-extrabold text-navy-900 border-b border-slate-100 pb-2 flex items-center gap-2">
                   <Layers className="w-5 h-5 text-orange-500" />
                   Teknik Özellikler
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-                  {Object.entries(listing.technical_specs).map(([key, val]) => (
+                  {specRows.map(({ label, value }) => (
                     <div
-                      key={key}
+                      key={label}
                       className="flex items-center justify-between py-2 border-b border-slate-100 text-xs sm:text-sm"
                     >
-                      <span className="text-slate-500">{specLabel(key)}</span>
-                      <span className="font-medium text-navy-900 text-right">{specValue(val)}</span>
+                      <span className="text-slate-500">{label}</span>
+                      <span className="font-medium text-navy-900 text-right">{value}</span>
                     </div>
                   ))}
                 </div>
@@ -290,10 +289,12 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
                   <h3 className="font-extrabold text-navy-900 text-sm sm:text-base leading-snug">
                     {displayCompanyName}
                   </h3>
-                  <div className="flex items-center gap-1 text-xs text-emerald-600 font-bold mt-0.5">
-                    <ShieldCheck className="w-4 h-4" />
-                    Doğrulanmış Firma
-                  </div>
+                  {isCompanyVerified(listing) && (
+                    <div className="flex items-center gap-1 text-xs text-emerald-600 font-bold mt-0.5">
+                      <ShieldCheck className="w-4 h-4" />
+                      Doğrulanmış firma
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -305,10 +306,12 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
                   <strong>Yayın Tarihi:</strong>{' '}
                   {new Date(listing.created_at).toLocaleDateString('tr-TR')}
                 </div>
-                <div>
-                  <strong>Konum:</strong> {listing.city_name || ''},{' '}
-                  {listing.district_name || ''}
-                </div>
+                {formatLocation(listing.city_name, listing.district_name) && (
+                  <div>
+                    <strong>Konum:</strong>{' '}
+                    {formatLocation(listing.city_name, listing.district_name)}
+                  </div>
+                )}
               </div>
             </div>
           </div>

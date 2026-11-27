@@ -36,6 +36,12 @@ export default function LocationAutocomplete({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [manualMode, setManualMode] = useState(false);
+  const [notice, setNotice] = useState('');
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(''), 5000);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   // Manual Cascading State
   const [selectedCityId, setSelectedCityId] = useState<number | ''>('');
@@ -107,7 +113,7 @@ export default function LocationAutocomplete({
   // Browser Geolocation
   const handleUseMyLocation = () => {
     if (!navigator.geolocation) {
-      alert('Tarayıcınız konum servisini desteklemiyor.');
+      setNotice('Tarayıcınız konum servisini desteklemiyor.');
       return;
     }
 
@@ -126,7 +132,7 @@ export default function LocationAutocomplete({
       },
       (err) => {
         console.error('Konum hatası:', err);
-        alert('Konumunuza erişilemedi. Lütfen tarayıcı izinlerini açın veya listeden il/ilçe seçin.');
+        setNotice('Konumunuza erişilemedi. Lütfen tarayıcı izinlerini açın veya listeden il/ilçe seçin.');
         setGeoLoading(false);
         setManualMode(true);
       },
@@ -364,6 +370,11 @@ export default function LocationAutocomplete({
             ))}
           </select>
         </div>
+      )}
+      {notice && (
+        <p role="status" className="mt-1.5 text-xs font-medium text-slate-700">
+          {notice}
+        </p>
       )}
     </div>
   );

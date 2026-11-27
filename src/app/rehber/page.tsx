@@ -1,5 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { GUIDES } from './articles';
+import { formatRehberDate } from '@/lib/utils/rehber-format';
 import { BookOpen, Calendar, ArrowRight, Tag } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -9,33 +11,6 @@ export const metadata: Metadata = {
     canonical: 'https://santiyego.com/rehber',
   },
 };
-
-// Guide articles placeholder array (infrastructure only, no fake content produced)
-const SAMPLE_GUIDES: Array<{
-  slug: string;
-  title: string;
-  summary: string;
-  category: string;
-  readTimeMin: number;
-  date: string;
-}> = [
-  {
-    slug: 'is-makinesi-kiralarken-dikkat-edilmesi-gerekenler',
-    title: 'Şantiyede İş Makinesi Kiralarken Dikkat Edilmesi Gereken 7 Yasal Kural',
-    summary: 'Operatör belgeleri, periyodik muayene raporları, nakliye sorumluluğu ve kira sözleşmesi maddeleri hakkında kapsamlı rehber.',
-    category: 'Mevzuat & Güvenlik',
-    readTimeMin: 6,
-    date: '2026-10-15',
-  },
-  {
-    slug: 'guvenlikli-cephe-iskelesi-tse-normlari',
-    title: 'TSE EN 12810 Güvenlikli Dış Cephe İskelesi Standartları ve Kurulum Kriterleri',
-    summary: 'İş sağlığı ve güvenliği tebliğine göre flanşlı ve kamalı iskele sistemlerinde montaj ve söküm esasları.',
-    category: 'İskele & Platform',
-    readTimeMin: 8,
-    date: '2026-10-20',
-  },
-];
 
 export default function GuideIndexPage() {
   return (
@@ -57,7 +32,7 @@ export default function GuideIndexPage() {
 
         {/* Guides List */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {SAMPLE_GUIDES.map((guide) => (
+          {GUIDES.map((guide) => (
             <article
               key={guide.slug}
               className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4"
@@ -69,7 +44,7 @@ export default function GuideIndexPage() {
                   </span>
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    {guide.date}
+                    {formatRehberDate(guide.date)}
                   </span>
                 </div>
                 <h2 className="text-lg font-black text-navy-900 hover:text-orange-600 transition leading-snug">

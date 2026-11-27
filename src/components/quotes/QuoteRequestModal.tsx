@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Listing } from '@/types/database';
+import { listingCompanyName } from '@/lib/utils/listing-display';
 import { createQuoteRequest } from '@/lib/services/quote-service';
 import { X, Send, Calendar, MapPin, Wrench, Fuel, Truck, CheckCircle2, AlertCircle } from 'lucide-react';
 
@@ -80,7 +81,7 @@ export default function QuoteRequestModal({
             <h3 className="font-extrabold text-navy-900 text-base sm:text-lg line-clamp-1">
               {listing.title}
             </h3>
-            <p className="text-xs text-slate-500">{listing.company?.name}</p>
+            <p className="text-xs text-slate-500">{listingCompanyName(listing)}</p>
           </div>
           <button
             type="button"
@@ -96,7 +97,7 @@ export default function QuoteRequestModal({
           {success && (
             <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              <span>Teklif talebiniz firmaya başarıyla iletildi! Firma yanıtı bildirim ve tekliflerim sayfasına düşecektir.</span>
+              <span>Teklif talebiniz firmaya başarıyla iletildi. Firma yanıtı bildirim ve tekliflerim sayfasına düşecektir.</span>
             </div>
           )}
 

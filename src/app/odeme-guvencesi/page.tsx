@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import { ArrowLeft, ShieldAlert, ShieldCheck, Lock, RotateCcw, AlertTriangle } from 'lucide-react';
 
+export const metadata = {
+  title: 'Ödeme güvencesi | ŞantiyeGO',
+};
+
 export default function PaymentGuaranteePage() {
   return (
     <div className="bg-slate-50 min-h-screen py-10">

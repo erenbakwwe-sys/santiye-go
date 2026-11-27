@@ -77,6 +77,13 @@ export default function SearchClient() {
 
   const [activeCategoryAttributes, setActiveCategoryAttributes] = useState<CategoryAttribute[]>([]);
 
+  const [notice, setNotice] = useState('');
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(''), 4000);
+    return () => clearTimeout(t);
+  }, [notice]);
+
   useEffect(() => {
     const targetSlug = subcategoryParam || selectedSubcategory || categoryParam || selectedCategory;
     if (targetSlug) {
@@ -307,17 +314,29 @@ export default function SearchClient() {
       setCompareIds(compareIds.filter((item) => item !== id));
     } else {
       if (compareIds.length >= 3) {
-        alert('En fazla 3 ilanı aynı anda karşılaştırabilirsiniz.');
+        setNotice('En fazla 3 ilanı aynı anda karşılaştırabilirsiniz.');
         return;
       }
       setCompareIds([...compareIds, id]);
     }
   };
 
-  const selectedCompareListings = searchResult.listings.filter((l) => compareIds.includes(l.id));
+  // Seçili ilanlar sayfada gösterilen TÜM ilanlardan (sponsorlu + organik) kurulur; aynı id tek kez.
+  const shownListings = [...sponsoredListings, ...searchResult.listings].filter(
+    (l, i, all) => all.findIndex((x) => x.id === l.id) === i,
+  );
+  const selectedCompareListings = shownListings.filter((l) => compareIds.includes(l.id));
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {notice && (
+        <div
+          role="status"
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-[90vw] rounded-md border border-slate-300 bg-navy-900 px-4 py-2.5 text-sm font-medium text-white shadow-lg"
+        >
+          {notice}
+        </div>
+      )}
       {/* 1. Top Search Header */}
       <div className="bg-white rounded-md border border-slate-200 p-4 space-y-3">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
@@ -884,7 +903,7 @@ export default function SearchClient() {
           ) : view === 'compare' ? (
             /* Comparison Table View */
             <ComparisonTable
-              listings={searchResult.listings}
+              listings={shownListings}
               selectedCompareIds={compareIds}
               onToggleCompare={handleToggleCompare}
             />

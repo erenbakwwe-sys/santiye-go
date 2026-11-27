@@ -2,6 +2,10 @@ import Link from 'next/link';
 import { Search, Home, ArrowRight } from 'lucide-react';
 import { LogoMark } from '@/components/brand/Logo';
 
+export const metadata = {
+  title: 'Sayfa bulunamadı | ŞantiyeGO',
+};
+
 export default function NotFound() {
   return (
     <div className="min-h-[75vh] flex items-center justify-center p-4 bg-slate-50">

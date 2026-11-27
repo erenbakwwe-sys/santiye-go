@@ -1,11 +1,22 @@
 'use client';
 
 import Image from 'next/image';
+import { formatDistance, listingCompanyName } from '@/lib/utils/listing-display';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Heart, Scale, CameraOff } from 'lucide-react';
+import { unitRatePrice } from '@/lib/utils/listing-price';
 import { Listing } from '@/types/database';
 import { recordAdClick } from '@/lib/services/ad-service';
+import { createClient } from '@/lib/supabase/client';
+import {
+  FAVORITES_STORAGE_KEY,
+  parseFavoriteList,
+  toggleFavoriteList,
+  isFavoriteId,
+  favoriteWriteFailed,
+  revertFavoriteList,
+} from '@/lib/utils/favorites';
 
 interface ListingCardProps {
   listing: Listing;
@@ -24,6 +35,61 @@ export default function ListingCard({
 }: ListingCardProps) {
   const [fav, setFav] = useState(isFavorited);
 
+  // Üst bileşen yönetmiyorsa durum /favorilerim ile aynı yerel kayıttan okunur
+  // (ilk çizim boş, hidrasyon uyumsuzluğu olmasın diye useEffect içinde).
+  useEffect(() => {
+    if (onFavoriteToggle) {
+      setFav(isFavorited);
+      return;
+    }
+    try {
+      const list = parseFavoriteList(localStorage.getItem(FAVORITES_STORAGE_KEY));
+      setFav(isFavorited || isFavoriteId(list, listing.id));
+    } catch {}
+  }, [listing.id, onFavoriteToggle, isFavorited]);
+
+  const persistFavorite = async (next: boolean) => {
+    // /favorilerim girişsiz ziyaretçide yerel kaydı, girişlide Supabase "favorites" tablosunu okur.
+    try {
+      const list = parseFavoriteList(localStorage.getItem(FAVORITES_STORAGE_KEY));
+      localStorage.setItem(
+        FAVORITES_STORAGE_KEY,
+        JSON.stringify(toggleFavoriteList(list, listing as unknown as { id: string }, next)),
+      );
+    } catch {}
+
+    // Veritabanı yazımı tutmazsa kalp ve yerel kayıt eski hâline döner (aksi halde /favorilerim boş kalır).
+    const revert = () => {
+      setFav(!next);
+      try {
+        // Kaydı O AN yeniden oku; yalnız bu ilanı tersine çevir (araya giren başka favoriler silinmesin).
+        const current = parseFavoriteList(localStorage.getItem(FAVORITES_STORAGE_KEY));
+        localStorage.setItem(
+          FAVORITES_STORAGE_KEY,
+          JSON.stringify(revertFavoriteList(current, listing as unknown as { id: string }, next)),
+        );
+      } catch {}
+    };
+
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const res = next
+        ? await supabase.from('favorites').upsert({ user_id: user.id, listing_id: listing.id })
+        : await supabase.from('favorites').delete().eq('user_id', user.id).eq('listing_id', listing.id);
+      if (favoriteWriteFailed(res)) {
+        console.error('Favori kaydedilemedi:', res.error);
+        revert();
+      }
+    } catch (err) {
+      console.error('Favori kaydedilemedi:', err);
+      revert();
+    }
+  };
+
   const handleFavClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -31,6 +97,8 @@ export default function ListingCard({
     setFav(next);
     if (onFavoriteToggle) {
       onFavoriteToggle(listing.id, next);
+    } else {
+      void persistFavorite(next);
     }
   };
 
@@ -48,15 +116,16 @@ export default function ListingCard({
     const main = 'text-[17px] font-semibold text-navy-900 tabular';
     const unit = 'text-xs font-normal text-slate-500 ml-1';
 
+    const unitRate = unitRatePrice(listing);
+    if (unitRate) {
+      return (
+        <div className={main}>
+          {fmt(unitRate.amount)} ₺<span className={unit}>/ {unitRate.unit}</span>
+        </div>
+      );
+    }
+
     if (listing.listing_type === 'service' || listing.pricing_type === 'custom_quote') {
-      if (listing.pricing_type === 'unit_rate' && (listing.price_daily || listing.price_sale)) {
-        const rate = listing.price_daily || listing.price_sale || 0;
-        return (
-          <div className={main}>
-            {fmt(rate)} ₺<span className={unit}>/ {listing.price_unit || 'm²'}</span>
-          </div>
-        );
-      }
       return <div className="text-sm font-medium text-slate-700">Teklif usulü</div>;
     }
 
@@ -101,7 +170,8 @@ export default function ListingCard({
       ? rawTitle
       : `Örnek: ${rawTitle}`
     : rawTitle;
-  const displayCompanyName = (listing.company?.name || 'Tedarikçi').replace(/^\[DEMO\]\s*/i, '');
+  const distanceLabel = formatDistance(listing.distance_km);
+  const displayCompanyName = listingCompanyName(listing);
   const href = `/ilan/${listing.slug || listing.id}`;
   const typeLabel =
     listing.listing_type === 'rental' ? 'Kiralık' : listing.listing_type === 'service' ? 'Hizmet' : 'Satılık';
@@ -154,9 +224,9 @@ export default function ListingCard({
           )}
         </div>
 
-        {listing.distance_km !== undefined && (
+        {distanceLabel && (
           <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded-sm bg-navy-900/85 text-white text-[11px] font-medium tabular">
-            {listing.distance_km} km
+            {distanceLabel}
           </span>
         )}
       </Link>

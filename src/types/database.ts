@@ -239,6 +239,7 @@ export interface Listing {
     whatsapp?: string | null;
     logo_url?: string | null;
     rating_avg?: number;
+    is_verified?: boolean;
     review_count?: number;
     weighted_rating?: number;
   };

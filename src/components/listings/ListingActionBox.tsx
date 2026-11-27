@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { listingCompanyName } from '@/lib/utils/listing-display';
 import Link from 'next/link';
 import {
   MessageSquare,
@@ -50,8 +51,6 @@ export default function ListingActionBox({ listing }: ListingActionBoxProps) {
     ((listing.company as any)?.user_id === currentUserId || listing.company_id === currentUserId)
   );
 
-  const companyPhone = listing.company?.phone || '+905320000000';
-  const whatsappNumber = (listing.company?.whatsapp || companyPhone).replace(/[^0-9]/g, '');
   const whatsappMessage = encodeURIComponent(
     `Merhaba, ŞantiyeGO üzerinden "${listing.title}" başlıklı ilanınız hakkında bilgi ve teklif almak istiyorum.`
   );
@@ -128,7 +127,7 @@ export default function ListingActionBox({ listing }: ListingActionBoxProps) {
           </button>
         </div>
 
-        {/* Kontrollü İletişim & Güvenlik Koruma Kutusu (Prompt 9A) */}
+        {/* Kontrollü İletişim & Güvenlik Koruma Kutusu */}
         <div className="space-y-3 pt-2 border-t border-slate-100">
           {isOwner ? (
             <div className="w-full py-3 px-4 rounded-xl bg-slate-100 text-slate-500 font-bold text-xs flex items-center justify-center gap-2 border border-slate-200 cursor-not-allowed">
@@ -137,7 +136,7 @@ export default function ListingActionBox({ listing }: ListingActionBoxProps) {
             </div>
           ) : (
             <Link
-              href={`/mesajlar?companyId=${listing.company_id || ''}&listingId=${listing.id}&listingTitle=${encodeURIComponent(listing.title)}&companyName=${encodeURIComponent(listing.company?.name || (listing as any).company_name || 'Firma')}`}
+              href={`/mesajlar?companyId=${listing.company_id || ''}&listingId=${listing.id}&listingTitle=${encodeURIComponent(listing.title)}&companyName=${encodeURIComponent(listingCompanyName(listing))}`}
               className="w-full py-3 px-4 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-sm"
             >
               <MessageSquare className="w-4 h-4 text-orange-400" />
@@ -245,7 +244,7 @@ export default function ListingActionBox({ listing }: ListingActionBoxProps) {
                 )}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Şikayet Nedeni (Prompt 9A):
+                    Şikayet nedeni
                   </label>
                   <select
                     value={reportReason}
@@ -309,7 +308,7 @@ export default function ListingActionBox({ listing }: ListingActionBoxProps) {
 
       <ReviewModal
         companyId={listing.company_id || 'f0000000-0000-0000-0000-000000000001'}
-        companyName={listing.company?.name || 'Onaylı Tedarikçi'}
+        companyName={listingCompanyName(listing)}
         listingId={listing.id}
         isOpen={reviewModalOpen}
         onClose={() => setReviewModalOpen(false)}

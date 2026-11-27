@@ -211,7 +211,7 @@ export default function AdminSecurityCompliancePage() {
                 <option value="teklif_kabul">teklif_kabul (VARSAYILAN: Teklif veya rezervasyon onaylandığında)</option>
                 <option value="numara_goster_butonu">numara_goster_butonu (Yumuşak Mod: Doğrulanmış kullanıcıya günlük kotalı)</option>
                 <option value="odeme">odeme (Platform üzerinden ödeme tamamlandığında)</option>
-                <option value="talep_kredisi">talep_kredisi (Tedarikçi teklif kredisi harcadığında - Prompt 9B)</option>
+                <option value="talep_kredisi">talep_kredisi (Tedarikçi teklif kredisi harcadığında)</option>
               </select>
               {revealRule === 'odeme' && (
                 <p className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200 mt-2 font-semibold">
