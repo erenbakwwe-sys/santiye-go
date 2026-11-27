@@ -17,6 +17,7 @@ import {
   favoriteWriteFailed,
   revertFavoriteList,
 } from '@/lib/utils/favorites';
+import { isPlatformCompanyName, PLATFORM_LISTING_NOTE } from '@/lib/platform';
 
 interface ListingCardProps {
   listing: Listing;
@@ -278,12 +279,19 @@ export default function ListingCard({
         <div className="mt-auto pt-3">
           <div className="pt-3 border-t border-slate-100 flex items-end justify-between gap-3">
             {renderPrice()}
-            <span
-              className="text-xs text-slate-500 truncate max-w-[45%] flex items-center gap-1"
-              title={displayCompanyName}
-            >
-              <span className="truncate">{displayCompanyName}</span>
-            </span>
+            {isPlatformCompanyName(displayCompanyName) ? (
+              <span className="text-xs text-right text-slate-600 max-w-[50%] leading-tight" title={PLATFORM_LISTING_NOTE}>
+                <span className="block font-medium text-navy-900">ŞantiyeGO Tedarik</span>
+                <span className="block">Anlaşmalı firmalar aracılığıyla</span>
+              </span>
+            ) : (
+              <span
+                className="text-xs text-slate-500 truncate max-w-[45%] flex items-center gap-1"
+                title={displayCompanyName}
+              >
+                <span className="truncate">{displayCompanyName}</span>
+              </span>
+            )}
           </div>
         </div>
       </div>

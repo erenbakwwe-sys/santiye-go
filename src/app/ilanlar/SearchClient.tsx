@@ -31,6 +31,7 @@ import { getCategoryAttributes } from '@/lib/services/attribute-service';
 import { CategoryAttribute, Listing, SearchResult } from '@/types/database';
 import { getActiveAdsForSlot } from '@/lib/services/ad-service';
 import { recordAnalyticsEvent } from '@/lib/services/analytics-service';
+import FindSupplierBox from '@/components/help/FindSupplierBox';
 
 export default function SearchClient() {
   const router = useRouter();
@@ -804,6 +805,8 @@ export default function SearchClient() {
               </div>
             </div>
           </div>
+
+          {searchResult.total === 0 && !loading && <FindSupplierBox compact />}
 
           {/* 3. Radius Expansion Suggestion (When 0 results found) */}
           {searchResult.total === 0 && !loading && (

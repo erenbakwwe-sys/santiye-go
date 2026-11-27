@@ -23,6 +23,8 @@ import ListingMap from '@/components/map/ListingMap';
 import ListingActionBox from '@/components/listings/ListingActionBox';
 import ReviewList from '@/components/reviews/ReviewList';
 import { visibleSpecs } from '@/lib/utils/listing-specs';
+import { isPlatformCompanyName } from '@/lib/platform';
+import { LogoMark } from '@/components/brand/Logo';
 
 interface ListingPageProps {
   params: Promise<{ id: string }>;
@@ -282,9 +284,13 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
             {/* Company Profile Card */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-navy-900 text-orange-500 flex items-center justify-center font-black text-xl">
-                  {displayCompanyName[0] || 'Ş'}
-                </div>
+                {isPlatformCompanyName(displayCompanyName) ? (
+                  <LogoMark height={40} />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-navy-900 text-orange-500 flex items-center justify-center font-black text-xl">
+                    {displayCompanyName[0] || 'Ş'}
+                  </div>
+                )}
                 <div>
                   <h3 className="font-extrabold text-navy-900 text-sm sm:text-base leading-snug">
                     {displayCompanyName}
@@ -297,6 +303,13 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
                   )}
                 </div>
               </div>
+
+              {isPlatformCompanyName(displayCompanyName) && (
+                <p className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-2.5 leading-relaxed">
+                  Bu ilan, anlaşmalı firmalarımız aracılığıyla <strong>ŞantiyeGO</strong> tarafından sağlanır.
+                  Talebinizi biz alır, uygun firmayla iş takibini biz yaparız.
+                </p>
+              )}
 
               <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-100">
                 <div>

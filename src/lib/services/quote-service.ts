@@ -290,8 +290,11 @@ export async function getCompanyQuoteRequests(companyId: string): Promise<QuoteR
           *,
           quotes:quotes(*),
           city:cities(name),
-          district:districts(name)
+          district:districts(name),
+          recipients:quote_request_recipients!inner(company_id)
         `)
+        // Yalnızca bu firmaya iletilen talepler (yönetici yetkisi tüm talepleri görse bile)
+        .eq('recipients.company_id', companyId)
         .eq('is_demo', false)
         .order('created_at', { ascending: false });
 
