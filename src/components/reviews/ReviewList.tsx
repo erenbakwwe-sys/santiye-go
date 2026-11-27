@@ -77,7 +77,7 @@ export default function ReviewList({
                 <span>{stats.actualAvg}</span>
                 <span className="text-xs text-slate-400 font-bold">/ 5.0</span>
               </div>
-              <div className="text-[10px] text-slate-500">
+              <div className="text-xs text-slate-500">
                 {stats.totalCount} Değerlendirme
               </div>
             </div>
@@ -106,13 +106,13 @@ export default function ReviewList({
                       {rev.buyer_name}
                     </span>
                     {rev.is_verified && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
                         <ShieldCheck className="w-3 h-3" />
                         Doğrulanmış İşlem
                       </span>
                     )}
                   </div>
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-xs text-slate-400">
                     {new Date(rev.created_at).toLocaleDateString('tr-TR', {
                       day: 'numeric',
                       month: 'long',
@@ -122,7 +122,7 @@ export default function ReviewList({
                 </div>
 
                 {/* Sub-ratings breakdown */}
-                <div className="flex items-center gap-3 text-[11px] text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                <div className="flex items-center gap-3 text-xs text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
                   <span>
                     Kalite: <strong className="text-navy-900">{rev.rating_quality}</strong>/5
                   </span>
@@ -145,7 +145,7 @@ export default function ReviewList({
               {/* Company Reply Box (if exists) */}
               {rev.company_reply && (
                 <div className="ml-4 sm:ml-6 p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-navy-900 text-[11px]">
+                  <div className="flex items-center gap-1.5 font-bold text-navy-900 text-xs">
                     <CornerDownRight className="w-3.5 h-3.5 text-orange-500" />
                     <span>{companyName} Yanıtı</span>
                     {rev.company_reply_at && (
@@ -167,7 +167,7 @@ export default function ReviewList({
                         Müşterinize Yanıt Yazın (Tek seferlik yanıt):
                       </span>
                       {replyError && (
-                        <div className="text-[11px] text-red-600">{replyError}</div>
+                        <div className="text-xs text-red-600">{replyError}</div>
                       )}
                       <textarea
                         rows={2}

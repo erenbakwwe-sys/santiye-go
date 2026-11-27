@@ -152,7 +152,7 @@ export default function AdminListingsPage() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 font-extrabold border-b border-slate-200 text-[10px]">
+            <thead className="bg-slate-50 text-slate-500 font-extrabold border-b border-slate-200 text-xs">
               <tr>
                 <th className="py-3 px-4 w-10">
                   <input
@@ -207,7 +207,7 @@ export default function AdminListingsPage() {
                           <div className="font-extrabold text-navy-900 text-sm line-clamp-1">
                             {l.title}
                           </div>
-                          <div className="text-[10px] text-slate-400 font-mono">
+                          <div className="text-xs text-slate-400 font-mono">
                             #{l.id.slice(0, 8)}
                           </div>
                         </div>
@@ -222,23 +222,23 @@ export default function AdminListingsPage() {
                           ? `${Number(l.price_sale).toLocaleString('tr-TR')} ₺`
                           : 'Teklif Usulü'}
                       </div>
-                      <div className="text-[10px] text-slate-400 capitalize">
+                      <div className="text-xs text-slate-400 capitalize">
                         {l.listing_type === 'rental' ? 'Kiralık' : 'Satılık'}
                       </div>
                     </td>
 
                     <td className="py-3 px-4">
                       <div>{l.city_name || 'İstanbul'}</div>
-                      <div className="text-[11px] text-slate-500">{l.district_name || ''}</div>
+                      <div className="text-xs text-slate-500">{l.district_name || ''}</div>
                     </td>
 
                     <td className="py-3 px-4">
                       {l.status === 'active' ? (
-                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
                           Yayında
                         </span>
                       ) : (
-                        <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold">
+                        <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">
                           Pasif / Gizli
                         </span>
                       )}

@@ -25,7 +25,7 @@ export default function PaymentGuaranteePage() {
             <p className="text-slate-600 mt-0.5">
               İşbu metin bir TASLAKTIR ve hukuki incelemeden geçirilmelidir. Platform, 6493 sayılı Kanun kapsamında bir ödeme veya elektronik para kuruluşu değildir.
             </p>
-            <p className="text-slate-600 mt-1 font-mono text-[11px] bg-amber-100/60 p-2 rounded">
+            <p className="text-slate-600 mt-1 font-mono text-xs bg-amber-100/60 p-2 rounded">
               [HUKUKİ YER TUTUCU: Platformun ödeme hizmeti sağlayıcısı olmadığı, 6563 sayılı Kanun kapsamında Aracı Hizmet Sağlayıcı olduğu ve ödemelerin TCMB lisanslı yetkili ödeme kuruluşu (iyzico) nezdindeki korumalı pazaryeri havuz hesabında tutulduğu yönündeki kesin yasal beyan platform hukukçusu tarafından belirlenecektir.]
             </p>
           </div>
@@ -53,7 +53,7 @@ export default function PaymentGuaranteePage() {
                 <Lock className="w-4 h-4 text-emerald-600" />
                 1. Korumalı Havuzda Bekletme
               </div>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 Alıcının ödediği tutar, lisanslı ödeme sağlayıcısının pazaryeri emanet havuzunda bloke edilir. Platform kendi hesabında başkasının parasını tutmaz.
               </p>
             </div>
@@ -62,7 +62,7 @@ export default function PaymentGuaranteePage() {
                 <ShieldCheck className="w-4 h-4 text-blue-600" />
                 2. Alıcı Onayıyla Aktarım
               </div>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 İş makinesi sahaya ulaşıp iş teslim edilince alıcı &quot;İşi Onayla&quot; butonuna basar; para sağlayıcı tarafından firmanın IBAN&apos;ına aktarılır.
               </p>
             </div>
@@ -71,7 +71,7 @@ export default function PaymentGuaranteePage() {
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
                 3. İtiraz ve Hakem Güvencesi
               </div>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 İtiraz penceresi süresince alıcı sorun bildirirse aktarım derhal dondurulur; tarafların delilleri incelenerek hakem kararı verilir.
               </p>
             </div>

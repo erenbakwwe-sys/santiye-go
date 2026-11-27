@@ -45,7 +45,7 @@ export default function CancellationAndRefundPage() {
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 24 Saatten Önce İptal
               </div>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 Rezervasyon veya teslimat başlangıcından 24 saat öncesine kadar %100 kesintisiz tam iade yapılır.
               </p>
             </div>
@@ -54,7 +54,7 @@ export default function CancellationAndRefundPage() {
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
                 Son 24 Saat İçinde İptal
               </div>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 Lojistik ve makine rezervasyon hazırlığı yapılmışsa nakliye masrafı düşülerek kalan tutar iade edilir.
               </p>
             </div>
@@ -63,7 +63,7 @@ export default function CancellationAndRefundPage() {
                 <RotateCcw className="w-4 h-4 text-navy-600" />
                 Emanet Havuz Koruması
               </div>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 Ödeme iyzico güvenli havuzunda tutulur; iş sahada teslim edilip onaylanmadan satıcıya aktarılmaz.
               </p>
             </div>

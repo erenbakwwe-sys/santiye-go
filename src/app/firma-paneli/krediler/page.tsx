@@ -155,7 +155,7 @@ function CompanyCreditsPage() {
                 <span className="font-extrabold">
                   Sistem Modu: {config.mode === 'ACTIVE' ? 'CANLI (AKTİF)' : config.mode === 'SHADOW' ? 'GÖLGE MOD (TEST/ÖLÇÜM)' : 'KAPALI'}
                 </span>
-                <p className="text-[11px] opacity-80 mt-0.5">
+                <p className="text-xs opacity-80 mt-0.5">
                   {config.mode === 'SHADOW'
                     ? 'Sistem şu anda deneme modundadır. Taleplere teklif verirken bakiyenizden kredi DÜŞMEZ; sistem teklif hacmini simüle eder.'
                     : config.mode === 'ACTIVE'
@@ -165,7 +165,7 @@ function CompanyCreditsPage() {
               </div>
             </div>
 
-            <div className="px-3 py-1 bg-white/75 rounded-lg border font-bold text-[11px] shrink-0">
+            <div className="px-3 py-1 bg-white/75 rounded-lg border font-bold text-xs shrink-0">
               Talep Başına: {config.default_credit_cost} Kredi
             </div>
           </div>
@@ -183,7 +183,7 @@ function CompanyCreditsPage() {
                 {loading ? '...' : balance} <span className="text-lg font-bold text-orange-300">Kredi</span>
               </div>
             </div>
-            <p className="text-[11px] text-slate-400 mt-4 leading-relaxed">
+            <p className="text-xs text-slate-400 mt-4 leading-relaxed">
               Bu bakiye ile yaklaşık <strong className="text-white">{balance} adet</strong> bölgesel talebe teklif verebilir ve alıcıyla doğrudan görüşebilirsiniz.
             </p>
           </div>
@@ -214,7 +214,7 @@ function CompanyCreditsPage() {
                 %100 Yanıtsız Numara & Sahte Talep İadesi
               </div>
             </div>
-            <p className="text-[11px] text-slate-500 leading-normal">
+            <p className="text-xs text-slate-500 leading-normal">
               Ulaşılamayan veya sahte taleplerde 48 saat içinde itiraz edebilir, kredinizi geri alabilirsiniz.
             </p>
           </div>
@@ -247,7 +247,7 @@ function CompanyCreditsPage() {
                   }`}
                 >
                   {pkg.discount_percentage ? (
-                    <div className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full bg-orange-600 text-white text-[10px] font-black tracking-wide shadow-sm">
+                    <div className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full bg-orange-600 text-white text-xs font-black tracking-wide shadow-sm">
                       %{pkg.discount_percentage} İNDİRİM
                     </div>
                   ) : null}
@@ -266,7 +266,7 @@ function CompanyCreditsPage() {
 
                   <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
                     <div>
-                      <span className="text-xs text-slate-400 block text-[10px]">Toplam Fiyat</span>
+                      <span className="text-xs text-slate-400 block text-xs">Toplam Fiyat</span>
                       <span className="text-lg font-black text-navy-900">{pkg.price.toLocaleString('tr-TR')} ₺</span>
                     </div>
 
@@ -311,7 +311,7 @@ function CompanyCreditsPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 text-[10px] font-extrabold border-b border-slate-200">
+              <thead className="bg-slate-50 text-slate-600 text-xs font-extrabold border-b border-slate-200">
                 <tr>
                   <th className="py-2.5 px-3">Tarih</th>
                   <th className="py-2.5 px-3">İşlem Türü</th>
@@ -342,7 +342,7 @@ function CompanyCreditsPage() {
                         </td>
                         <td className="py-2.5 px-3">
                           <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                            className={`px-2 py-0.5 rounded text-xs font-black ${
                               l.transaction_type === 'purchase'
                                 ? 'bg-emerald-100 text-emerald-800'
                                 : l.transaction_type === 'spend'
@@ -420,7 +420,7 @@ function CompanyCreditsPage() {
                     <div className="flex items-center gap-2">
                       <span className="font-black text-navy-900">Talep Ref: {d.request_id}</span>
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        className={`px-2 py-0.5 rounded text-xs font-bold ${
                           d.status === 'approved'
                             ? 'bg-emerald-100 text-emerald-800'
                             : d.status === 'rejected'
@@ -439,13 +439,13 @@ function CompanyCreditsPage() {
                       <strong>Neden:</strong> {d.reason} — {d.description}
                     </p>
                     {d.admin_notes && (
-                      <p className="text-slate-500 text-[11px] italic">
+                      <p className="text-slate-500 text-xs italic">
                         <strong>Moderatör Notu:</strong> {d.admin_notes}
                       </p>
                     )}
                   </div>
 
-                  <span className="text-[11px] text-slate-400 shrink-0">
+                  <span className="text-xs text-slate-400 shrink-0">
                     {new Date(d.created_at).toLocaleDateString('tr-TR')}
                   </span>
                 </div>
@@ -498,7 +498,7 @@ function CompanyCreditsPage() {
                     </div>
                   </div>
 
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-[11px] text-blue-900 leading-relaxed">
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 leading-relaxed">
                     <strong>Test / Sandbox Modu:</strong> Gerçek kredi kartınızdan çekim yapılmaz. Test ödeme altyapısı üzerinden anında cüzdanınıza bakiye tanımlanır.
                   </div>
 

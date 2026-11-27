@@ -112,7 +112,7 @@ export default function AdminAnalyticsPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs sm:text-sm">
-            <thead className="bg-slate-50 border-b text-slate-500 font-bold text-[11px]">
+            <thead className="bg-slate-50 border-b text-slate-500 font-bold text-xs">
               <tr>
                 <th className="py-3 px-4">Bölge & İl</th>
                 <th className="py-3 px-4">Talep Edilen Kategori</th>
@@ -159,11 +159,11 @@ export default function AdminAnalyticsPage() {
 
                   <td className="py-3.5 px-4 text-center">
                     {report.status === 'critical_shortage' ? (
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-red-100 text-red-800">
+                      <span className="px-2.5 py-1 rounded-full text-xs font-black bg-red-100 text-red-800">
                         Kritik Açık ({report.gapScore}x)
                       </span>
                     ) : (
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">
+                      <span className="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800">
                         Dengeli
                       </span>
                     )}
@@ -192,7 +192,7 @@ export default function AdminAnalyticsPage() {
                 Müteahhitlerin aradığı fakat platformda eşleşen ilan bulamadığı sorgular.
               </p>
             </div>
-            <span className="text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded">
+            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded">
               Pazar Boşluğu
             </span>
           </div>
@@ -205,13 +205,13 @@ export default function AdminAnalyticsPage() {
               >
                 <div>
                   <div className="font-extrabold text-navy-900">{q.keyword}</div>
-                  <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                  <span className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                     <MapPin className="w-3 h-3 text-orange-500" /> {q.city} • {q.lastSearched}
                   </span>
                 </div>
                 <div className="text-right">
                   <span className="font-black text-red-600 text-sm">{q.count} Kez</span>
-                  <span className="text-[10px] text-slate-400 block">0 Sonuç</span>
+                  <span className="text-xs text-slate-400 block">0 Sonuç</span>
                 </div>
               </div>
             ))}

@@ -250,14 +250,14 @@ export default function BuyerBookingsPage() {
 
                       {/* Escrow Havuz Güvencesi Bildirim Şeridi */}
                       {isEscrowPaid && !isTransferred && !isDisputed && (
-                        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 flex items-center justify-between gap-2 mt-2">
+                        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center justify-between gap-2 mt-2">
                           <div className="flex items-center gap-2">
                             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
                             <span>
                               <strong>Ödeme Güvencesi:</strong> Paranız iyzico havuzunda tutuluyor. İş tamamlandığında onaylayabilir veya sorun varsa itiraz edebilirsiniz.
                             </span>
                           </div>
-                          <span className="text-[10px] font-bold bg-white px-2 py-0.5 rounded border border-emerald-200 text-emerald-700 shrink-0">
+                          <span className="text-xs font-bold bg-white px-2 py-0.5 rounded border border-emerald-200 text-emerald-700 shrink-0">
                             İtiraz süresi: 2 gün 18 saat
                           </span>
                         </div>
@@ -266,7 +266,7 @@ export default function BuyerBookingsPage() {
 
                     <div className="lg:col-span-4 flex flex-col justify-between items-end border-t lg:border-t-0 lg:border-l lg:border-slate-100 lg:pl-5 pt-3 lg:pt-0">
                       <div className="text-right w-full">
-                        <span className="text-[10px] text-slate-400 font-bold block">
+                        <span className="text-xs text-slate-400 font-bold block">
                           İş Bedeli
                         </span>
                         <span className="text-2xl font-black text-orange-600">

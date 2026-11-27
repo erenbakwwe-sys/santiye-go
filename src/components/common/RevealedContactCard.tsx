@@ -21,13 +21,13 @@ export default function RevealedContactCard({ details, roleLabel = 'Firma İleti
           </div>
           <div>
             <h4 className="text-xs font-black text-navy-900">{roleLabel}</h4>
-            <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-bold">
+            <div className="flex items-center gap-1 text-xs text-emerald-700 font-bold">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Teklif/Rezervasyon Onaylandı (İletişim Açıldı)</span>
             </div>
           </div>
         </div>
-        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-extrabold">
+        <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-extrabold">
           Onaylı
         </span>
       </div>
@@ -35,7 +35,7 @@ export default function RevealedContactCard({ details, roleLabel = 'Firma İleti
       {/* Details Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
         <div className="space-y-1">
-          <span className="text-[10px] font-bold text-slate-400">Firma / Yetkili</span>
+          <span className="text-xs font-bold text-slate-400">Firma / Yetkili</span>
           <div className="font-extrabold text-navy-900 text-sm flex items-center gap-1.5">
             <Building2 className="w-4 h-4 text-orange-500 shrink-0" />
             <span>{details.companyName || details.fullName}</span>
@@ -43,7 +43,7 @@ export default function RevealedContactCard({ details, roleLabel = 'Firma İleti
         </div>
 
         <div className="space-y-1">
-          <span className="text-[10px] font-bold text-slate-400">Telefon Numarası</span>
+          <span className="text-xs font-bold text-slate-400">Telefon Numarası</span>
           <div>
             <a
               href={`tel:${details.phone}`}
@@ -56,7 +56,7 @@ export default function RevealedContactCard({ details, roleLabel = 'Firma İleti
         </div>
 
         <div className="sm:col-span-2 space-y-1">
-          <span className="text-[10px] font-bold text-slate-400">Tam Şantiye / Garaj Adresi</span>
+          <span className="text-xs font-bold text-slate-400">Tam Şantiye / Garaj Adresi</span>
           <div className="text-slate-700 flex items-start gap-1.5">
             <MapPin className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
             <span className="font-medium">{details.fullAddress || `${details.districtName}, ${details.cityName}`}</span>
@@ -87,7 +87,7 @@ export default function RevealedContactCard({ details, roleLabel = 'Firma İleti
         )}
       </div>
 
-      <p className="text-[10px] text-slate-400 text-center italic">
+      <p className="text-xs text-slate-400 text-center italic">
         * Bu iletişim kartı yalnızca teklifi/rezervasyonu onaylayan taraflara gösterilmektedir (Row Level Security).
       </p>
     </div>

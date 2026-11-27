@@ -211,7 +211,7 @@ export default function AdminSozlesmelerPage() {
                       <tr key={cnt.id} className="hover:bg-slate-50/70 transition">
                         <td className="py-3 px-4">
                           <span className="font-bold text-slate-900 block">{cnt.contract_number}</span>
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-xs text-slate-400">
                             v{cnt.template_version} • {cnt.contract_type === 'rental' ? 'Kiralama' : 'Hizmet'}
                           </span>
                         </td>
@@ -219,7 +219,7 @@ export default function AdminSozlesmelerPage() {
                           <span className="font-semibold text-slate-800 block">
                             {cnt.data_snapshot?.company?.name || '-'}
                           </span>
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-xs text-slate-400">
                             {cnt.data_snapshot?.company?.city || '-'}
                           </span>
                         </td>
@@ -227,7 +227,7 @@ export default function AdminSozlesmelerPage() {
                           <span className="font-semibold text-slate-800 block">
                             {cnt.data_snapshot?.buyer?.company_name || cnt.data_snapshot?.buyer?.full_name || '-'}
                           </span>
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-xs text-slate-400">
                             {cnt.data_snapshot?.buyer?.phone || '-'}
                           </span>
                         </td>
@@ -235,7 +235,7 @@ export default function AdminSozlesmelerPage() {
                           <span className="font-medium text-slate-800 block max-w-xs truncate">
                             {cnt.data_snapshot?.subject?.title}
                           </span>
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-xs text-slate-400">
                             {cnt.data_snapshot?.subject?.start_date}
                           </span>
                         </td>
@@ -245,22 +245,22 @@ export default function AdminSozlesmelerPage() {
                         </td>
                         <td className="py-3 px-4">
                           {cnt.status === 'mutual_approved' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700">
                               <CheckCircle2 className="w-3 h-3" /> Onaylandı
                             </span>
                           )}
                           {cnt.status === 'pending_approval' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700">
                               <Clock className="w-3 h-3" /> Onay Bekliyor
                             </span>
                           )}
                           {cnt.status === 'revision_requested' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700">
                               <AlertCircle className="w-3 h-3" /> Revizyon
                             </span>
                           )}
                           {cnt.status === 'superseded' && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-500">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-500">
                               Eski Sürüm
                             </span>
                           )}
@@ -319,16 +319,16 @@ export default function AdminSozlesmelerPage() {
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div>
                     <h3 className="font-bold text-slate-900 text-sm">{tmpl.title}</h3>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-xs text-slate-400">
                       Tür: {tmpl.template_type === 'rental' ? 'Kiralama' : 'Hizmet'} • Sürüm: v{tmpl.version}
                     </span>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700">
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700">
                     Aktif
                   </span>
                 </div>
 
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-[11px] text-slate-600 font-mono max-h-48 overflow-y-auto whitespace-pre-wrap">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs text-slate-600 font-mono max-h-48 overflow-y-auto whitespace-pre-wrap">
                   {tmpl.standard_terms}
                 </div>
               </div>

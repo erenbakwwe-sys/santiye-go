@@ -17,7 +17,7 @@ export default function OfflinePage() {
         </div>
 
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-[11px] font-bold text-slate-600">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-xs font-bold text-slate-600">
             <HardHat className="w-3.5 h-3.5 text-orange-500" />
             Çevrimdışı mod
           </div>
@@ -38,7 +38,7 @@ export default function OfflinePage() {
           Bağlantıyı Yenile ve Tekrar Dene
         </button>
 
-        <p className="text-[11px] text-slate-400">
+        <p className="text-xs text-slate-400">
           İpucu: Wi-Fi veya hücresel verinizi açtıktan sonra sayfa otomatik olarak yüklenecektir.
         </p>
       </div>

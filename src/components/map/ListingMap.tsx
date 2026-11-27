@@ -272,7 +272,7 @@ export default function ListingMap({
       )}
 
       {/* Map Legend / Info Badges */}
-      <div className="absolute bottom-3 left-3 z-20 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-lg text-[11px] font-semibold text-slate-700 shadow-md border border-slate-200 flex items-center gap-3">
+      <div className="absolute bottom-3 left-3 z-20 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 shadow-md border border-slate-200 flex items-center gap-3">
         {radiusKm && radiusKm > 0 && userCoords && (
           <span className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-full border border-orange-500 bg-orange-100 inline-block" />

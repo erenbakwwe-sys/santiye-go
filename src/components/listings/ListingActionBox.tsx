@@ -149,7 +149,7 @@ export default function ListingActionBox({ listing }: ListingActionBoxProps) {
               <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>ŞantiyeGO İletişim Güvencesi</span>
             </div>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
+            <p className="text-xs text-slate-500 leading-relaxed">
               İletişim bilgileri (telefon, WhatsApp ve tam konum), teklif veya rezervasyon onaylandıktan sonra her iki tarafa otomatik paylaşılır.
             </p>
           </div>
@@ -169,7 +169,7 @@ export default function ListingActionBox({ listing }: ListingActionBoxProps) {
           <button
             type="button"
             onClick={() => setReportModalOpen(true)}
-            className="text-[11px] text-slate-400 hover:text-red-600 font-medium inline-flex items-center gap-1 transition"
+            className="text-xs text-slate-400 hover:text-red-600 font-medium inline-flex items-center gap-1 transition"
           >
             <ShieldAlert className="w-3.5 h-3.5" />
             <span>Şikayet Et</span>

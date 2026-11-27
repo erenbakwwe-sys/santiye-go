@@ -283,7 +283,7 @@ export default function CompanyCalendarPage() {
                 const isSelected = selectedDates.includes(dateStr);
 
                 let statusBadge = (
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-1 rounded">
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-100/80 px-1 rounded">
                     Müsait
                   </span>
                 );
@@ -292,14 +292,14 @@ export default function CompanyCalendarPage() {
                 if (entry?.status === 'booked') {
                   bgClass = 'border-red-200 bg-red-50/60';
                   statusBadge = (
-                    <span className="text-[10px] font-bold text-red-700 bg-red-100 px-1 rounded">
+                    <span className="text-xs font-bold text-red-700 bg-red-100 px-1 rounded">
                       Kirada
                     </span>
                   );
                 } else if (entry?.status === 'maintenance') {
                   bgClass = 'border-amber-200 bg-amber-50/60';
                   statusBadge = (
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1 rounded">
+                    <span className="text-xs font-bold text-amber-700 bg-amber-100 px-1 rounded">
                       Bakımda
                     </span>
                   );
@@ -344,7 +344,7 @@ export default function CompanyCalendarPage() {
               </div>
 
               {selectedDates.length > 0 && (
-                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto p-2 bg-slate-50 rounded-lg text-[10px] text-slate-600 font-mono">
+                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto p-2 bg-slate-50 rounded-lg text-xs text-slate-600 font-mono">
                   {selectedDates.sort().map((d) => (
                     <span key={d} className="px-1.5 py-0.5 rounded bg-white border border-slate-200">
                       {d.slice(5)}
@@ -460,7 +460,7 @@ export default function CompanyCalendarPage() {
               <p className="text-slate-600">
                 <strong>Stok Miktarı:</strong> {currentListing?.stock_quantity || 1} Adet
               </p>
-              <p className="text-slate-500 text-[11px] leading-relaxed pt-1 border-t border-slate-100">
+              <p className="text-slate-500 text-xs leading-relaxed pt-1 border-t border-slate-100">
                 Stok adedi 1 olan makinelerde bir güne onaylı rezervasyon girildiğinde, sistem o günü diğer tüm alıcılara otomatik kapatır.
               </p>
             </div>

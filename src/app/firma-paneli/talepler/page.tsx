@@ -231,7 +231,7 @@ export default function CompanyQuoteRequestsPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`px-2.5 py-0.5 rounded text-[11px] font-black ${
+                        className={`px-2.5 py-0.5 rounded text-xs font-black ${
                           req.request_type === 'single_listing'
                             ? 'bg-blue-100 text-blue-800'
                             : 'bg-purple-100 text-purple-800'
@@ -298,7 +298,7 @@ export default function CompanyQuoteRequestsPage() {
                       </div>
 
                       {/* Inclusions Requested */}
-                      <div className="flex items-center gap-2 pt-2 text-[11px] font-bold">
+                      <div className="flex items-center gap-2 pt-2 text-xs font-bold">
                         <span className="text-slate-400">İstenen:</span>
                         <span
                           className={`px-2 py-0.5 rounded ${
@@ -337,10 +337,10 @@ export default function CompanyQuoteRequestsPage() {
                           <div className="font-extrabold text-navy-900">
                             Verilen Teklif: {myQuote.price_total.toLocaleString('tr-TR')} ₺
                           </div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-xs text-slate-500">
                             {myQuote.notes || 'Açıklama belirtilmedi.'}
                           </div>
-                          <div className="text-[10px] text-emerald-600 font-bold">
+                          <div className="text-xs text-emerald-600 font-bold">
                             Durum: {myQuote.status === 'accepted' ? 'KABUL EDİLDİ' : 'Alıcı Değerlendiriyor'}
                           </div>
                         </div>
@@ -376,7 +376,7 @@ export default function CompanyQuoteRequestsPage() {
             <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
               <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                 <div>
-                  <span className="text-[10px] font-bold text-orange-600 tracking-wider">
+                  <span className="text-xs font-bold text-orange-600 tracking-wider">
                     Teklif Formu
                   </span>
                   <h3 className="font-black text-navy-900 text-base line-clamp-1">

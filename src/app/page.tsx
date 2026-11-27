@@ -12,6 +12,7 @@ import {
   Calculator,
   FileSpreadsheet,
   Repeat,
+  FileText,
 } from 'lucide-react';
 import HeroSearch from '@/components/search/HeroSearch';
 import ListingCard from '@/components/listings/ListingCard';
@@ -106,10 +107,85 @@ export default async function HomePage() {
     <div className="pb-16">
       <HeroSearch />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14 mt-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14 mt-10">
+        {/* Ne yapmak istiyorsunuz? — menüleri bilmeden doğru yere tek tıkla ulaşmak için */}
+        <section aria-labelledby="niyet-baslik">
+          <h2 id="niyet-baslik" className="section-title">
+            Ne yapmak istiyorsunuz?
+          </h2>
+          <p className="section-sub">Size uyan kutuya dokunun, sizi doğru sayfaya götürelim.</p>
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {[
+              {
+                href: '/ilanlar?category=is-makineleri',
+                icon: Wrench,
+                title: 'Makine kiralamak istiyorum',
+                text: 'Ekskavatör, kepçe, vinç, forklift ve diğer iş makineleri',
+              },
+              {
+                href: '/ilanlar?category=yapi-malzemeleri',
+                icon: Boxes,
+                title: 'Malzeme almak istiyorum',
+                text: 'Çimento, hazır beton, demir, tuğla, kum ve çakıl',
+              },
+              {
+                href: '/ilanlar?category=nakliye',
+                icon: Truck,
+                title: 'Kamyon / nakliye arıyorum',
+                text: 'Hafriyat kamyonu, lowbed, vinçli taşıma',
+              },
+              {
+                href: '/teklif-iste',
+                icon: FileText,
+                title: 'Fiyat teklifi almak istiyorum',
+                text: 'Ne lazım olduğunu yazın, firmalar size fiyat göndersin. Ücretsizdir.',
+              },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="group flex sm:flex-col items-start gap-3.5 bg-white border-2 border-slate-200 hover:border-orange-500 rounded-md p-4 sm:p-5 transition-colors"
+              >
+                <span className="shrink-0 w-11 h-11 rounded-md bg-orange-50 text-orange-600 flex items-center justify-center">
+                  <item.icon className="w-6 h-6" strokeWidth={1.75} />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="flex items-start justify-between gap-2 text-lg font-semibold text-navy-900 leading-snug">
+                    {item.title}
+                    <ArrowRight
+                      className="w-5 h-5 mt-1 text-slate-400 group-hover:text-orange-600 shrink-0 transition-colors"
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <span className="block mt-1 text-sm text-slate-600 leading-relaxed">{item.text}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+          <Link
+            href="/kayit?role=company"
+            className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-navy-900 hover:bg-navy-800 text-white rounded-md px-5 py-4 transition-colors"
+          >
+            <span>
+              <span className="block text-lg font-semibold">Firmayım, makinemi veya ürünümü ilan vermek istiyorum</span>
+              <span className="block text-sm text-slate-300 mt-0.5">
+                Firma hesabı açmak ücretsizdir. İlanınızı birkaç adımda yayınlarsınız.
+              </span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 font-semibold text-orange-400 shrink-0">
+              Firma hesabı aç <ArrowRight className="w-5 h-5" />
+            </span>
+          </Link>
+        </section>
+
         {/* Kategoriler */}
         <section>
-          <SectionHeader title="Kategoriler" href="/ilanlar" linkLabel="Tüm ilanlar" />
+          <SectionHeader
+            title="Tüm kategoriler"
+            description="Aradığınız şeyin türünü seçin"
+            href="/ilanlar"
+            linkLabel="Tüm ilanları gör"
+          />
           <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-l border-slate-200 bg-white">
             {CATEGORIES.map((cat) => {
               const Icon = categoryIcons[cat.slug] || Wrench;
@@ -198,7 +274,7 @@ export default async function HomePage() {
                   Teklif talebi oluştur
                 </Link>
                 <Link href="/kesif-yukle" className="btn-secondary">
-                  Keşif listesi yükle
+                  Malzeme listemi yükle
                 </Link>
               </div>
             </div>
@@ -233,26 +309,26 @@ export default async function HomePage() {
 
         {/* Araçlar */}
         <section>
-          <SectionHeader title="Şantiye araçları" />
+          <SectionHeader title="İşinizi kolaylaştıran araçlar" />
           <div className="grid md:grid-cols-3 gap-5">
             {[
               {
                 href: '/hesaplayici',
                 icon: Calculator,
-                title: 'Metraj hesaplayıcı',
-                text: 'Beton, demir, duvar ve iskele metrajını hesaplayın; sonucu doğrudan teklif talebine aktarın.',
+                title: 'Ne kadar malzeme lazım?',
+                text: 'Duvarınızın, döşemenizin ölçüsünü girin; kaç torba çimento, kaç ton demir gerektiğini hesaplayalım.',
               },
               {
                 href: '/kesif-yukle',
                 icon: FileSpreadsheet,
-                title: 'Keşif listesi yükleme',
-                text: 'Excel veya PDF keşif listenizi yükleyin; kalemler kategorilere göre ilgili tedarikçilere dağıtılır.',
+                title: 'Malzeme listemi yükle',
+                text: 'Elinizdeki malzeme listesini (Excel veya PDF) yükleyin; her kalem için ilgili firmalardan fiyat toplayalım.',
               },
               {
                 href: '/santiyeden-santiyeye',
                 icon: Repeat,
-                title: 'Şantiyeden şantiyeye',
-                text: 'Artan malzemenizi satın, boş dönen kamyonlar için yük bulun ya da ilan verin.',
+                title: 'Artan malzeme ve boş kamyon',
+                text: 'Şantiyenizde artan malzemeyi satın; boş dönen kamyonunuza yük bulun.',
               },
             ].map((tool) => (
               <Link

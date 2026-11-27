@@ -175,7 +175,7 @@ function MyAdCampaignsPage() {
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-md">
+                    <span className="text-xs font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-md">
                       {product?.name || camp.product_id}
                     </span>
                     {getStatusBadge(camp.status)}
@@ -187,11 +187,11 @@ function MyAdCampaignsPage() {
 
                   {camp.listing && (
                     <div className="p-3 bg-slate-50 rounded-xl text-xs space-y-1">
-                      <div className="text-slate-500 text-[11px]">Bağlı İlan:</div>
+                      <div className="text-slate-500 text-xs">Bağlı İlan:</div>
                       <div className="font-bold text-navy-900 truncate">
                         {camp.listing.title}
                       </div>
-                      <div className="text-slate-500 flex items-center gap-1 text-[11px]">
+                      <div className="text-slate-500 flex items-center gap-1 text-xs">
                         <MapPin className="w-3 h-3 text-orange-500" />
                         {camp.listing.address_detail || 'İstanbul'}
                       </div>
@@ -201,7 +201,7 @@ function MyAdCampaignsPage() {
                   {/* Performance Metrics Cards */}
                   <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-center">
                     <div className="p-2 rounded-xl bg-slate-50">
-                      <div className="text-[10px] text-slate-500 font-bold flex items-center justify-center gap-1">
+                      <div className="text-xs text-slate-500 font-bold flex items-center justify-center gap-1">
                         <Eye className="w-3 h-3 text-slate-400" /> Gösterim
                       </div>
                       <div className="text-base font-black text-navy-900 mt-0.5">
@@ -210,7 +210,7 @@ function MyAdCampaignsPage() {
                     </div>
 
                     <div className="p-2 rounded-xl bg-slate-50">
-                      <div className="text-[10px] text-slate-500 font-bold flex items-center justify-center gap-1">
+                      <div className="text-xs text-slate-500 font-bold flex items-center justify-center gap-1">
                         <MousePointerClick className="w-3 h-3 text-slate-400" /> Tıklama
                       </div>
                       <div className="text-base font-black text-navy-900 mt-0.5">
@@ -219,7 +219,7 @@ function MyAdCampaignsPage() {
                     </div>
 
                     <div className="p-2 rounded-xl bg-slate-50">
-                      <div className="text-[10px] text-slate-500 font-bold flex items-center justify-center gap-1">
+                      <div className="text-xs text-slate-500 font-bold flex items-center justify-center gap-1">
                         <Percent className="w-3 h-3 text-slate-400" /> CTR
                       </div>
                       <div className="text-base font-black text-orange-600 mt-0.5">
@@ -232,7 +232,7 @@ function MyAdCampaignsPage() {
                 {/* Footer details & action */}
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-slate-500 text-[11px]">Bitiş Tarihi:</span>
+                    <span className="text-slate-500 text-xs">Bitiş Tarihi:</span>
                     <div className="font-bold text-navy-900">
                       {camp.expires_at
                         ? new Date(camp.expires_at).toLocaleDateString('tr-TR')

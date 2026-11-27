@@ -9,8 +9,15 @@
   --foreground: #0f2846;
 }
 
+html {
+  /* Tarayıcı yakınlaştırma/erişilebilirlik ayarlarına saygı: rem tabanlı ölçek */
+  font-size: 100%;
+}
+
 body {
   color: var(--foreground);
+  font-size: 1.0625rem;
+  line-height: 1.6;
   background: var(--background);
   font-feature-settings: "ss01" on;
   -webkit-font-smoothing: antialiased;
@@ -22,6 +29,21 @@ body {
 .tabular,
 .font-mono {
   font-variant-numeric: tabular-nums;
+}
+
+/* Form alanları: rahat yükseklik ve en az 16px yazı (mobilde otomatik yakınlaştırmayı da önler) */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+select {
+  min-height: 46px;
+  font-size: max(1rem, 16px);
+}
+textarea {
+  font-size: max(1rem, 16px);
+}
+input[type="checkbox"],
+input[type="radio"] {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 h1,
@@ -65,13 +87,14 @@ h3 {
   .section-sub {
     @apply text-sm text-slate-500 mt-1;
   }
+  /* Butonlar en az 48px yüksekliğinde: rahat dokunma/tıklama alanı */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors;
+    @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-5 py-2.5 rounded-md bg-orange-500 hover:bg-orange-600 text-white text-base font-semibold transition-colors;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-white hover:bg-slate-50 text-navy-900 text-sm font-semibold border border-slate-300 transition-colors;
+    @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-5 py-2.5 rounded-md bg-white hover:bg-slate-50 text-navy-900 text-base font-semibold border-2 border-slate-300 hover:border-slate-400 transition-colors;
   }
   .btn-dark {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold transition-colors;
+    @apply inline-flex items-center justify-center gap-2 min-h-[48px] px-5 py-2.5 rounded-md bg-navy-900 hover:bg-navy-800 text-white text-base font-semibold transition-colors;
   }
 }

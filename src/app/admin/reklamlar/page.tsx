@@ -164,7 +164,7 @@ function AdminAdsPage() {
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs sm:text-sm">
-                <thead className="bg-slate-50 text-slate-500 font-bold text-[11px] border-b">
+                <thead className="bg-slate-50 text-slate-500 font-bold text-xs border-b">
                   <tr>
                     <th className="py-3 px-4">Kampanya & Ürün</th>
                     <th className="py-3 px-4">Bağlı İlan</th>
@@ -185,7 +185,7 @@ function AdminAdsPage() {
                       <tr key={camp.id} className="hover:bg-slate-50/80 transition">
                         <td className="py-3.5 px-4">
                           <div className="font-extrabold text-navy-900">{camp.title}</div>
-                          <span className="text-[11px] text-orange-600 font-bold">
+                          <span className="text-xs text-orange-600 font-bold">
                             {camp.product_id}
                           </span>
                         </td>
@@ -202,34 +202,34 @@ function AdminAdsPage() {
 
                         <td className="py-3.5 px-4">
                           <div className="font-bold text-navy-900">{formatCents(camp.total_price_cents)}</div>
-                          <span className="text-[11px] text-slate-500">{camp.duration_days} Günlük</span>
+                          <span className="text-xs text-slate-500">{camp.duration_days} Günlük</span>
                         </td>
 
                         <td className="py-3.5 px-4 text-center">
                           <div className="font-bold text-navy-900">
                             {camp.impressions_count} / {camp.clicks_count}
                           </div>
-                          <span className="text-[10px] text-slate-500">CTR: %{ctr}</span>
+                          <span className="text-xs text-slate-500">CTR: %{ctr}</span>
                         </td>
 
                         <td className="py-3.5 px-4">
                           {camp.status === 'active' && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800">
                               Yayında
                             </span>
                           )}
                           {camp.status === 'pending_moderation' && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-800">
                               Onay Bekliyor
                             </span>
                           )}
                           {camp.status === 'expired' && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-600">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-black bg-slate-100 text-slate-600">
                               Süresi Doldu
                             </span>
                           )}
                           {camp.status === 'rejected' && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 text-red-800">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-black bg-red-100 text-red-800">
                               Reddedildi
                             </span>
                           )}

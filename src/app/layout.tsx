@@ -7,6 +7,8 @@ import MobileNav from '@/components/layout/MobileNav';
 import ServiceWorkerRegister from '@/components/pwa/ServiceWorkerRegister';
 import A2HSPrompt from '@/components/pwa/A2HSPrompt';
 import CookieConsent from '@/components/legal/CookieConsent';
+import HelpButton from '@/components/help/HelpButton';
+import IntroGuide from '@/components/help/IntroGuide';
 
 const plexSans = IBM_Plex_Sans({
   subsets: ['latin', 'latin-ext'],
@@ -65,6 +67,8 @@ export default function RootLayout({
         <MobileNav />
         <A2HSPrompt />
         <CookieConsent />
+        <HelpButton />
+        <IntroGuide />
         <ServiceWorkerRegister />
       </body>
     </html>

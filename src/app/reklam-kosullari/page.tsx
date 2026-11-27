@@ -45,7 +45,7 @@ export default function AdvertisingTermsPage() {
                 <Sparkles className="w-4 h-4 text-orange-500" />
                 Şeffaf Sponsorlu Etiketi
               </div>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 Tüm reklam ve vitrin ilanları arama sonuçlarında açıkça &quot;Sponsorlu&quot; etiketiyle gösterilir.
               </p>
             </div>
@@ -54,7 +54,7 @@ export default function AdvertisingTermsPage() {
                 <AlertOctagon className="w-4 h-4 text-red-500" />
                 Moderasyon Denetimi
               </div>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 Belgesiz operatör, yanıltıcı fiyat veya sahte makine ilanı içeren reklamlar onaylanmaz.
               </p>
             </div>
@@ -63,7 +63,7 @@ export default function AdvertisingTermsPage() {
                 <RotateCcw className="w-4 h-4 text-emerald-600" />
                 Reddedilende %100 İade
               </div>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 Admin tarafından yayına alınmadan reddedilen reklamların ücreti eksiksiz geri ödenir.
               </p>
             </div>

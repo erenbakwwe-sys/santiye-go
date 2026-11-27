@@ -91,14 +91,14 @@ function ResultCard({
           : 'bg-white border-slate-200 text-navy-900'
       }`}
     >
-      <span className={`text-[11px] font-bold ${highlight ? 'text-orange-100' : 'text-slate-500'}`}>
+      <span className={`text-xs font-bold ${highlight ? 'text-orange-100' : 'text-slate-500'}`}>
         {label}
       </span>
       <span className={`text-2xl font-black leading-tight ${highlight ? 'text-white' : 'text-navy-900'}`}>
         {value}
       </span>
       {sub && (
-        <span className={`text-[11px] mt-0.5 ${highlight ? 'text-orange-100' : 'text-slate-400'}`}>
+        <span className={`text-xs mt-0.5 ${highlight ? 'text-orange-100' : 'text-slate-400'}`}>
           {sub}
         </span>
       )}
@@ -119,7 +119,7 @@ function QuoteButton({ onClick }: { onClick: () => void }) {
         </div>
         <div className="text-left">
           <div className="text-sm font-black leading-tight">1 Tıkla Teklif İste</div>
-          <div className="text-[11px] text-slate-300 font-normal mt-0.5">
+          <div className="text-xs text-slate-300 font-normal mt-0.5">
             Hesaplanan miktarı forma otomatik aktar, bölgendeki tedarikçilerden teklif al
           </div>
         </div>
@@ -448,7 +448,7 @@ export default function HesaplayiciPage() {
               <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center shadow-lg">
                 <Calculator className="w-5 h-5 text-white" />
               </div>
-              <span className="px-3 py-1 rounded-full bg-orange-500/20 text-orange-300 text-[11px] font-black border border-orange-500/30">
+              <span className="px-3 py-1 rounded-full bg-orange-500/20 text-orange-300 text-xs font-black border border-orange-500/30">
                 Ücretsiz Metraj Aracı
               </span>
             </div>
@@ -493,7 +493,7 @@ export default function HesaplayiciPage() {
                 </span>
                 {tab.label}
               </div>
-              <span className="text-[11px] text-slate-400 leading-tight">{tab.desc}</span>
+              <span className="text-xs text-slate-400 leading-tight">{tab.desc}</span>
               {activeTab === tab.id && (
                 <span className="w-full h-0.5 rounded-full bg-orange-500 mt-1" />
               )}

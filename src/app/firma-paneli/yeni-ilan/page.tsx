@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
+  ArrowRight,
   PlusCircle,
   Building2,
   UploadCloud,
@@ -29,6 +30,8 @@ import { uploadListingPhoto, deleteListingPhoto } from '@/lib/services/storage-s
 import { createClient } from '@/lib/supabase/client';
 import { sanitizeContent } from '@/lib/security/contact-masker';
 import { getActiveProfile } from '@/lib/services/auth-service';
+
+const STEPS = ['Tür', 'Bilgiler', 'Fiyat', 'Konum', 'Fotoğraflar'];
 
 export default function NewListingPage() {
   const router = useRouter();
@@ -196,18 +199,51 @@ export default function NewListingPage() {
     currentCategory?.slug === 'asansor-platform' ||
     currentCategory?.slug === 'is-makineleri';
 
+  const [step, setStep] = useState(0);
+  const [stepError, setStepError] = useState('');
+
+  const validateStep = (i: number): string => {
+    if (i === 0 && !categoryId) return 'Lütfen ilanınızın kategorisini seçin.';
+    if (i === 1 && !title.trim()) return 'Lütfen ilanınıza bir başlık yazın.';
+    return '';
+  };
+
+  const goNext = () => {
+    const err = validateStep(step);
+    setStepError(err);
+    if (err) return;
+    setStep((v) => Math.min(v + 1, STEPS.length - 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const goBack = () => {
+    setStepError('');
+    setStep((v) => Math.max(v - 1, 0));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Enter tuşu son adımdan önce formu göndermesin; bir sonraki adıma geçsin.
+    if (step < STEPS.length - 1) {
+      goNext();
+      return;
+    }
     setImageError('');
 
-    if (!title.trim() || !categoryId) {
-      alert('Lütfen zorunlu alanları (Başlık ve Kategori) doldurunuz.');
+    if (!categoryId) {
+      setStep(0);
+      setStepError('Lütfen ilanınızın kategorisini seçin.');
+      return;
+    }
+    if (!title.trim()) {
+      setStep(1);
+      setStepError('Lütfen ilanınıza bir başlık yazın.');
       return;
     }
 
     if (images.length === 0) {
       setImageError('İlan verebilmek için en az 1 adet fotoğraf yüklemeniz zorunludur.');
-      alert('Lütfen en az 1 adet ilan fotoğrafı yükleyiniz.');
       const photoSection = document.getElementById('photo-upload-section');
       if (photoSection) {
         photoSection.scrollIntoView({ behavior: 'smooth' });
@@ -382,11 +418,41 @@ export default function NewListingPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Adım göstergesi */}
+          <div>
+            <span className="text-base font-semibold text-navy-900">
+              Adım {step + 1} / {STEPS.length}: {STEPS[step]}
+            </span>
+            <ol className="mt-3 grid grid-cols-5 gap-1.5" aria-label="Adımlar">
+              {STEPS.map((label, i) => (
+                <li key={label}>
+                  <span
+                    className={`block h-2 rounded-full ${i <= step ? 'bg-orange-500' : 'bg-slate-200'}`}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={`hidden sm:block mt-1.5 text-sm ${i === step ? 'text-navy-900 font-medium' : 'text-slate-500'}`}
+                  >
+                    {label}
+                  </span>
+                </li>
+              ))}
+            </ol>
+            {stepError && (
+              <p role="alert" className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-base flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                {stepError}
+              </p>
+            )}
+          </div>
+
+          {step === 0 && (
+            <>
           {/* Section 1: Kategori ve Tür */}
           <div className="space-y-4">
             <h3 className="text-sm font-extrabold text-navy-900 border-b border-slate-100 pb-2">
-              1. Kategori ve İlan Türü
+              Ne ilan ediyorsunuz?
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -480,11 +546,15 @@ export default function NewListingPage() {
               </div>
             )}
           </div>
+            </>
+          )}
 
+          {step === 1 && (
+            <>
           {/* Section 2: Başlık ve Açıklama */}
           <div className="space-y-4">
             <h3 className="text-sm font-extrabold text-navy-900 border-b border-slate-100 pb-2">
-              2. İlan Detayları
+              İlan bilgileri
             </h3>
 
             <div>
@@ -522,9 +592,9 @@ export default function NewListingPage() {
               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                 <h3 className="text-sm font-extrabold text-navy-900 flex items-center gap-1.5">
                   <Layers className="w-4 h-4 text-orange-500" />
-                  3. Kategoriye Özel Teknik Özellikler
+                  Teknik özellikler (isteğe bağlı)
                 </h3>
-                <span className="text-[11px] text-slate-400">Dinamik Alanlar</span>
+                <span className="text-xs text-slate-400">Dinamik Alanlar</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -570,11 +640,15 @@ export default function NewListingPage() {
               </div>
             </div>
           )}
+            </>
+          )}
 
+          {step === 2 && (
+            <>
           {/* Section 4: Fiyatlandırma & Hizmet Seçenekleri */}
           <div className="space-y-4">
             <h3 className="text-sm font-extrabold text-navy-900 border-b border-slate-100 pb-2">
-              4. Fiyatlandırma ve Koşullar
+              Fiyat ve koşullar
             </h3>
 
             {listingType === 'service' ? (
@@ -593,7 +667,7 @@ export default function NewListingPage() {
                       }`}
                     >
                       <div className="font-extrabold">Teklife Göre (Önerilen)</div>
-                      <span className="text-[11px] font-normal text-slate-500 block mt-0.5">
+                      <span className="text-xs font-normal text-slate-500 block mt-0.5">
                         Şantiye keşfi ve metraja göre özel teklif verilir.
                       </span>
                     </button>
@@ -608,7 +682,7 @@ export default function NewListingPage() {
                       }`}
                     >
                       <div className="font-extrabold">Birim / Başlangıç Fiyatı</div>
-                      <span className="text-[11px] font-normal text-slate-500 block mt-0.5">
+                      <span className="text-xs font-normal text-slate-500 block mt-0.5">
                         m², saatlik veya iş başı taban ücret.
                       </span>
                     </button>
@@ -753,11 +827,15 @@ export default function NewListingPage() {
               </div>
             )}
           </div>
+            </>
+          )}
 
+          {step === 3 && (
+            <>
           {/* Section 5: Konum ve Hizmet Bölgesi */}
           <div className="space-y-4">
             <h3 className="text-sm font-extrabold text-navy-900 border-b border-slate-100 pb-2">
-              5. Konum ve Hizmet Alanı
+              Makine / ürün nerede?
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -813,25 +891,29 @@ export default function NewListingPage() {
                     {serviceRadiusKm} km Yarıçap
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-xs text-slate-500">
                   Bu merkezden {serviceRadiusKm} km mesafe içindeki tüm şantiye aramalarında ilanınız hizmet veren olarak listelenecektir.
                 </p>
               </div>
             )}
           </div>
+            </>
+          )}
 
+          {step === 4 && (
+            <>
           {/* Section 6: Görseller */}
           <div id="photo-upload-section" className="space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h3 className="text-sm font-extrabold text-navy-900 flex items-center gap-2">
                 <ImageIcon className="w-4 h-4 text-orange-500" />
-                <span>6. Gerçek İlan Fotoğrafları</span>
+                <span>Fotoğraflar</span>
                 <span className="text-red-500 font-black text-xs bg-red-50 px-2 py-0.5 rounded border border-red-200">
                   * Zorunlu (En az 1 Adet)
                 </span>
               </h3>
               <span
-                className={`text-[11px] font-bold px-2 py-0.5 rounded ${
+                className={`text-xs font-bold px-2 py-0.5 rounded ${
                   images.length === 0
                     ? 'bg-amber-50 text-amber-700 border border-amber-200'
                     : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -874,7 +956,7 @@ export default function NewListingPage() {
               <p className="text-xs font-black text-navy-900">
                 {uploadingImage ? 'Fotoğraflar Yükleniyor ve Optimize Ediliyor...' : 'Fotoğrafları Seçin veya Buraya Sürükleyin (En az 1 adet zorunlu)'}
               </p>
-              <p className="text-[11px] text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 JPEG, PNG veya WebP formatında, her biri en fazla 10 MB (Maksimum 10 fotoğraf)
               </p>
             </label>
@@ -882,7 +964,7 @@ export default function NewListingPage() {
             {/* Yüklenen Fotoğrafların Önizleme Galerisi */}
             {images.length > 0 && (
               <div className="space-y-2">
-                <div className="text-[11px] font-bold text-slate-500">
+                <div className="text-xs font-bold text-slate-500">
                   İlk yüklenen fotoğraf arama sonuçlarında <span className="text-orange-600">kapak fotoğrafı</span> olarak kullanılır.
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
@@ -901,7 +983,7 @@ export default function NewListingPage() {
                         ✕
                       </button>
                       {i === 0 && (
-                        <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-navy-900/90 text-white text-[10px] font-black tracking-wider shadow">
+                        <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-navy-900/90 text-white text-xs font-black tracking-wider shadow">
                           Kapak Fotoğrafı
                         </span>
                       )}
@@ -911,36 +993,46 @@ export default function NewListingPage() {
               </div>
             )}
           </div>
+            </>
+          )}
 
-          <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-xs">
-              {images.length === 0 ? (
-                <span className="text-red-600 font-bold flex items-center gap-1.5">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  İlan yayınlayabilmek için en az 1 adet fotoğraf yüklemeniz gerekir.
-                </span>
+          <div className="pt-5 border-t border-slate-200 space-y-4">
+            {step === STEPS.length - 1 && (
+              <div className="text-base">
+                {images.length === 0 ? (
+                  <span className="text-red-700 font-medium flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 shrink-0" />
+                    İlanı yayınlamak için en az 1 fotoğraf yüklemeniz gerekir.
+                  </span>
+                ) : (
+                  <span className="text-emerald-700 font-medium flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 shrink-0" />
+                    {images.length} fotoğraf hazır.
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-between">
+              {step > 0 ? (
+                <button type="button" onClick={goBack} className="btn-secondary">
+                  <ArrowLeft className="w-5 h-5" />
+                  Geri
+                </button>
               ) : (
-                <span className="text-emerald-700 font-bold flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  {images.length} adet fotoğraf hazır.
-                </span>
+                <span />
+              )}
+              {step < STEPS.length - 1 ? (
+                <button type="button" onClick={goNext} className="btn-primary sm:min-w-[200px]">
+                  İleri: {STEPS[step + 1]}
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              ) : (
+                <button type="submit" disabled={loading} className="btn-primary sm:min-w-[220px] disabled:opacity-50">
+                  <PlusCircle className="w-5 h-5" />
+                  {loading ? 'Kaydediliyor...' : 'İlanı yayınla'}
+                </button>
               )}
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-sm tracking-wide shadow-lg flex items-center justify-center gap-2 transition disabled:opacity-50"
-            >
-              {loading ? (
-                <span>Kaydediliyor...</span>
-              ) : (
-                <>
-                  <PlusCircle className="w-5 h-5" />
-                  <span>İlanı yayınla</span>
-                </>
-              )}
-            </button>
           </div>
         </form>
       </div>

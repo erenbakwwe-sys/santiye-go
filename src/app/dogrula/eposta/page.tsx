@@ -272,7 +272,7 @@ function EmailVerificationContent() {
           <p className="font-bold flex items-center gap-1.5 text-orange-900">
             6 Haneli Onay Kodunuz Gönderildi
           </p>
-          <p className="text-[11px] text-orange-800 leading-relaxed">
+          <p className="text-xs text-orange-800 leading-relaxed">
             <strong>onay@santiyego.com</strong> adresinden gelen 6 haneli güvenlik kodunu aşağıdaki kutucuklara giriniz. (Gelen kutusunda göremediyseniz spam/gereksiz klasörünü kontrol ediniz).
           </p>
         </div>

@@ -543,14 +543,14 @@ export default function MessagesClient() {
             <div className="p-1.5 bg-amber-100 rounded-lg text-amber-700 shrink-0">
               <ShieldAlert className="w-4 h-4" />
             </div>
-            <div className="text-[11px] leading-tight font-medium">
+            <div className="text-xs leading-tight font-medium">
               <strong className="font-bold text-navy-900">ŞantiyeGO Güvence Sistemi:</strong> Komisyon kaçağını önlemek ve dolandırıcılık mağduriyeti yaşamamak için tüm ödemeler platform üzerinden Havuz (Escrow) sistemiyle yapılmalıdır. Dışarıdan veya elden ödeme yapmayınız.
             </div>
           </div>
           <button
             type="button"
             onClick={() => setShowPaymentWarningModal(true)}
-            className="text-[11px] text-orange-600 hover:text-orange-700 font-bold underline shrink-0 whitespace-nowrap"
+            className="text-xs text-orange-600 hover:text-orange-700 font-bold underline shrink-0 whitespace-nowrap"
           >
             Detayları Gör
           </button>
@@ -610,7 +610,7 @@ export default function MessagesClient() {
                           {conv.other_user_name}
                         </div>
                         {conv.last_message_at && (
-                          <span className="text-[10px] text-slate-400 shrink-0">
+                          <span className="text-xs text-slate-400 shrink-0">
                             {new Date(conv.last_message_at).toLocaleTimeString('tr-TR', {
                               hour: '2-digit',
                               minute: '2-digit',
@@ -620,7 +620,7 @@ export default function MessagesClient() {
                       </div>
 
                       {conv.listing_title && (
-                        <div className="text-[11px] font-semibold text-orange-700 line-clamp-1 mt-0.5">
+                        <div className="text-xs font-semibold text-orange-700 line-clamp-1 mt-0.5">
                           {conv.listing_title}
                         </div>
                       )}
@@ -630,7 +630,7 @@ export default function MessagesClient() {
                           {conv.last_message || 'Yeni konuşma'}
                         </p>
                         {conv.unread_count > 0 && (
-                          <span className="w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                          <span className="w-5 h-5 rounded-full bg-orange-500 text-white text-xs font-black flex items-center justify-center shrink-0">
                             {conv.unread_count}
                           </span>
                         )}
@@ -666,18 +666,18 @@ export default function MessagesClient() {
                           {activeConv.other_user_name}
                         </h2>
                         {realtimeStatus === 'connected' ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                          <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded-md">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                             Canlı
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded-md">
+                          <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded-md">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                             Yenileniyor
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-slate-500 flex items-center gap-2">
+                      <div className="text-xs text-slate-500 flex items-center gap-2">
                         {activeConv.listing_title && (
                           <span className="font-semibold text-orange-600 line-clamp-1">
                             İlgili İlan: {activeConv.listing_title}
@@ -695,7 +695,7 @@ export default function MessagesClient() {
                         type="button"
                         onClick={handleSoftModeReveal}
                         title={`Bugün kalan hak: ${softQuota.remaining}`}
-                        className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 text-[11px] font-bold hover:bg-emerald-100 transition"
+                        className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 text-xs font-bold hover:bg-emerald-100 transition"
                       >
                         <Eye className="w-3.5 h-3.5 text-emerald-600" />
                         <span>Numarayı Göster ({softQuota.remaining})</span>
@@ -761,11 +761,11 @@ export default function MessagesClient() {
                   <div className="bg-amber-50/90 border-b border-amber-200 px-4 py-2 text-xs text-amber-900 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span className="text-[11px] font-medium leading-tight">
+                      <span className="text-xs font-medium leading-tight">
                         <strong>İletişim Bilgileri Korumalı:</strong> Telefon ve açık adres, teklif veya rezervasyon kabul edildikten sonra otomatik açılır.
                       </span>
                     </div>
-                    <span className="text-[10px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full font-bold shrink-0">
+                    <span className="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full font-bold shrink-0">
                       Güvenli Mesajlaşma
                     </span>
                   </div>
@@ -809,7 +809,7 @@ export default function MessagesClient() {
 
                             {/* Masked Content Notice & False Positive Dispute Button */}
                             {isMaskedMessage && (
-                              <div className="mt-2 pt-2 border-t border-slate-200/40 text-[10px] flex flex-wrap items-center justify-between gap-2">
+                              <div className="mt-2 pt-2 border-t border-slate-200/40 text-xs flex flex-wrap items-center justify-between gap-2">
                                 <span className={`${isMe ? 'text-amber-300' : 'text-amber-700'} font-semibold flex items-center gap-1`}>
                                   <Lock className="w-3 h-3 shrink-0" />
                                   İletişim bilgisi güvenlik gereği maskelendi.
@@ -832,7 +832,7 @@ export default function MessagesClient() {
                             )}
 
                             <div
-                              className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${
+                              className={`flex items-center justify-end gap-1 mt-1 text-xs ${
                                 isMe ? 'text-slate-300' : 'text-slate-400'
                               }`}
                             >
@@ -861,7 +861,7 @@ export default function MessagesClient() {
                                 setTargetMsgId(m.id);
                                 setReportModalOpen(true);
                               }}
-                              className="text-[10px] text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition mt-0.5 flex items-center gap-1"
+                              className="text-xs text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition mt-0.5 flex items-center gap-1"
                             >
                               <ShieldAlert className="w-3 h-3" />
                               Şikayet Et
@@ -985,7 +985,7 @@ export default function MessagesClient() {
                 </div>
               </div>
 
-              <div className="space-y-3 text-xs sm:text-[13px] text-slate-600 leading-relaxed">
+              <div className="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-900 font-semibold space-y-1">
                   <div className="flex items-center gap-1.5 font-black text-red-800">
                     <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />

@@ -141,7 +141,7 @@ function PromoteListingPage() {
                   <span className="w-6 h-6 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center">1</span>
                   Öne Çıkarma Ürünü Seçin
                 </h2>
-                <span className="text-[11px] font-bold text-slate-500">Slot Kapasiteli</span>
+                <span className="text-xs font-bold text-slate-500">Slot Kapasiteli</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -209,7 +209,7 @@ function PromoteListingPage() {
                           <p className="font-bold text-navy-900 text-xs sm:text-sm truncate">
                             {listing.title}
                           </p>
-                          <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
+                          <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
                             <span className="flex items-center gap-1">
                               <MapPin className="w-3 h-3 text-orange-500" />
                               {listing.address_detail || 'İstanbul'}
@@ -260,7 +260,7 @@ function PromoteListingPage() {
                       }`}
                     >
                       {dur.discount && (
-                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-emerald-600 text-[9px] font-black text-white">
+                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-emerald-600 text-xs font-black text-white">
                           {dur.discount}
                         </span>
                       )}
@@ -324,7 +324,7 @@ function PromoteListingPage() {
               <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
               <div>
                 <strong>Sandbox Test Modu:</strong>
-                <p className="text-[11px] text-blue-800 mt-0.5">
+                <p className="text-xs text-blue-800 mt-0.5">
                   Ödeme iyzico sandbox test ortamı üzerinden güvenle simüle edilir. Gerçek kredi kartınızdan para çekilmez.
                 </p>
               </div>
@@ -346,7 +346,7 @@ function PromoteListingPage() {
               )}
             </button>
 
-            <p className="text-[11px] text-slate-500 text-center">
+            <p className="text-xs text-slate-500 text-center">
               Satın alarak <Link href="/reklam-kosullari" target="_blank" className="underline hover:text-navy-900">Reklam Şartları</Link>&apos;nı kabul etmiş sayılırsınız. Reddedilen reklamlar %100 tam iade edilir.
             </p>
           </div>
