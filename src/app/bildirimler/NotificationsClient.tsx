@@ -200,7 +200,7 @@ export default function NotificationsClient() {
                           >
                             {n.title}
                           </span>
-                          <span className="text-[11px] text-slate-400 shrink-0">{timeAgo(n.created_at)}</span>
+                          <span className="text-xs text-slate-400 shrink-0">{timeAgo(n.created_at)}</span>
                         </div>
                         <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">{n.body}</p>
                       </div>

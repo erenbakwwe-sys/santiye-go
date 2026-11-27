@@ -170,7 +170,7 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
                   />
                   <div>
                     <div className="text-xs font-bold">Operatör</div>
-                    <div className="text-[11px] font-semibold">
+                    <div className="text-xs font-semibold">
                       {listing.is_operator_included ? 'Fiyata Dahil' : 'Hariç'}
                     </div>
                   </div>
@@ -190,7 +190,7 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
                   />
                   <div>
                     <div className="text-xs font-bold">Yakıt</div>
-                    <div className="text-[11px] font-semibold">
+                    <div className="text-xs font-semibold">
                       {listing.is_fuel_included ? 'Fiyata Dahil' : 'Hariç'}
                     </div>
                   </div>
@@ -210,7 +210,7 @@ export default async function ListingDetailPage({ params }: ListingPageProps) {
                   />
                   <div>
                     <div className="text-xs font-bold">Şantiye Nakliyesi</div>
-                    <div className="text-[11px] font-semibold">
+                    <div className="text-xs font-semibold">
                       {listing.is_transport_included ? 'Fiyata Dahil' : 'Hariç'}
                     </div>
                   </div>

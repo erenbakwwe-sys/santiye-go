@@ -56,7 +56,7 @@ export default function BuyerDashboardPage() {
               <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
                 Alıcı & Müteahhit Paneli
               </h1>
-              <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-navy-800 border border-slate-700 text-orange-400">
+              <span className="px-2 py-0.5 rounded text-xs font-extrabold bg-navy-800 border border-slate-700 text-orange-400">
                 ALICI
               </span>
             </div>

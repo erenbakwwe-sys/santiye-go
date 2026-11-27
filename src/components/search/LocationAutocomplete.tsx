@@ -314,7 +314,7 @@ export default function LocationAutocomplete({
                       <div className="font-medium text-navy-900 truncate">{item.label}</div>
                       <div className="text-xs text-slate-500 truncate">{item.subLabel}</div>
                     </div>
-                    <span className="text-[11px] text-slate-500 shrink-0">
+                    <span className="text-xs text-slate-500 shrink-0">
                       {item.type === 'postal_code' ? 'Posta Kodu' : item.type === 'neighborhood' ? 'Mahalle' : item.type === 'district' ? 'İlçe' : 'İl'}
                     </span>
                   </button>

@@ -147,7 +147,7 @@ export default function AdminCompaniesPage() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 font-extrabold border-b border-slate-200 text-[10px]">
+            <thead className="bg-slate-50 text-slate-500 font-extrabold border-b border-slate-200 text-xs">
               <tr>
                 <th className="py-3 px-4">Firma & Ünvan</th>
                 <th className="py-3 px-4">Vergi Bilgileri</th>
@@ -162,14 +162,14 @@ export default function AdminCompaniesPage() {
                 <tr key={c.id} className="hover:bg-slate-50">
                   <td className="py-3 px-4">
                     <div className="font-extrabold text-navy-900 text-sm">{c.name}</div>
-                    <div className="text-[10px] text-slate-400">{c.legal_type}</div>
+                    <div className="text-xs text-slate-400">{c.legal_type}</div>
                   </td>
 
                   <td className="py-3 px-4">
                     <div>
                       <strong>VKN:</strong> {c.tax_number || '-'}
                     </div>
-                    <div className="text-[11px] text-slate-500">
+                    <div className="text-xs text-slate-500">
                       {c.tax_office || 'Daire Belirtilmedi'}
                     </div>
                   </td>
@@ -178,10 +178,10 @@ export default function AdminCompaniesPage() {
                     <div>
                       {c.city_name}, {c.district_name}
                     </div>
-                    <div className="text-[11px] text-slate-500">{c.phone}</div>
+                    <div className="text-xs text-slate-500">{c.phone}</div>
                   </td>
 
-                  <td className="py-3 px-4 font-mono text-[11px]">
+                  <td className="py-3 px-4 font-mono text-xs">
                     {c.sub_merchant_key ? (
                       <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded">
                         {c.sub_merchant_key}
@@ -193,17 +193,17 @@ export default function AdminCompaniesPage() {
 
                   <td className="py-3 px-4">
                     {c.verification_status === 'approved' && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
                         <CheckCircle2 className="w-3.5 h-3.5" /> Doğrulandı
                       </span>
                     )}
                     {c.verification_status === 'pending' && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[11px] font-bold">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-xs font-bold">
                         <Clock className="w-3.5 h-3.5" /> İnceleme Bekliyor
                       </span>
                     )}
                     {c.verification_status === 'rejected' && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 text-[11px] font-bold">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-bold">
                         <XCircle className="w-3.5 h-3.5" /> Reddedildi
                       </span>
                     )}
@@ -231,7 +231,7 @@ export default function AdminCompaniesPage() {
           <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <div>
-                <span className="text-[10px] font-bold text-orange-600">
+                <span className="text-xs font-bold text-orange-600">
                   Firma Evrak İnceleme Masası
                 </span>
                 <h3 className="font-black text-navy-900 text-base">{activeCompany.name}</h3>

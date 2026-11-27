@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   AlertCircle,
   ArrowLeft,
+  ArrowRight,
   Info,
   Clock,
   Layers,
@@ -49,6 +50,8 @@ function resolveCategoryBySlug(slug: string | null): { mainId: string; subId: st
   }
   return null;
 }
+
+const STEPS = ['Ne lazım?', 'Ayrıntılar', 'Nerede?', 'Fiyata neler dahil?'];
 
 function MultiVendorQuoteForm() {
   const router = useRouter();
@@ -168,10 +171,49 @@ function MultiVendorQuoteForm() {
     }
   };
 
+  const [step, setStep] = useState(0);
+
+  const validateStep = (i: number): string => {
+    if (i === 1) {
+      if (!title.trim()) return 'Lütfen neye ihtiyacınız olduğunu kısaca yazın (başlık).';
+      if (!description.trim()) return 'Lütfen işi birkaç cümleyle anlatın (açıklama).';
+      if (title.trim().length > MAX_TITLE_LEN) return `Başlık en fazla ${MAX_TITLE_LEN} karakter olabilir.`;
+      if (description.trim().length > MAX_DESC_LEN) return `Açıklama en fazla ${MAX_DESC_LEN} karakter olabilir.`;
+    }
+    return '';
+  };
+
+  const scrollToForm = () => {
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const goNext = () => {
+    const err = validateStep(step);
+    if (err) {
+      setErrorMessage(err);
+      return;
+    }
+    setErrorMessage('');
+    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    scrollToForm();
+  };
+
+  const goBack = () => {
+    setErrorMessage('');
+    setStep((s) => Math.max(s - 1, 0));
+    scrollToForm();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Enter tuşu son adımdan önce formu göndermesin; bir sonraki adıma geçsin.
+    if (step < STEPS.length - 1) {
+      goNext();
+      return;
+    }
     if (!title.trim() || !description.trim()) {
       setErrorMessage('Lütfen talep başlığı ve açıklama alanlarını doldurun.');
+      setStep(1);
       return;
     }
     if (title.trim().length > MAX_TITLE_LEN) {
@@ -262,7 +304,7 @@ function MultiVendorQuoteForm() {
 
         {/* Hesaplayıcıdan Geldi Bildirimi */}
         <Link href="/kesif-yukle" className="mb-6 block rounded-2xl border border-orange-300 bg-orange-50 p-4 text-sm font-bold text-navy-900 hover:border-orange-500">
-          Elinizde 10’dan fazla kalemlik Excel veya malzeme listesi mi var? Tek tek girmeyin, Keşif Okuyucu ile toplu yükleyin. →
+          Elinizde 10’dan fazla kalemlik Excel veya malzeme listesi mi var? Tek tek yazmayın; listenizi yükleyin, biz firmalara dağıtalım. →
         </Link>
         {fromCalc && (
           <div className="mb-6 p-4 bg-orange-50 border border-orange-300 rounded-2xl flex items-start gap-3">
@@ -322,7 +364,31 @@ function MultiVendorQuoteForm() {
         )}
 
         {/* Form Container */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-8">
+        <form onSubmit={handleSubmit} className="bg-white rounded-md border border-slate-200 p-5 sm:p-8 space-y-6">
+          {/* Adım göstergesi */}
+          <div>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-base font-semibold text-navy-900">
+                Adım {step + 1} / {STEPS.length}: {STEPS[step]}
+              </span>
+            </div>
+            <ol className="mt-3 grid grid-cols-4 gap-1.5" aria-label="Adımlar">
+              {STEPS.map((label, i) => (
+                <li key={label}>
+                  <span
+                    className={`block h-2 rounded-full ${i <= step ? 'bg-orange-500' : 'bg-slate-200'}`}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={`hidden sm:block mt-1.5 text-sm ${i === step ? 'text-navy-900 font-medium' : 'text-slate-500'}`}
+                  >
+                    {label}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
           {errorMessage && (
             <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-2 text-sm">
               <AlertCircle className="w-5 h-5 shrink-0" />
@@ -331,14 +397,15 @@ function MultiVendorQuoteForm() {
           )}
 
           {/* 1. Kategori Seçimi */}
+          {step === 0 && (
           <div className="space-y-4">
             <div className="border-b border-slate-100 pb-3">
               <h2 className="text-base font-extrabold text-navy-900 flex items-center gap-2">
                 <Layers className="w-5 h-5 text-orange-500" />
-                1. Kategori ve alt kategori seçimi
+                Neye ihtiyacınız var?
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Talebinizin hangi alandaki firmalara ulaştırılacağını belirleyin.
+                Aşağıdan size uyan türü seçin. Talebiniz bu alanda çalışan firmalara gider.
               </p>
             </div>
 
@@ -385,16 +452,18 @@ function MultiVendorQuoteForm() {
               </div>
             )}
           </div>
+          )}
 
           {/* 2. Talep Detayları */}
+          {step === 1 && (
           <div className="space-y-4">
             <div className="border-b border-slate-100 pb-3">
               <h2 className="text-base font-extrabold text-navy-900 flex items-center gap-2">
                 <Building2 className="w-5 h-5 text-orange-500" />
-                2. İhtiyaç ve şantiye detayları
+                İhtiyacınızı anlatın
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Firmaların fiyat verebilmesi için detayları belirtin.
+                Ne kadar, ne zaman lazım? Firmalar doğru fiyat verebilsin diye birkaç cümleyle anlatın.
               </p>
             </div>
 
@@ -475,16 +544,18 @@ function MultiVendorQuoteForm() {
               />
             </div>
           </div>
+          )}
 
           {/* 3. Konum ve Dağıtım Yarıçapı */}
+          {step === 2 && (
           <div className="space-y-4">
             <div className="border-b border-slate-100 pb-3">
               <h2 className="text-base font-extrabold text-navy-900 flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-orange-500" />
-                3. Şantiye konumu ve firma dağıtım yarıçapı
+                İş nerede yapılacak?
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Talebiniz belirlediğiniz yarıçaptaki tedarikçilere iletilir.
+                Şantiyenizin il ve ilçesini seçin. Talebiniz bu bölgedeki firmalara iletilir.
               </p>
             </div>
 
@@ -555,16 +626,18 @@ function MultiVendorQuoteForm() {
               />
             </div>
           </div>
+          )}
 
           {/* 4. Fiyata Dahil Edilmesi İstenen Hizmetler */}
+          {step === 3 && (
           <div className="space-y-4">
             <div className="border-b border-slate-100 pb-3">
               <h2 className="text-base font-extrabold text-navy-900 flex items-center gap-2">
                 <Wrench className="w-5 h-5 text-orange-500" />
-                4. Teklif kapsamına dahil olacak hizmetler
+                Fiyata neler dahil olsun?
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Firmalardan fiyat alırken fiyata dahil olmasını istediğiniz kalemleri işaretleyin.
+                İstediklerinizi işaretleyin. Emin değilseniz boş bırakabilirsiniz; firmalar tekliflerinde belirtir.
               </p>
             </div>
 
@@ -600,24 +673,40 @@ function MultiVendorQuoteForm() {
               </label>
             </div>
           </div>
+          )}
 
-          {/* Submit Actions */}
-          <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <Info className="w-4 h-4 text-slate-400 shrink-0" />
-              <span>
-                Teklif talebiniz spam koruması kapsamında filtrelenir ve en fazla 10 firmaya iletilir.
-              </span>
+          {/* Adım düğmeleri */}
+          <div className="pt-5 border-t border-slate-200 space-y-4">
+            {step === STEPS.length - 1 && (
+              <div className="flex items-start gap-2 text-sm text-slate-600">
+                <Info className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />
+                <span>
+                  Talebiniz bölgenizdeki en fazla 10 uygun firmaya iletilir. Teklif istemek ücretsizdir ve sizi
+                  hiçbir firmayla anlaşmaya zorlamaz.
+                </span>
+              </div>
+            )}
+            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-between">
+              {step > 0 ? (
+                <button type="button" onClick={goBack} className="btn-secondary">
+                  <ArrowLeft className="w-5 h-5" />
+                  Geri
+                </button>
+              ) : (
+                <span />
+              )}
+              {step < STEPS.length - 1 ? (
+                <button type="button" onClick={goNext} className="btn-primary sm:min-w-[200px]">
+                  İleri: {STEPS[step + 1]}
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              ) : (
+                <button type="submit" disabled={loading || success} className="btn-primary sm:min-w-[240px] disabled:opacity-50">
+                  <Send className="w-5 h-5" />
+                  {loading ? 'Gönderiliyor...' : 'Teklif talebimi gönder'}
+                </button>
+              )}
             </div>
-
-            <button
-              type="submit"
-              disabled={loading || success}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-sm tracking-wide shadow-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              <Send className="w-4 h-4" />
-              {loading ? 'Teklif talebi dağıtılıyor...' : 'Teklif talebini gönder'}
-            </button>
           </div>
         </form>
       </div>

@@ -114,7 +114,7 @@ export default function ComparisonTable({
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-navy-900 text-white font-bold text-[11px]">
+            <tr className="bg-navy-900 text-white font-bold text-xs">
               <th className="py-3 px-3 text-center w-12">Seç</th>
               <th
                 onClick={() => handleHeaderClick('title')}
@@ -182,12 +182,12 @@ export default function ComparisonTable({
                   <td className="py-3 px-4 max-w-xs">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       {isCheapestDaily && (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-emerald-600 text-white shadow-sm">
+                        <span className="px-1.5 py-0.5 rounded text-xs font-black bg-emerald-600 text-white shadow-sm">
                           En ucuz
                         </span>
                       )}
                       {isClosest && (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-orange-500 text-white shadow-sm">
+                        <span className="px-1.5 py-0.5 rounded text-xs font-black bg-orange-500 text-white shadow-sm">
                           En yakın
                         </span>
                       )}
@@ -198,7 +198,7 @@ export default function ComparisonTable({
                     >
                       {l.title}
                     </Link>
-                    <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5 truncate">
+                    <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 truncate">
                       {isCompanyVerified(l) && (
                         <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
                       )}
@@ -212,7 +212,7 @@ export default function ComparisonTable({
                       <MapPin className="w-3 h-3 text-orange-500 shrink-0" />
                       <span>{l.city_name || '—'}{l.city_name && l.district_name ? `, ${l.district_name}` : ''}</span>
                     </div>
-                    <div className="text-[11px] text-slate-500">
+                    <div className="text-xs text-slate-500">
                       {formatDistance(l.distance_km) ? (
                         <strong className="text-orange-600">{formatDistance(l.distance_km)}</strong>
                       ) : (
@@ -226,7 +226,7 @@ export default function ComparisonTable({
                     {unitRate ? (
                       <span className="font-black text-navy-900 text-sm">
                         {unitRate.amount.toLocaleString('tr-TR')} ₺
-                        <span className="text-[11px] font-semibold text-slate-500"> / {unitRate.unit}</span>
+                        <span className="text-xs font-semibold text-slate-500"> / {unitRate.unit}</span>
                       </span>
                     ) : l.pricing_type === 'custom_quote' || (prices.daily === null && prices.sale === null && l.listing_type === 'service') ? (
                       <span className="font-bold text-navy-900 text-xs px-2 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200">
@@ -242,7 +242,7 @@ export default function ComparisonTable({
                   </td>
 
                   {/* Weekly / Monthly */}
-                  <td className="py-3 px-4 whitespace-nowrap text-[11px] text-slate-600">
+                  <td className="py-3 px-4 whitespace-nowrap text-xs text-slate-600">
                     <div>
                       Haftalık: {prices.weekly !== null ? `${prices.weekly.toLocaleString('tr-TR')} ₺` : '—'}
                     </div>
@@ -303,7 +303,7 @@ export default function ComparisonTable({
 
                   {/* Status / Availability */}
                   <td className="py-3 px-3 text-center whitespace-nowrap">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                       l.status === 'active'
                         ? 'bg-emerald-100 text-emerald-800'
                         : 'bg-amber-100 text-amber-800'
@@ -316,7 +316,7 @@ export default function ComparisonTable({
                   <td className="py-3 px-4 text-right">
                     <Link
                       href={`/ilan/${l.slug || l.id}`}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-navy-900 hover:bg-orange-500 text-white font-bold text-[11px] transition"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-navy-900 hover:bg-orange-500 text-white font-bold text-xs transition"
                     >
                       <span>İncele</span>
                       <ExternalLink className="w-3 h-3" />

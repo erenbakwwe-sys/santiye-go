@@ -31,7 +31,7 @@ export default function ErrorPage({
             İşleminiz gerçekleştirilirken teknik bir aksaklık yaşandı. Teknik ekibimiz durumdan haberdar edildi.
           </p>
           {error.digest && (
-            <p className="text-[10px] font-mono text-slate-400 bg-slate-100 py-1 px-2 rounded inline-block">
+            <p className="text-xs font-mono text-slate-400 bg-slate-100 py-1 px-2 rounded inline-block">
               Hata Kodu: {error.digest}
             </p>
           )}

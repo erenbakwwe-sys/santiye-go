@@ -82,7 +82,7 @@ export default function A2HSPrompt() {
               <div className="font-black text-xs sm:text-sm tracking-tight">
                 ŞantiyeGO Uygulamasını Yükle
               </div>
-              <p className="text-[11px] text-slate-300">
+              <p className="text-xs text-slate-300">
                 Şantiyenizde tek tıkla hızlı açılış ve anlık bildirimler.
               </p>
             </div>
@@ -128,15 +128,15 @@ export default function A2HSPrompt() {
 
             <div className="bg-slate-50 rounded-2xl p-4 text-left text-xs space-y-2.5 border border-slate-100">
               <div className="flex items-center gap-2 text-slate-700 font-semibold">
-                <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] font-bold">1</span>
+                <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold">1</span>
                 <span>Safari&apos;nin altındaki <Share2 className="w-4 h-4 inline text-blue-600" /> (Paylaş) butonuna dokunun.</span>
               </div>
               <div className="flex items-center gap-2 text-slate-700 font-semibold">
-                <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] font-bold">2</span>
+                <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold">2</span>
                 <span>Aşağı kaydırıp <PlusSquare className="w-4 h-4 inline text-slate-800" /> &apos;Ana Ekrana Ekle&apos;yi seçin.</span>
               </div>
               <div className="flex items-center gap-2 text-slate-700 font-semibold">
-                <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] font-bold">3</span>
+                <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold">3</span>
                 <span>Sağ üstteki &apos;Ekle&apos;ye basın, uygulama hazır!</span>
               </div>
             </div>

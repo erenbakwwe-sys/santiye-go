@@ -135,7 +135,7 @@ export default function AdminSettingsPage() {
                 <option value="external">Platform Dışı Doğrudan Ödeme (External - Varsayılan)</option>
                 <option value="platform">Platform Ödeme Güvencesi (iyzico Escrow / 3DS)</option>
               </select>
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-xs text-slate-400 mt-1">
                 &quot;Platform&quot; seçildiğinde alıcılar iyzico lisanslı havuz hesabı güvencesiyle 3D Secure kart ödemesi yapabilir.
               </p>
             </div>
@@ -154,7 +154,7 @@ export default function AdminSettingsPage() {
                 onChange={(e) => setCommissionRate(Number(e.target.value))}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-navy-900 focus:ring-2 focus:ring-orange-500"
               />
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-xs text-slate-400 mt-1">
                 Kategori veya firma özel istisnası tanımlanmamış tüm kiralama/satış işlemlerinde uygulanır.
               </p>
             </div>
@@ -172,7 +172,7 @@ export default function AdminSettingsPage() {
                 onChange={(e) => setDisputeWindowHours(Number(e.target.value))}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500"
               />
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-xs text-slate-400 mt-1">
                 Teslimat bildiriminden sonra alıcının sorun bildirebileceği süre (Varsayılan 72 saat). Süre bitiminde otomatik aktarılır.
               </p>
             </div>
@@ -197,7 +197,7 @@ export default function AdminSettingsPage() {
                 onChange={(e) => setCancelHours(Number(e.target.value))}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500"
               />
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-xs text-slate-400 mt-1">
                 Kiralama başlama tarihinden kaç saat öncesine kadar alıcı kesintisiz tam iade alabilir.
               </p>
             </div>
@@ -214,7 +214,7 @@ export default function AdminSettingsPage() {
                 onChange={(e) => setExpireHours(Number(e.target.value))}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500"
               />
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-xs text-slate-400 mt-1">
                 Firma tarafından yanıtlanmayan talepler bu sürenin sonunda otomatik iptal (expired) edilir.
               </p>
             </div>
@@ -260,7 +260,7 @@ export default function AdminSettingsPage() {
                 <div className="font-bold text-purple-950 text-sm flex items-center gap-2">
                   <span>Soft Launch Kısıtlamasını Aktif Et</span>
                   {softLaunchActive && (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-600 text-white">
+                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-600 text-white">
                       Aktif
                     </span>
                   )}

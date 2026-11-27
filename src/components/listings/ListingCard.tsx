@@ -209,23 +209,23 @@ export default function ListingCard({
         )}
 
         <div className="absolute top-2 left-2 flex gap-1">
-          <span className="px-1.5 py-0.5 rounded-sm bg-white/95 text-[11px] font-medium text-navy-900">
+          <span className="px-1.5 py-0.5 rounded-sm bg-white/95 text-xs font-medium text-navy-900">
             {typeLabel}
           </span>
           {listing.is_sponsored && (
-            <span className="px-1.5 py-0.5 rounded-sm bg-navy-900/90 text-[11px] font-medium text-white">
+            <span className="px-1.5 py-0.5 rounded-sm bg-navy-900/90 text-xs font-medium text-white">
               Sponsorlu
             </span>
           )}
           {listing.is_demo && (
-            <span className="px-1.5 py-0.5 rounded-sm bg-orange-500 text-[11px] font-medium text-white">
+            <span className="px-1.5 py-0.5 rounded-sm bg-orange-500 text-xs font-medium text-white">
               Örnek
             </span>
           )}
         </div>
 
         {distanceLabel && (
-          <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded-sm bg-navy-900/85 text-white text-[11px] font-medium tabular">
+          <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded-sm bg-navy-900/85 text-white text-xs font-medium tabular">
             {distanceLabel}
           </span>
         )}
@@ -262,17 +262,17 @@ export default function ListingCard({
 
       <div className="p-3.5 flex-1 flex flex-col">
         <Link href={href} onClick={onOpen}>
-          <h3 className="text-[15px] font-medium text-navy-900 leading-snug line-clamp-2 group-hover:text-orange-700 transition-colors">
+          <h3 className="text-base font-medium text-navy-900 leading-snug line-clamp-2 group-hover:text-orange-700 transition-colors">
             {displayTitle}
           </h3>
         </Link>
-        <p className="mt-1 text-[13px] text-slate-500 truncate">
+        <p className="mt-1 text-sm text-slate-500 truncate">
           {listing.city_name || 'Türkiye'}
           {listing.district_name ? `, ${listing.district_name}` : ''}
           {listing.category?.name ? ` · ${listing.category.name}` : ''}
         </p>
         {inclusions.length > 0 && (
-          <p className="mt-1.5 text-[13px] text-slate-600">{inclusions.join(' · ')}</p>
+          <p className="mt-1.5 text-sm text-slate-600">{inclusions.join(' · ')}</p>
         )}
 
         <div className="mt-auto pt-3">

@@ -214,7 +214,7 @@ export default function CompanyBookingsPage() {
 
                     <div className="lg:col-span-4 flex flex-col justify-between items-end border-t lg:border-t-0 lg:border-l lg:border-slate-100 lg:pl-5 pt-3 lg:pt-0">
                       <div className="text-right w-full">
-                        <span className="text-[10px] text-slate-400 font-bold block">
+                        <span className="text-xs text-slate-400 font-bold block">
                           Tahmini Tutar
                         </span>
                         <span className="text-2xl font-black text-orange-600">

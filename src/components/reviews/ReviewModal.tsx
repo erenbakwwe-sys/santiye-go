@@ -100,7 +100,7 @@ export default function ReviewModal({
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-700">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
               <ShieldCheck className="w-3.5 h-3.5" />
               Doğrulanmış Müşteri Değerlendirmesi
             </div>
@@ -152,7 +152,7 @@ export default function ReviewModal({
             />
           </div>
 
-          <div className="p-2.5 bg-slate-50 rounded-xl text-[11px] text-slate-500 leading-relaxed border border-slate-100">
+          <div className="p-2.5 bg-slate-50 rounded-xl text-xs text-slate-500 leading-relaxed border border-slate-100">
             Puanınız firmanın genel değerlendirme ortalamasına yansıtılır.
           </div>
 

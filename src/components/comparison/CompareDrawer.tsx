@@ -43,7 +43,7 @@ export default function CompareDrawer({
           </div>
           <div className="hidden sm:block">
             <div className="text-xs font-bold leading-tight">İlan Karşılaştırma</div>
-            <div className="text-[10px] text-slate-300">En fazla 3 ilan yan yana</div>
+            <div className="text-xs text-slate-300">En fazla 3 ilan yan yana</div>
           </div>
         </div>
 
@@ -146,7 +146,7 @@ export default function CompareDrawer({
                           className="object-cover"
                         />
                         <div
-                          className={`absolute top-2 left-2 text-white text-[10px] font-extrabold px-2 py-0.5 rounded shadow-sm ${
+                          className={`absolute top-2 left-2 text-white text-xs font-extrabold px-2 py-0.5 rounded shadow-sm ${
                             l.listing_type === 'rental'
                               ? 'bg-navy-900'
                               : l.listing_type === 'service'
@@ -171,11 +171,11 @@ export default function CompareDrawer({
 
                       {/* Pricing Box */}
                       <div className="bg-white p-3 rounded-lg border border-slate-200 mb-3 space-y-1">
-                        <div className="text-[11px] font-bold text-slate-500">Fiyat Tarifesi</div>
+                        <div className="text-xs font-bold text-slate-500">Fiyat Tarifesi</div>
                         {l.pricing_type === 'custom_quote' || noPrice ? (
                           <div>
                             <div className="text-base font-black text-navy-900">Teklife Göre</div>
-                            <div className="text-[10px] text-slate-500 font-semibold">Keşif & Proje Bazlı</div>
+                            <div className="text-xs text-slate-500 font-semibold">Keşif & Proje Bazlı</div>
                           </div>
                         ) : unitRate ? (
                           <div className="text-lg font-black text-orange-600">
@@ -263,11 +263,11 @@ export default function CompareDrawer({
               {/* Technical Specs: iki ilandan gelen etiketlerin birleşimi */}
               {specLabels.length > 0 && (
                 <div className="mt-5 border-t border-slate-200 pt-3">
-                  <div className="text-[10px] font-bold text-slate-400 mb-2">Teknik Parametreler</div>
+                  <div className="text-xs font-bold text-slate-400 mb-2">Teknik Parametreler</div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
-                        <tr className="text-[11px] text-slate-500">
+                        <tr className="text-xs text-slate-500">
                           <th className="py-1.5 pr-3 font-semibold" />
                           {selectedListings.map((l) => (
                             <th key={l.id} className="py-1.5 px-2 font-bold text-navy-900 max-w-[10rem] truncate">

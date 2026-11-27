@@ -197,21 +197,21 @@ export default function AdminCategoriesPage() {
           >
             <div>
               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-mono font-bold">
+                <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-xs font-mono font-bold">
                   Sıra: #{cat.order_index}
                 </span>
                 <span className="w-2 h-2 rounded-full bg-emerald-500" title="Aktif" />
               </div>
 
               <h3 className="font-extrabold text-navy-900 text-base mt-2">{cat.name}</h3>
-              <div className="text-[11px] text-slate-400 font-mono">/{cat.slug}</div>
+              <div className="text-xs text-slate-400 font-mono">/{cat.slug}</div>
 
               {/* Allowed Listing Types Badges */}
               <div className="mt-2.5 flex flex-wrap gap-1">
                 {(cat.allowed_listing_types || ['rental', 'sale']).map((t) => (
                   <span
                     key={t}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    className={`px-2 py-0.5 rounded text-xs font-bold ${
                       t === 'rental'
                         ? 'bg-navy-100 text-navy-900'
                         : t === 'service'
@@ -226,14 +226,14 @@ export default function AdminCategoriesPage() {
 
               {cat.subcategories && cat.subcategories.length > 0 && (
                 <div className="mt-3 space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 block">
+                  <span className="text-xs font-bold text-slate-400 block">
                     Alt Kategoriler ({cat.subcategories.length}):
                   </span>
                   <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pt-1">
                     {cat.subcategories.map((sub) => (
                       <span
                         key={sub.id}
-                        className="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-[11px] text-slate-600"
+                        className="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-xs text-slate-600"
                       >
                         {sub.name}
                       </span>
@@ -419,22 +419,22 @@ export default function AdminCategoriesPage() {
                           <div className="font-bold text-navy-900 flex items-center gap-2">
                             <span>{attr.name}</span>
                             {attr.unit && (
-                              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] text-slate-600 font-mono">
+                              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-xs text-slate-600 font-mono">
                                 {attr.unit}
                               </span>
                             )}
                             {attr.is_required && (
-                              <span className="px-1 py-0.2 rounded bg-red-100 text-red-700 text-[9px] font-bold">
+                              <span className="px-1 py-0.2 rounded bg-red-100 text-red-700 text-xs font-bold">
                                 Zorunlu
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                          <div className="text-xs text-slate-400 font-mono mt-0.5">
                             slug: {attr.slug} • tip: {attr.attribute_type}
                             {attr.options ? ` • seçenekler: [${attr.options.join(', ')}]` : ''}
                           </div>
                         </div>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold shrink-0">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold shrink-0">
                           Aktif
                         </span>
                       </div>

@@ -53,17 +53,17 @@ export default function HeroSearch() {
 
   return (
     <section className="bg-navy-900 text-white border-b-4 border-orange-500">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-12 md:pt-16 md:pb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-7 pb-8 md:pt-16 md:pb-16">
         <div className="max-w-3xl">
-          <h1 className="text-[28px] leading-[1.15] sm:text-4xl md:text-[44px] md:leading-[1.1] font-semibold tracking-tight">
+          <h1 className="text-2xl leading-tight sm:text-4xl md:text-[44px] md:leading-[1.1] font-semibold tracking-tight">
             İş makinesi, yapı malzemesi ve nakliye için Türkiye&apos;nin şantiye pazaryeri
           </h1>
-          <p className="mt-4 text-base md:text-lg text-slate-300 max-w-2xl leading-relaxed">
+          <p className="hidden sm:block mt-4 text-base md:text-lg text-slate-300 max-w-2xl leading-relaxed">
             Size en yakın firmaların ilanlarını inceleyin ya da tek bir taleple birden fazla firmadan fiyat alın.
           </p>
         </div>
 
-        <form onSubmit={handleSearch} className="mt-8 bg-white rounded-md p-2 text-navy-900 shadow-xl">
+        <form onSubmit={handleSearch} className="mt-5 sm:mt-8 bg-white rounded-md p-2 text-navy-900 shadow-xl">
           <div className="grid grid-cols-1 md:grid-cols-[1.3fr_1fr_auto_auto] gap-2">
             <div className="relative flex items-center">
               <Search
@@ -76,7 +76,7 @@ export default function HeroSearch() {
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="Ne arıyorsunuz? Örn. ekskavatör, hazır beton"
                 aria-label="Ne arıyorsunuz?"
-                className="w-full h-12 pl-10 pr-3 bg-white text-navy-900 placeholder:text-slate-400 rounded-md text-[15px] border border-slate-300 focus:border-navy-900 focus:ring-1 focus:ring-navy-900 focus:outline-none transition-colors"
+                className="w-full h-12 pl-10 pr-3 bg-white text-navy-900 placeholder:text-slate-400 rounded-md text-base border border-slate-300 focus:border-navy-900 focus:ring-1 focus:ring-navy-900 focus:outline-none transition-colors"
               />
             </div>
 
@@ -84,14 +84,14 @@ export default function HeroSearch() {
               compact
               valueLabel={locationData?.label || ''}
               onSelectLocation={(data) => setLocationData(data)}
-              inputClassName="w-full h-12 pl-10 pr-16 bg-white text-navy-900 placeholder:text-slate-400 rounded-md text-[15px] border border-slate-300 focus:border-navy-900 focus:ring-1 focus:ring-navy-900 focus:outline-none transition-colors"
+              inputClassName="w-full h-12 pl-10 pr-16 bg-white text-navy-900 placeholder:text-slate-400 rounded-md text-base border border-slate-300 focus:border-navy-900 focus:ring-1 focus:ring-navy-900 focus:outline-none transition-colors"
             />
 
             <select
               value={radius}
               onChange={(e) => setRadius(e.target.value)}
               aria-label="Mesafe"
-              className="h-12 px-3 pr-8 bg-white text-navy-900 rounded-md text-[15px] border border-slate-300 focus:border-navy-900 focus:ring-1 focus:ring-navy-900 focus:outline-none"
+              className="h-12 px-3 pr-8 bg-white text-navy-900 rounded-md text-base border border-slate-300 focus:border-navy-900 focus:ring-1 focus:ring-navy-900 focus:outline-none"
             >
               {radiusOptions.map((o) => (
                 <option key={o.val} value={o.val}>
@@ -102,15 +102,15 @@ export default function HeroSearch() {
 
             <button
               type="submit"
-              className="h-12 px-7 rounded-md bg-orange-500 hover:bg-orange-600 text-white font-semibold text-[15px] transition-colors flex items-center justify-center gap-2"
+              className="h-12 px-7 rounded-md bg-orange-500 hover:bg-orange-600 text-white font-semibold text-base transition-colors flex items-center justify-center gap-2"
             >
               <Search className="w-[18px] h-[18px]" strokeWidth={2} />
-              Ara
+              İlan ara
             </button>
           </div>
         </form>
 
-        <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        <div className="hidden sm:flex mt-5 flex-wrap items-center gap-x-4 gap-y-2 text-sm">
           <span className="text-slate-400">Sık arananlar:</span>
           {popular.map((tag) => (
             <button

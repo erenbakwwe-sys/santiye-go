@@ -107,7 +107,7 @@ export default function CompanyMembershipPage() {
         <div className="bg-navy-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full bg-orange-500 text-white text-[11px] font-black">
+              <span className="px-3 py-1 rounded-full bg-orange-500 text-white text-xs font-black">
                 Mevcut Üyeliğiniz
               </span>
               <span className="text-slate-400">•</span>
@@ -143,7 +143,7 @@ export default function CompanyMembershipPage() {
                   }}
                 />
               </div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-xs text-slate-400">
                 Fotoğraf Limiti: <strong>{currentPlan.photo_limit} adet / ilan</strong>
               </div>
             </div>
@@ -181,7 +181,7 @@ export default function CompanyMembershipPage() {
             }`}
           >
             <span>Yıllık Ödeme</span>
-            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
+            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black">
               2 Ay Bedava!
             </span>
           </span>
@@ -209,7 +209,7 @@ export default function CompanyMembershipPage() {
                       {plan.id === 'premium' ? 'Tavsiye Edilen' : 'Plan'}
                     </span>
                     {isCurrent && (
-                      <span className="px-2 py-0.5 rounded bg-orange-100 text-orange-800 text-[10px] font-black">
+                      <span className="px-2 py-0.5 rounded bg-orange-100 text-orange-800 text-xs font-black">
                         AKTİF PAKETİNİZ
                       </span>
                     )}

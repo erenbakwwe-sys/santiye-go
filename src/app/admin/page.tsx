@@ -68,7 +68,7 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded bg-orange-100 text-orange-800 text-[11px] font-black">
+            <span className="px-2.5 py-0.5 rounded bg-orange-100 text-orange-800 text-xs font-black">
               Süper Admin
             </span>
             <span className="text-slate-400">•</span>
@@ -103,7 +103,7 @@ export default function AdminDashboardPage() {
             <Users className="w-4 h-4 text-blue-600" />
           </div>
           <div className="text-2xl font-black text-navy-900">{metrics.totalUsers}</div>
-          <div className="text-[11px] text-slate-400">{metrics.totalCompanies} Onaylı Firma</div>
+          <div className="text-xs text-slate-400">{metrics.totalCompanies} Onaylı Firma</div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
@@ -112,7 +112,7 @@ export default function AdminDashboardPage() {
             <Layers className="w-4 h-4 text-orange-500" />
           </div>
           <div className="text-2xl font-black text-navy-900">{metrics.activeListings}</div>
-          <div className="text-[11px] text-slate-400">7 Farklı Şehirde Yayında</div>
+          <div className="text-xs text-slate-400">7 Farklı Şehirde Yayında</div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
@@ -123,7 +123,7 @@ export default function AdminDashboardPage() {
           <div className="text-2xl font-black text-navy-900">
             {formatMoney(metrics.totalVolumeCents)}
           </div>
-          <div className="text-[11px] text-emerald-600 font-bold">Bu Ay: 28 Rezervasyon</div>
+          <div className="text-xs text-emerald-600 font-bold">Bu Ay: 28 Rezervasyon</div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
@@ -134,7 +134,7 @@ export default function AdminDashboardPage() {
           <div className="text-2xl font-black text-orange-600">
             {formatMoney(metrics.totalCommissionCents)}
           </div>
-          <div className="text-[11px] text-slate-400">Ortalama %8 Platform Komisyonu</div>
+          <div className="text-xs text-slate-400">Ortalama %8 Platform Komisyonu</div>
         </div>
       </div>
 
@@ -168,7 +168,7 @@ export default function AdminDashboardPage() {
                 >
                   <div>
                     <div className="font-bold text-navy-900 text-sm">{c.name}</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">
+                    <div className="text-xs text-slate-500 mt-0.5">
                       {c.city_name || 'İstanbul'} • VKN: {c.tax_number || 'Belirtilmedi'}
                     </div>
                   </div>
@@ -213,11 +213,11 @@ export default function AdminDashboardPage() {
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-navy-900">{r.reason}</span>
-                      <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">
+                      <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-xs font-bold">
                         {r.status === 'investigating' ? 'İnceleniyor' : 'Yeni'}
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-600 line-clamp-1">{r.details}</p>
+                    <p className="text-xs text-slate-600 line-clamp-1">{r.details}</p>
                   </div>
                   <Link
                     href={`/admin/sikayetler?id=${r.id}`}
@@ -245,7 +245,7 @@ export default function AdminDashboardPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-100 text-slate-400 text-[10px] tracking-wider font-extrabold">
+              <tr className="border-b border-slate-100 text-slate-400 text-xs tracking-wider font-extrabold">
                 <th className="py-2.5 px-3">Zaman</th>
                 <th className="py-2.5 px-3">Yönetici</th>
                 <th className="py-2.5 px-3">Eylem</th>
@@ -256,13 +256,13 @@ export default function AdminDashboardPage() {
             <tbody className="divide-y divide-slate-100 text-slate-600">
               {logs.map((l) => (
                 <tr key={l.id} className="hover:bg-slate-50">
-                  <td className="py-2.5 px-3 text-slate-400 font-mono text-[11px]">
+                  <td className="py-2.5 px-3 text-slate-400 font-mono text-xs">
                     {new Date(l.created_at).toLocaleString('tr-TR')}
                   </td>
                   <td className="py-2.5 px-3 font-bold text-navy-900">{l.admin_id}</td>
                   <td className="py-2.5 px-3 font-semibold text-orange-600">{l.action}</td>
                   <td className="py-2.5 px-3">
-                    <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px]">
+                    <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-xs">
                       {l.target_type}:{l.target_id?.slice(0, 8)}
                     </span>
                   </td>

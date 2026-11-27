@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { COOKIE_CHOICE_EVENT } from '@/components/help/IntroGuide';
 
 export default function CookieConsent() {
   const [showBanner, setShowBanner] = useState(false);
@@ -18,11 +19,13 @@ export default function CookieConsent() {
   const handleAcceptAll = () => {
     localStorage.setItem('sg_cookie_consent', 'all');
     setShowBanner(false);
+    window.dispatchEvent(new Event(COOKIE_CHOICE_EVENT));
   };
 
   const handleAcceptNecessary = () => {
     localStorage.setItem('sg_cookie_consent', 'necessary_only');
     setShowBanner(false);
+    window.dispatchEvent(new Event(COOKIE_CHOICE_EVENT));
   };
 
   if (!showBanner) return null;

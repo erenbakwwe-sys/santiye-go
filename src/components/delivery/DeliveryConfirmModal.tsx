@@ -142,7 +142,7 @@ export default function DeliveryConfirmModal({
               <h3 className="font-black text-base tracking-tight leading-tight">
                 Şantiye Teslimat Onayı & İrsaliye
               </h3>
-              <p className="text-[11px] text-slate-300">
+              <p className="text-xs text-slate-300">
                 Escrow Emanet Havuzu Çözümleme Protokolü
               </p>
             </div>
@@ -202,7 +202,7 @@ export default function DeliveryConfirmModal({
                 </span>
               </div>
               {completedWaybill.delivery_note && (
-                <div className="pt-2 border-t border-slate-200 text-[11px] text-slate-600">
+                <div className="pt-2 border-t border-slate-200 text-xs text-slate-600">
                   <strong>Şantiye Şefi Notu:</strong> &ldquo;{completedWaybill.delivery_note}&rdquo;
                 </div>
               )}
@@ -241,7 +241,7 @@ export default function DeliveryConfirmModal({
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
                 <span>Şoförün Ekranındaki 6 Haneli Teslimat Kodu:</span>
-                <span className="text-[11px] text-orange-600 font-semibold">veya QR Token</span>
+                <span className="text-xs text-orange-600 font-semibold">veya QR Token</span>
               </label>
               <div className="relative">
                 <input
@@ -254,7 +254,7 @@ export default function DeliveryConfirmModal({
                 />
                 <KeyRound className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-xs text-slate-400 mt-1">
                 Kodu şoförün cep telefonundaki dijital irsaliye kartından alabilirsiniz.
               </p>
             </div>
@@ -264,7 +264,7 @@ export default function DeliveryConfirmModal({
               <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2.5">
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400">
+                    <span className="text-xs font-bold text-slate-400">
                       Teslim Alınacak Kalem
                     </span>
                     <h4 className="text-sm font-black text-navy-900">
@@ -285,7 +285,7 @@ export default function DeliveryConfirmModal({
                     <Truck className="w-3.5 h-3.5 text-slate-400" />
                     <span><strong>Şoför / Plaka:</strong> {waybill.driver_name} ({waybill.plate_number})</span>
                   </div>
-                  <div className="flex items-start gap-1.5 text-[11px] text-slate-500">
+                  <div className="flex items-start gap-1.5 text-xs text-slate-500">
                     <MapPin className="w-3.5 h-3.5 text-orange-500 shrink-0 mt-0.5" />
                     <span className="line-clamp-1">{waybill.site_address}</span>
                   </div>
@@ -309,7 +309,7 @@ export default function DeliveryConfirmModal({
 
               {/* Opsiyonel Teslimat Notu */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
                   Şantiye Şefi Teslim Notu (Opsiyonel):
                 </label>
                 <input
@@ -325,7 +325,7 @@ export default function DeliveryConfirmModal({
             {/* Escrow Bilgilendirmesi */}
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-start gap-2 text-xs text-emerald-900">
               <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <p className="text-[11px] leading-relaxed">
+              <p className="text-xs leading-relaxed">
                 Bu onayla birlikte korumalı havuzda bloke edilmiş olan{' '}
                 <strong>
                   {waybill?.total_price

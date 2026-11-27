@@ -28,7 +28,7 @@ export default function MobileNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center gap-1 text-[11px] ${
+              className={`flex flex-col items-center justify-center gap-1 text-xs ${
                 item.isHighlight
                   ? 'text-orange-600 font-medium'
                   : isActive

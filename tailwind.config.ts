@@ -46,9 +46,9 @@ export default {
           100: "#EEF0F3",
           200: "#E1E4E9",
           300: "#CBD0D8",
-          400: "#9AA1AD",
-          500: "#6B7280",
-          600: "#4F5663",
+          400: "#868D99",
+          500: "#596170",
+          600: "#454C58",
           700: "#3A404B",
           800: "#272C35",
           900: "#1A1E25",
@@ -62,6 +62,17 @@ export default {
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
+      },
+      // Okunaklılık: geniş yaş aralığı için varsayılandan bir kademe büyük ölçek.
+      fontSize: {
+        xs: ["0.8125rem", { lineHeight: "1.15rem" }],   // 13px
+        sm: ["0.9375rem", { lineHeight: "1.4rem" }],    // 15px
+        base: ["1.0625rem", { lineHeight: "1.65rem" }], // 17px
+        lg: ["1.1875rem", { lineHeight: "1.75rem" }],   // 19px
+        xl: ["1.375rem", { lineHeight: "1.9rem" }],     // 22px
+        "2xl": ["1.625rem", { lineHeight: "2.1rem" }],  // 26px
+        "3xl": ["2rem", { lineHeight: "2.4rem" }],
+        "4xl": ["2.5rem", { lineHeight: "2.85rem" }],
       },
       fontWeight: {
         // Aşırı kalın (900) başlıklar yerine ölçülü ağırlıklar

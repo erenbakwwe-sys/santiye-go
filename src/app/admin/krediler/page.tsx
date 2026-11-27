@@ -229,7 +229,7 @@ export default function AdminCreditsPage() {
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded bg-orange-100 text-orange-800 text-[11px] font-black">
+            <span className="px-2.5 py-0.5 rounded bg-orange-100 text-orange-800 text-xs font-black">
               Gelir & Para Kazanma Motoru
             </span>
           </div>
@@ -338,49 +338,49 @@ export default function AdminCreditsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-              <span className="text-[11px] font-bold text-slate-500 block">
+              <span className="text-xs font-bold text-slate-500 block">
                 Gölge Mod Potansiyel Gelir
               </span>
               <div className="text-3xl font-black text-amber-600">
                 ₺{stats?.shadowEstimatedRevenue?.toLocaleString('tr-TR') || '0'}
               </div>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-slate-500">
                 Sistem aktif olsaydı üretilecek tahmini ciro.
               </p>
             </div>
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-              <span className="text-[11px] font-bold text-slate-500 block">
+              <span className="text-xs font-bold text-slate-500 block">
                 Simüle Edilen Teklif Harcaması
               </span>
               <div className="text-3xl font-black text-navy-900">
                 {stats?.totalShadowSpentCredits || 0} Adet
               </div>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-slate-500">
                 Gölge modda firmaların ücretsiz verdiği teklifler.
               </p>
             </div>
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-              <span className="text-[11px] font-bold text-slate-500 block">
+              <span className="text-xs font-bold text-slate-500 block">
                 Ortalama Slot Doluluğu
               </span>
               <div className="text-3xl font-black text-emerald-600">
                 {stats?.averageSlotsFilled || 2.4} / 4
               </div>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-slate-500">
                 Talep başına ortalama teklif veren firma sayısı.
               </p>
             </div>
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-              <span className="text-[11px] font-bold text-slate-500 block">
+              <span className="text-xs font-bold text-slate-500 block">
                 Bekleyen İade İtirazları
               </span>
               <div className="text-3xl font-black text-orange-600">
                 {stats?.activeDisputesCount || 0} Talep
               </div>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-slate-500">
                 Moderatör incelemesi bekleyen sorunlu talepler.
               </p>
             </div>
@@ -405,21 +405,21 @@ export default function AdminCreditsPage() {
                 <div className="font-extrabold text-navy-900 text-sm">Gebze / Kocaeli</div>
                 <div className="text-slate-600">Kategori: 30-50 Ton Paletli Ekskavatör</div>
                 <div className="text-orange-600 font-bold">1 / 4 Slot Dolu (3 Boş Kontenjan)</div>
-                <span className="text-[10px] text-slate-400 block">Talep Tarihi: Dün</span>
+                <span className="text-xs text-slate-400 block">Talep Tarihi: Dün</span>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                 <div className="font-extrabold text-navy-900 text-sm">Çorlu / Tekirdağ</div>
                 <div className="text-slate-600">Kategori: 100 Ton Mobil Vinç</div>
                 <div className="text-red-600 font-bold">0 / 4 Slot Dolu (Hiç Teklif Yok)</div>
-                <span className="text-[10px] text-slate-400 block">Talep Tarihi: 2 gün önce</span>
+                <span className="text-xs text-slate-400 block">Talep Tarihi: 2 gün önce</span>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                 <div className="font-extrabold text-navy-900 text-sm">Nilüfer / Bursa</div>
                 <div className="text-slate-600">Kategori: Mini Yükleyici (Bobcat)</div>
                 <div className="text-orange-600 font-bold">2 / 4 Slot Dolu (2 Boş Kontenjan)</div>
-                <span className="text-[10px] text-slate-400 block">Talep Tarihi: Bugün</span>
+                <span className="text-xs text-slate-400 block">Talep Tarihi: Bugün</span>
               </div>
             </div>
           </div>
@@ -454,7 +454,7 @@ export default function AdminCreditsPage() {
                 }
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-sm"
               />
-              <span className="text-[11px] text-slate-500 mt-0.5 block">
+              <span className="text-xs text-slate-500 mt-0.5 block">
                 Firmadan talep başına düşecek teklif verme kredisi adedi.
               </span>
             </div>
@@ -473,7 +473,7 @@ export default function AdminCreditsPage() {
                 }
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-sm"
               />
-              <span className="text-[11px] text-slate-500 mt-0.5 block">
+              <span className="text-xs text-slate-500 mt-0.5 block">
                 Bir talebe en fazla kaç onaylı firma teklif verebilir (Varsayılan: 4).
               </span>
             </div>
@@ -491,7 +491,7 @@ export default function AdminCreditsPage() {
                 }
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-sm"
               />
-              <span className="text-[11px] text-slate-500 mt-0.5 block">
+              <span className="text-xs text-slate-500 mt-0.5 block">
                 Evrakları onaylanan tedarikçiye hediye edilen başlangıç kredisi.
               </span>
             </div>
@@ -510,7 +510,7 @@ export default function AdminCreditsPage() {
                 }
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-sm"
               />
-              <span className="text-[11px] text-slate-500 mt-0.5 block">
+              <span className="text-xs text-slate-500 mt-0.5 block">
                 Kredi harcandıktan sonra firmanın iade talep edebileceği süre (Varsayılan: 48).
               </span>
             </div>
@@ -592,7 +592,7 @@ export default function AdminCreditsPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 text-[10px] font-extrabold border-b border-slate-200">
+              <thead className="bg-slate-50 text-slate-600 text-xs font-extrabold border-b border-slate-200">
                 <tr>
                   <th className="py-2.5 px-3">Sıra</th>
                   <th className="py-2.5 px-3">Paket Adı</th>
@@ -619,7 +619,7 @@ export default function AdminCreditsPage() {
                     </td>
                     <td className="py-2.5 px-3 text-center">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        className={`px-2 py-0.5 rounded text-xs font-bold ${
                           pkg.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
                         }`}
                       >
@@ -681,7 +681,7 @@ export default function AdminCreditsPage() {
                       <span className="text-slate-400">•</span>
                       <span className="font-bold text-slate-700">Firma: {d.company?.name || d.company_id}</span>
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                        className={`px-2 py-0.5 rounded text-xs font-black ${
                           d.status === 'approved'
                             ? 'bg-emerald-100 text-emerald-800'
                             : d.status === 'rejected'
@@ -697,7 +697,7 @@ export default function AdminCreditsPage() {
                       <strong>Neden:</strong> {d.reason} — <span>{d.description}</span>
                     </div>
                     {d.admin_notes && (
-                      <div className="text-slate-500 text-[11px] italic">
+                      <div className="text-slate-500 text-xs italic">
                         <strong>Moderatör Notu:</strong> {d.admin_notes}
                       </div>
                     )}

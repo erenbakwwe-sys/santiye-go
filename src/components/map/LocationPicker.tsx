@@ -99,7 +99,7 @@ export default function LocationPicker({
       <div className="relative rounded-xl overflow-hidden border border-slate-300 shadow-inner">
         <div ref={mapContainerRef} style={{ height }} className="w-full z-10" />
       </div>
-      <p className="text-[11px] text-slate-500">
+      <p className="text-xs text-slate-500">
         * Pini sürükleyerek veya haritada tıklayarak şantiye/depo tam konumunu belirleyebilirsiniz.
       </p>
     </div>

@@ -152,39 +152,39 @@ export default function AdminSecurityCompliancePage() {
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <div className="text-[11px] font-bold text-slate-400">Maskelenen</div>
+          <div className="text-xs font-bold text-slate-400">Maskelenen</div>
           <div className="text-2xl font-black text-navy-900">{stats.totalMasked}</div>
-          <div className="text-[10px] text-slate-500">Otomatik taranan</div>
+          <div className="text-xs text-slate-500">Otomatik taranan</div>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <div className="text-[11px] font-bold text-slate-400">Telefon / GSM</div>
+          <div className="text-xs font-bold text-slate-400">Telefon / GSM</div>
           <div className="text-2xl font-black text-orange-600">{stats.phoneCount}</div>
-          <div className="text-[10px] text-slate-500">Türkiye formatları</div>
+          <div className="text-xs text-slate-500">Türkiye formatları</div>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <div className="text-[11px] font-bold text-slate-400">IBAN Tespiti</div>
+          <div className="text-xs font-bold text-slate-400">IBAN Tespiti</div>
           <div className="text-2xl font-black text-purple-600">{stats.ibanCount}</div>
-          <div className="text-[10px] text-slate-500">TR+24 hane</div>
+          <div className="text-xs text-slate-500">TR+24 hane</div>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <div className="text-[11px] font-bold text-slate-400">Sosyal & WP</div>
+          <div className="text-xs font-bold text-slate-400">Sosyal & WP</div>
           <div className="text-2xl font-black text-blue-600">{stats.socialCount}</div>
-          <div className="text-[10px] text-slate-500">Harici yönlendirme</div>
+          <div className="text-xs text-slate-500">Harici yönlendirme</div>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <div className="text-[11px] font-bold text-slate-400">İtiraz Kuyruğu</div>
+          <div className="text-xs font-bold text-slate-400">İtiraz Kuyruğu</div>
           <div className="text-2xl font-black text-amber-600">{stats.disputeCount}</div>
-          <div className="text-[10px] text-slate-500">Yanlış alarm bildirimi</div>
+          <div className="text-xs text-slate-500">Yanlış alarm bildirimi</div>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-1">
-          <div className="text-[11px] font-bold text-slate-400">Numara Göster</div>
+          <div className="text-xs font-bold text-slate-400">Numara Göster</div>
           <div className="text-2xl font-black text-emerald-600">{stats.softModeRevealCount}</div>
-          <div className="text-[10px] text-slate-500">Yumuşak mod kullanımı</div>
+          <div className="text-xs text-slate-500">Yumuşak mod kullanımı</div>
         </div>
       </div>
 
@@ -214,12 +214,12 @@ export default function AdminSecurityCompliancePage() {
                 <option value="talep_kredisi">talep_kredisi (Tedarikçi teklif kredisi harcadığında)</option>
               </select>
               {revealRule === 'odeme' && (
-                <p className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200 mt-2 font-semibold">
+                <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200 mt-2 font-semibold">
                   Uyarı: Canlı online ödeme kapısı devreye alınana kadar &apos;odeme&apos; modu kullanıcıların iletişim görmesini engelleyebilir. Varsayılan &apos;teklif_kabul&apos; önerilir.
                 </p>
               )}
               {revealRule === 'numara_goster_butonu' && (
-                <p className="text-[11px] text-emerald-800 bg-emerald-50 p-2 rounded-lg border border-emerald-200 mt-2 font-semibold">
+                <p className="text-xs text-emerald-800 bg-emerald-50 p-2 rounded-lg border border-emerald-200 mt-2 font-semibold">
                   Yumuşak Mod: Platformun erken aşamasında kullanıcıyı ürkütmemek için, SMS onaylı hesaplara günlük sınırla &quot;Numarayı Göster&quot; butonu verir.
                 </p>
               )}
@@ -239,7 +239,7 @@ export default function AdminSecurityCompliancePage() {
                 onChange={(e) => setThreshold(Number(e.target.value))}
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-bold text-navy-900 focus:ring-2 focus:ring-orange-500"
               />
-              <p className="text-[10px] text-slate-400 mt-1">
+              <p className="text-xs text-slate-400 mt-1">
                 İlk ihlalde bilgilendirme, ikincide nazik uyarı, {threshold}. ihlalde kullanıcı inceleme kuyruğuna alınır.
               </p>
             </div>
@@ -269,9 +269,9 @@ export default function AdminSecurityCompliancePage() {
                 rows={3}
                 value={keywords}
                 onChange={(e) => setKeywords(e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-slate-300 text-xs text-navy-900 focus:ring-2 focus:ring-orange-500 leading-relaxed font-mono text-[11px]"
+                className="w-full p-2.5 rounded-xl border border-slate-300 text-xs text-navy-900 focus:ring-2 focus:ring-orange-500 leading-relaxed font-mono text-xs"
               />
-              <p className="text-[10px] text-slate-400 mt-1">
+              <p className="text-xs text-slate-400 mt-1">
                 Koda gömülü regex desenlerine ek olarak anlık taranacak harici yönlendirme kelimeleri.
               </p>
             </div>
@@ -314,11 +314,11 @@ export default function AdminSecurityCompliancePage() {
                       <span className="text-xs font-bold text-navy-900">
                         {item.user_name || item.user_id}
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-semibold">
+                      <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-semibold">
                         {item.target_entity_type}
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-xs text-slate-400">
                       {new Date(item.created_at).toLocaleDateString('tr-TR', {
                         day: 'numeric',
                         month: 'short',
@@ -329,13 +329,13 @@ export default function AdminSecurityCompliancePage() {
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 space-y-1">
-                    <div className="text-[10px] font-bold text-slate-400">
+                    <div className="text-xs font-bold text-slate-400">
                       Kullanıcı İtiraz Açıklaması:
                     </div>
                     <div className="font-medium italic text-slate-800">
                       &quot;{item.false_positive_notes || 'Açıklama belirtilmedi'}&quot;
                     </div>
-                    <div className="text-[10px] text-slate-500 pt-1 flex items-center gap-1">
+                    <div className="text-xs text-slate-500 pt-1 flex items-center gap-1">
                       <span>Algılanan Desen:</span>
                       <span className="font-bold text-orange-600">
                         {item.detected_types.join(', ')}
@@ -347,13 +347,13 @@ export default function AdminSecurityCompliancePage() {
                     <div className="flex items-center justify-end gap-2 pt-1">
                       <button
                         onClick={() => handleResolveDispute(item.id, 'rejected')}
-                        className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-[11px] font-bold transition"
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-bold transition"
                       >
                         İtirazı Reddet
                       </button>
                       <button
                         onClick={() => handleResolveDispute(item.id, 'approved')}
-                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition shadow-sm"
+                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm"
                       >
                         Onayla (Yanlış Alarm)
                       </button>
@@ -361,7 +361,7 @@ export default function AdminSecurityCompliancePage() {
                   ) : (
                     <div className="text-right">
                       <span
-                        className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                        className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                           item.false_positive_status === 'approved'
                             ? 'bg-emerald-100 text-emerald-800'
                             : 'bg-red-100 text-red-800'
@@ -397,7 +397,7 @@ export default function AdminSecurityCompliancePage() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 font-bold text-[10px] border-b">
+            <thead className="bg-slate-50 text-slate-600 font-bold text-xs border-b">
               <tr>
                 <th className="p-3">Kullanıcı / Firma</th>
                 <th className="p-3">Rol</th>
@@ -412,7 +412,7 @@ export default function AdminSecurityCompliancePage() {
                   <td className="p-3">
                     <div className="font-bold text-navy-900">{offender.full_name}</div>
                     {offender.company_name && (
-                      <div className="text-[11px] text-slate-400">{offender.company_name}</div>
+                      <div className="text-xs text-slate-400">{offender.company_name}</div>
                     )}
                   </td>
                   <td className="p-3">
@@ -427,7 +427,7 @@ export default function AdminSecurityCompliancePage() {
                   </td>
                   <td className="p-3 text-center">
                     <span
-                      className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+                      className={`text-xs font-bold px-2.5 py-1 rounded-full ${
                         offender.compliance_status === 'suspended'
                           ? 'bg-red-600 text-white'
                           : offender.compliance_status === 'warned'
@@ -445,21 +445,21 @@ export default function AdminSecurityCompliancePage() {
                   <td className="p-3 text-right space-x-1.5">
                     <button
                       onClick={() => handleOffenderAction(offender.user_id, 'warn')}
-                      className="px-2.5 py-1 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 text-[10px] font-bold hover:bg-amber-100 transition"
+                      className="px-2.5 py-1 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 text-xs font-bold hover:bg-amber-100 transition"
                     >
                       Uyarı Gönder
                     </button>
                     {offender.compliance_status !== 'suspended' ? (
                       <button
                         onClick={() => handleOffenderAction(offender.user_id, 'suspend')}
-                        className="px-2.5 py-1 rounded-lg bg-red-600 text-white text-[10px] font-bold hover:bg-red-700 transition"
+                        className="px-2.5 py-1 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition"
                       >
                         Askıya Al
                       </button>
                     ) : (
                       <button
                         onClick={() => handleOffenderAction(offender.user_id, 'clear')}
-                        className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-bold hover:bg-emerald-700 transition"
+                        className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition"
                       >
                         Askıyı Kaldır
                       </button>

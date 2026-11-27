@@ -15,10 +15,10 @@ const columns: { title: string; links: [string, string][] }[] = [
   {
     title: 'Hizmetler',
     links: [
-      ['/teklif-iste', 'Teklif iste'],
-      ['/kesif-yukle', 'Keşif listesi yükle'],
-      ['/hesaplayici', 'Metraj hesaplayıcı'],
-      ['/santiyeden-santiyeye', 'Şantiyeden şantiyeye'],
+      ['/teklif-iste', 'Ücretsiz teklif al'],
+      ['/kesif-yukle', 'Malzeme listemi yükle'],
+      ['/hesaplayici', 'Malzeme hesaplama'],
+      ['/santiyeden-santiyeye', 'Artan malzeme / boş kamyon'],
       ['/operatorler', 'Operatör bul'],
     ],
   },
@@ -29,6 +29,7 @@ const columns: { title: string; links: [string, string][] }[] = [
       ['/giris?redirect=/firma-paneli/yeni-ilan', 'İlan ver'],
       ['/odeme-guvencesi', 'Ödeme güvencesi'],
       ['/rehber', 'Rehber'],
+      ['/nasil-kullanilir', 'Nasıl kullanılır?'],
     ],
   },
   {

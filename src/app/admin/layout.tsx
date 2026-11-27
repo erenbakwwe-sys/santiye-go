@@ -178,7 +178,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Sidebar Footer: Admin Status & 2FA */}
         <div className="p-4 border-t border-navy-900 bg-navy-950/60 space-y-3">
-          <div className="flex items-center justify-between text-[11px] text-slate-300">
+          <div className="flex items-center justify-between text-xs text-slate-300">
             <span className="flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-emerald-400" />
               2FA Koruması:
@@ -188,7 +188,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           <div className="p-2.5 rounded-xl bg-navy-900 border border-navy-800 text-xs">
             <div className="font-extrabold text-white">Süper Admin</div>
-            <div className="text-[10px] text-slate-400">admin@santiyego.com</div>
+            <div className="text-xs text-slate-400">admin@santiyego.com</div>
           </div>
 
           <Link

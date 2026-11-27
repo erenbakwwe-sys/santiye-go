@@ -43,6 +43,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ['/operatorler', 'daily', 0.6],
     ['/hesaplayici', 'monthly', 0.5],
     ['/rehber', 'weekly', 0.5],
+    ['/nasil-kullanilir', 'monthly', 0.6],
     ['/kvkk', 'monthly', 0.3],
     ['/gizlilik', 'monthly', 0.3],
     ['/kullanim-kosullari', 'monthly', 0.3],

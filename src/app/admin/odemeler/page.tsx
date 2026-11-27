@@ -290,13 +290,13 @@ function AdminPaymentsPage() {
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
               <div className="text-xs font-bold text-slate-500">Filtrelenen Hacim</div>
               <div className="text-2xl font-black text-navy-900">{formatCents(totalVolume)}</div>
-              <div className="text-[11px] text-slate-400">{filtered.length} İşlem</div>
+              <div className="text-xs text-slate-400">{filtered.length} İşlem</div>
             </div>
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
               <div className="text-xs font-bold text-slate-500">Platform Komisyonu</div>
               <div className="text-2xl font-black text-orange-600">{formatCents(totalCommission)}</div>
-              <div className="text-[11px] text-slate-400">Net Platform Hakedişi</div>
+              <div className="text-xs text-slate-400">Net Platform Hakedişi</div>
             </div>
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
@@ -304,7 +304,7 @@ function AdminPaymentsPage() {
               <div className="text-2xl font-black text-emerald-600">
                 {formatCents(totalVolume - totalCommission)}
               </div>
-              <div className="text-[11px] text-slate-400">Alt Üye İşyeri Hakedişi</div>
+              <div className="text-xs text-slate-400">Alt Üye İşyeri Hakedişi</div>
             </div>
           </div>
 
@@ -346,7 +346,7 @@ function AdminPaymentsPage() {
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500 font-extrabold border-b border-slate-200 text-[10px]">
+                <thead className="bg-slate-50 text-slate-500 font-extrabold border-b border-slate-200 text-xs">
                   <tr>
                     <th className="py-3 px-4">İşlem & Tarih</th>
                     <th className="py-3 px-4">Alıcı / Tedarikçi</th>
@@ -362,13 +362,13 @@ function AdminPaymentsPage() {
                     <tr key={t.id} className="hover:bg-slate-50">
                       <td className="py-3 px-4">
                         <div className="font-mono font-bold text-navy-900">{t.id}</div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-xs text-slate-400">
                           {new Date(t.created_at).toLocaleDateString('tr-TR')} • Card: **** {t.card_last_four}
                         </div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="font-semibold text-navy-900">{t.buyer?.full_name}</div>
-                        <div className="text-[11px] text-slate-500">{t.company?.name}</div>
+                        <div className="text-xs text-slate-500">{t.company?.name}</div>
                       </td>
                       <td className="py-3 px-4 font-black text-navy-900 text-sm">
                         {formatCents(t.amount_cents)}
@@ -377,17 +377,17 @@ function AdminPaymentsPage() {
                         <div className="font-bold text-orange-600">
                           {formatCents(t.commission_amount_cents)}
                         </div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-xs text-slate-400">
                           %{t.commission_rate_percent} (KDV: {formatCents(t.vat_amount_cents)})
                         </div>
                       </td>
                       <td className="py-3 px-4">
                         {t.is_commission_capped ? (
-                          <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
+                          <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs font-bold">
                             Tavan Var (-{formatCents(t.capped_commission_savings_cents || 0)})
                           </span>
                         ) : (
-                          <span className="text-slate-400 text-[10px]">Normal Oran</span>
+                          <span className="text-slate-400 text-xs">Normal Oran</span>
                         )}
                       </td>
                       <td className="py-3 px-4 font-bold text-emerald-700">
@@ -395,7 +395,7 @@ function AdminPaymentsPage() {
                       </td>
                       <td className="py-3 px-4">
                         <span
-                          className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black ${
+                          className={`inline-block px-2.5 py-1 rounded-full text-xs font-black ${
                             t.status === 'transferred'
                               ? 'bg-emerald-100 text-emerald-800'
                               : t.status === 'disputed'
@@ -439,12 +439,12 @@ function AdminPaymentsPage() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded bg-red-100 text-red-800 text-[10px] font-black">
+                        <span className="px-2.5 py-0.5 rounded bg-red-100 text-red-800 text-xs font-black">
                           {d.status}
                         </span>
                         <span className="font-mono text-xs text-slate-400">#{d.id}</span>
                       </div>
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-xs text-slate-400">
                         {new Date(d.created_at).toLocaleDateString('tr-TR')}
                       </span>
                     </div>
@@ -503,19 +503,19 @@ function AdminPaymentsPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <span className="text-slate-400 font-bold text-[10px]">Platform İç Kayıt Toplamı</span>
+                    <span className="text-slate-400 font-bold text-xs">Platform İç Kayıt Toplamı</span>
                     <div className="text-xl font-black text-navy-900 mt-1">
                       {formatCents(reconReport.internalTotalCents)}
                     </div>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <span className="text-slate-400 font-bold text-[10px]">iyzico Sağlayıcı Toplamı</span>
+                    <span className="text-slate-400 font-bold text-xs">iyzico Sağlayıcı Toplamı</span>
                     <div className="text-xl font-black text-blue-900 mt-1">
                       {formatCents(reconReport.providerTotalCents)}
                     </div>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <span className="text-slate-400 font-bold text-[10px]">Tespit Edilen Uyumsuzluk</span>
+                    <span className="text-slate-400 font-bold text-xs">Tespit Edilen Uyumsuzluk</span>
                     <div className={`text-xl font-black mt-1 ${reconReport.discrepanciesCount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                       {reconReport.discrepanciesCount} Adet
                     </div>
@@ -533,7 +533,7 @@ function AdminPaymentsPage() {
                     {reconReport.discrepancies.map((disc: any, i: number) => (
                       <div key={i} className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-900 space-y-1">
                         <div className="font-bold">{disc.issue} - İşlem No: {disc.paymentId}</div>
-                        <div className="text-[11px] text-red-700">
+                        <div className="text-xs text-red-700">
                           Platform: {formatCents(disc.internalAmountCents)} | Sağlayıcı: {formatCents(disc.providerAmountCents)}
                         </div>
                       </div>
@@ -563,7 +563,7 @@ function AdminPaymentsPage() {
                 <option value="external">external (Varsayılan - Doğrudan El/Havale Mutabakatı)</option>
                 <option value="platform">platform (Platform Ödeme Güvencesi - iyzico Escrow Havuz Bloke)</option>
               </select>
-              <span className="text-[10px] text-slate-500 block">
+              <span className="text-xs text-slate-500 block">
                 Platform modunda ödemeler korumalı havuzda bloke edilir. Alt üye işyeri kaydı tamamlanmayan firmalar için platform modu açılmaz.
               </span>
             </div>
@@ -579,7 +579,7 @@ function AdminPaymentsPage() {
                 onChange={(e) => setDisputeDays(Number(e.target.value))}
                 className="w-full text-xs font-medium border border-slate-300 rounded-xl p-2.5"
               />
-              <span className="text-[10px] text-slate-500 block">
+              <span className="text-xs text-slate-500 block">
                 İş teslim edildikten sonra alıcının itiraz açabileceği azami gün sayısı. İtiraz yoksa süre bitiminde hakediş otomatik serbest bırakılır.
               </span>
             </div>
@@ -690,7 +690,7 @@ function AdminPaymentsPage() {
                   onChange={(e) => setTwoFactorChecked(e.target.checked)}
                   className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4"
                 />
-                <label htmlFor="twoFactor" className="text-[11px] font-bold text-navy-900 cursor-pointer">
+                <label htmlFor="twoFactor" className="text-xs font-bold text-navy-900 cursor-pointer">
                   2FA İki Adımlı Doğrulama ve Yönetici Yetki İmzasını Onaylıyorum
                 </label>
               </div>

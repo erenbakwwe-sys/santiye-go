@@ -373,7 +373,7 @@ export default function SearchClient() {
               onClick={() => applyFilters()}
               className="flex-1 btn-primary"
             >
-              Ara
+              İlan ara
             </button>
             <button
               type="button"
@@ -441,7 +441,7 @@ export default function SearchClient() {
               <label className="block text-xs font-semibold text-navy-900 mb-2">
                 İlan Türü
               </label>
-              <div className="grid grid-cols-4 gap-1 text-[11px] font-bold">
+              <div className="grid grid-cols-4 gap-1 text-xs font-bold">
                 <button
                   type="button"
                   onClick={() => {
@@ -572,7 +572,7 @@ export default function SearchClient() {
                     <button
                       type="button"
                       onClick={() => setDynamicFilters({})}
-                      className="text-[10px] text-orange-600 font-bold hover:underline"
+                      className="text-xs text-orange-600 font-bold hover:underline"
                     >
                       Sıfırla
                     </button>
@@ -581,7 +581,7 @@ export default function SearchClient() {
                 <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
                   {activeCategoryAttributes.map((attr) => (
                     <div key={attr.slug}>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
                         {attr.name} {attr.unit ? `(${attr.unit})` : ''}
                       </label>
                       {attr.attribute_type === 'select' && attr.options ? (
@@ -695,7 +695,7 @@ export default function SearchClient() {
                             setSelectedSubcategory(sub.slug);
                             applyFilters({ category: cat.slug, subcategory: sub.slug });
                           }}
-                          className={`w-full text-left px-2 py-1 rounded text-[11px] font-medium transition ${
+                          className={`w-full text-left px-2 py-1 rounded text-xs font-medium transition ${
                             selectedSubcategory === sub.slug
                               ? 'bg-orange-500 text-white font-bold'
                               : 'text-slate-500 hover:text-navy-900 hover:bg-slate-50'
@@ -1080,7 +1080,7 @@ export default function SearchClient() {
                     <button
                       type="button"
                       onClick={() => setDynamicFilters({})}
-                      className="text-[10px] text-orange-600 font-bold hover:underline"
+                      className="text-xs text-orange-600 font-bold hover:underline"
                     >
                       Sıfırla
                     </button>
@@ -1089,7 +1089,7 @@ export default function SearchClient() {
                 <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
                   {activeCategoryAttributes.map((attr) => (
                     <div key={attr.slug}>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
                         {attr.name} {attr.unit ? `(${attr.unit})` : ''}
                       </label>
                       {attr.attribute_type === 'select' && attr.options ? (

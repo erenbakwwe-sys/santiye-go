@@ -154,22 +154,28 @@ export default function Header() {
 
   const iconBtn =
     'relative p-2 rounded-md text-slate-600 hover:text-navy-900 hover:bg-slate-100 transition-colors';
+  // Masaüstü: ikon + altında yazı (yalnızca ikona bakarak ne işe yaradığını tahmin ettirmemek için)
+  const labeledBtn =
+    'relative flex flex-col items-center gap-1 px-2 xl:px-2.5 py-1.5 rounded-md text-slate-700 hover:text-navy-900 hover:bg-slate-100 transition-colors';
+  // Dar masaüstünde yer kalmadığında yalnızca ikon; xl ve üzerinde ikon + yazı
+  const btnLabel = 'hidden xl:block text-xs font-medium leading-none';
   const badge =
-    'absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-orange-500 text-white text-[10px] font-semibold leading-4 text-center';
+    'absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-orange-500 text-white text-xs font-semibold leading-4 text-center';
 
   const primaryNav = [
-    { href: '/ilanlar?category=is-makineleri', label: 'İş Makineleri' },
-    { href: '/ilanlar?category=yapi-malzemeleri', label: 'Yapı Malzemeleri' },
+    { href: '/ilanlar?category=is-makineleri', label: 'İş makineleri' },
+    { href: '/ilanlar?category=yapi-malzemeleri', label: 'Yapı malzemeleri' },
     { href: '/ilanlar?category=nakliye', label: 'Nakliye' },
-    { href: '/ilanlar', label: 'Tüm İlanlar' },
+    { href: '/ilanlar', label: 'Tüm ilanlar' },
   ];
 
   const secondaryNav = [
-    { href: '/teklif-iste', label: 'Teklif İste' },
-    { href: '/kesif-yukle', label: 'Keşif Listesi Yükle' },
-    { href: '/hesaplayici', label: 'Metraj Hesaplayıcı' },
-    { href: '/santiyeden-santiyeye', label: 'Şantiyeden Şantiyeye' },
-    { href: '/operatorler', label: 'Operatör Bul' },
+    { href: '/teklif-iste', label: 'Ücretsiz teklif al' },
+    { href: '/kesif-yukle', label: 'Malzeme listemi yükle' },
+    { href: '/hesaplayici', label: 'Ne kadar malzeme lazım?' },
+    { href: '/santiyeden-santiyeye', label: 'Artan malzeme / boş kamyon' },
+    { href: '/operatorler', label: 'Operatör bul' },
+    { href: '/nasil-kullanilir', label: 'Nasıl kullanılır?' },
   ];
 
   const panelHref =
@@ -189,9 +195,11 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
       {/* Hizmet çubuğu */}
       <div className="hidden md:block bg-navy-900 text-slate-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-8 flex items-center justify-between text-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-9 flex items-center justify-between text-sm">
           <nav className="flex items-center gap-5">
-            {secondaryNav.map((item) => (
+            {secondaryNav
+              .filter((item) => item.href !== '/nasil-kullanilir')
+              .map((item) => (
               <Link key={item.href} href={item.href} className="hover:text-white transition-colors">
                 {item.label}
               </Link>
@@ -203,8 +211,8 @@ export default function Header() {
                 Firmanızı ekleyin
               </Link>
             )}
-            <Link href="/odeme-guvencesi" className="hover:text-white transition-colors">
-              Nasıl çalışır?
+            <Link href="/nasil-kullanilir" className="hover:text-white transition-colors font-medium text-white">
+              Yardım / Nasıl kullanılır?
             </Link>
           </div>
         </div>
@@ -219,7 +227,7 @@ export default function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="px-2 xl:px-3 py-2 rounded-md hover:bg-slate-100 hover:text-navy-900 transition-colors"
+                  className={`${item.href === '/ilanlar' ? 'hidden 2xl:block ' : ''}px-2 xl:px-3 py-2 rounded-md text-base hover:bg-slate-100 hover:text-navy-900 transition-colors`}
                 >
                   {item.label}
                 </Link>
@@ -228,14 +236,13 @@ export default function Header() {
           </div>
 
           {/* Masaüstü eylemler */}
-          <div className="hidden md:flex items-center gap-1 whitespace-nowrap shrink-0">
+          <div className="hidden md:flex items-center gap-1 whitespace-nowrap shrink-0 pl-4">
             <Link
               href={profile ? '/mesajlar' : '/giris?redirect=/mesajlar'}
-              className={iconBtn}
-              title="Mesajlar"
-              aria-label="Mesajlar"
+              className={labeledBtn}
             >
               <MessageSquare className="w-5 h-5" strokeWidth={1.75} />
+              <span className={btnLabel}>Mesajlar</span>
               {unreadMessagesCount > 0 && <span className={badge}>{unreadMessagesCount}</span>}
             </Link>
 
@@ -243,18 +250,18 @@ export default function Header() {
               <button
                 type="button"
                 onClick={handleNotifClick}
-                className={iconBtn}
-                title="Bildirimler"
-                aria-label="Bildirimler"
+                className={labeledBtn}
+                aria-expanded={notifDropdownOpen}
               >
                 <Bell className="w-5 h-5" strokeWidth={1.75} />
+                <span className={btnLabel}>Bildirimler</span>
                 {unreadNotifsCount > 0 && (
                   <span className={badge}>{unreadNotifsCount > 9 ? '9+' : unreadNotifsCount}</span>
                 )}
               </button>
 
               {profile && notifDropdownOpen && (
-                <div className="absolute right-0 top-11 w-80 max-w-[calc(100vw-1.5rem)] bg-white rounded-md shadow-xl border border-slate-200 overflow-hidden text-navy-900 z-50">
+                <div className="absolute right-0 top-14 w-80 max-w-[calc(100vw-1.5rem)] bg-white rounded-md shadow-xl border border-slate-200 overflow-hidden text-navy-900 z-50">
                   <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
                     <span className="text-sm font-semibold">
                       Bildirimler
@@ -296,7 +303,7 @@ export default function Header() {
                               })}
                             </span>
                           </div>
-                          <p className="text-slate-600 mt-0.5 line-clamp-2 leading-relaxed text-[13px]">{n.body}</p>
+                          <p className="text-slate-600 mt-0.5 line-clamp-2 leading-relaxed text-sm">{n.body}</p>
                         </Link>
                       ))
                     )}
@@ -314,11 +321,10 @@ export default function Header() {
 
             <Link
               href={profile ? '/favorilerim' : '/giris?redirect=/favorilerim'}
-              className={iconBtn}
-              title="Favoriler"
-              aria-label="Favoriler"
+              className={labeledBtn}
             >
               <Heart className="w-5 h-5" strokeWidth={1.75} />
+              <span className={btnLabel}>Favorilerim</span>
             </Link>
 
             <div className="w-px h-6 bg-slate-200 mx-2" />
@@ -339,22 +345,18 @@ export default function Header() {
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className={iconBtn}
+                  className={`${iconBtn} flex items-center`}
                   title="Çıkış yap"
-                  aria-label="Çıkış yap"
                 >
                   <LogOut className="w-4 h-4" strokeWidth={1.75} />
+                  <span className="ml-1.5 text-sm font-medium">Çıkış</span>
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1 text-sm font-medium">
-                <Link href="/giris" className="px-3 py-2 rounded-md text-navy-900 hover:bg-slate-100 transition-colors">
-                  Giriş yap
-                </Link>
-                <Link href="/kayit" className="px-3 py-2 rounded-md text-navy-900 hover:bg-slate-100 transition-colors">
-                  Üye ol
-                </Link>
-              </div>
+              <Link href="/giris" className={labeledBtn}>
+                <User className="w-5 h-5" strokeWidth={1.75} />
+                <span className="text-xs font-medium leading-none">Giriş / Üye ol</span>
+              </Link>
             )}
 
             <Link
@@ -392,7 +394,7 @@ export default function Header() {
 
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-slate-200 bg-white max-h-[calc(100vh-64px)] overflow-y-auto">
-          <nav className="px-4 py-2 divide-y divide-slate-100 text-[15px]">
+          <nav className="px-4 py-2 divide-y divide-slate-100 text-base">
             {[...primaryNav, ...secondaryNav].map((item) => (
               <Link
                 key={item.href}

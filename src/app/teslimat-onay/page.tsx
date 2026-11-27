@@ -115,7 +115,7 @@ export default function TeslimatOnayPage() {
               <FileCheck2 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <span className="px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-[10px] font-black border border-orange-500/30">
+              <span className="px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-black border border-orange-500/30">
                 Dijital İrsaliye & QR Doğrulama
               </span>
               <h1 className="text-xl sm:text-2xl font-black tracking-tight">
@@ -176,7 +176,7 @@ export default function TeslimatOnayPage() {
                 </span>
               </div>
               {completedWaybill.delivery_note && (
-                <div className="pt-2 border-t text-[11px] text-slate-600">
+                <div className="pt-2 border-t text-xs text-slate-600">
                   <strong>Şantiye Şefi Notu:</strong> &ldquo;{completedWaybill.delivery_note}&rdquo;
                 </div>
               )}
@@ -238,7 +238,7 @@ export default function TeslimatOnayPage() {
                   Sorgula
                 </button>
               </div>
-              <p className="text-[11px] text-slate-400 mt-2">
+              <p className="text-xs text-slate-400 mt-2">
                 Örnek test kodları: <code className="font-bold text-slate-600 bg-slate-100 px-1 py-0.5 rounded">749215</code> (Fikirtepe JCB) veya <code className="font-bold text-slate-600 bg-slate-100 px-1 py-0.5 rounded">381942</code> (Tuzla CAT)
               </p>
             </div>
@@ -249,7 +249,7 @@ export default function TeslimatOnayPage() {
                 <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <span className="text-[10px] font-bold text-slate-400">
+                      <span className="text-xs font-bold text-slate-400">
                         Sipariş / Malzeme
                       </span>
                       <h3 className="text-base font-black text-navy-900">
@@ -270,7 +270,7 @@ export default function TeslimatOnayPage() {
                       <Truck className="w-3.5 h-3.5 text-slate-400" />
                       <span><strong>Şoför:</strong> {waybill.driver_name} ({waybill.plate_number})</span>
                     </div>
-                    <div className="sm:col-span-2 flex items-start gap-1.5 text-[11px] text-slate-500">
+                    <div className="sm:col-span-2 flex items-start gap-1.5 text-xs text-slate-500">
                       <MapPin className="w-3.5 h-3.5 text-orange-500 shrink-0 mt-0.5" />
                       <span><strong>Şantiye Adresi:</strong> {waybill.site_address}</span>
                     </div>
@@ -292,7 +292,7 @@ export default function TeslimatOnayPage() {
                   </label>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
                       Şantiye Şefi Notu (Opsiyonel):
                     </label>
                     <input
@@ -308,7 +308,7 @@ export default function TeslimatOnayPage() {
                 {/* Escrow Bilgilendirmesi */}
                 <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-start gap-2.5 text-xs text-emerald-900">
                   <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <p className="text-[11px] leading-relaxed">
+                  <p className="text-xs leading-relaxed">
                     <strong>Emanet Ödeme Serbest Bırakma:</strong> Onayınız ile havuzda bloke edilmiş olan{' '}
                     <strong>{waybill.total_price.toLocaleString('tr-TR')} ₺</strong> hakediş bedeli tedarikçiye aktarılacaktır.
                   </p>

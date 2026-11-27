@@ -154,7 +154,7 @@ function CompanyEarningsPage() {
             Firma Paneline Dön
           </Link>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center gap-1">
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5" />
               iyzico Pazaryeri Entegrasyonu {subMerchantStatus === 'approved' ? 'Aktif' : 'Onay Bekliyor'}
             </span>
@@ -185,11 +185,11 @@ function CompanyEarningsPage() {
           {/* Submerchant IBAN Card (SADECE SON 4 HANE GÖSTERİLİR) */}
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-1 shrink-0">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-slate-400 font-bold text-[10px]">
+              <span className="text-slate-400 font-bold text-xs">
                 Alt Üye İşyeri Hesabı
               </span>
               <span
-                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                className={`px-2 py-0.5 rounded text-xs font-bold ${
                   subMerchantStatus === 'approved'
                     ? 'bg-emerald-100 text-emerald-800'
                     : 'bg-slate-100 text-slate-600'
@@ -201,11 +201,11 @@ function CompanyEarningsPage() {
             <div className="font-mono font-bold text-navy-900">
               {ibanLast4 ? `TR** **** **** **** **** **${ibanLast4}` : 'IBAN Tanımlanmadı'}
             </div>
-            <div className="flex items-center justify-between text-[11px]">
+            <div className="flex items-center justify-between text-xs">
               <span className="text-slate-500 font-semibold">{legalTitle.slice(0, 24)}...</span>
               <button
                 onClick={() => setOnboardingModalOpen(true)}
-                className="text-orange-600 hover:underline font-bold text-[10px] ml-2"
+                className="text-orange-600 hover:underline font-bold text-xs ml-2"
               >
                 Bilgileri Güncelle
               </button>
@@ -224,7 +224,7 @@ function CompanyEarningsPage() {
             <div className="text-xl font-black text-navy-900">
               {formatCentsToTRY(poolCents)}
             </div>
-            <div className="text-[10px] text-slate-400">İş teslimatı bekleniyor</div>
+            <div className="text-xs text-slate-400">İş teslimatı bekleniyor</div>
           </div>
 
           {/* 2. Serbest Bırakılabilir */}
@@ -236,7 +236,7 @@ function CompanyEarningsPage() {
             <div className="text-xl font-black text-amber-700">
               {formatCentsToTRY(releasableCents)}
             </div>
-            <div className="text-[10px] text-slate-400">İtiraz süresi doluyor</div>
+            <div className="text-xs text-slate-400">İtiraz süresi doluyor</div>
           </div>
 
           {/* 3. Aktarılan (Net) */}
@@ -248,7 +248,7 @@ function CompanyEarningsPage() {
             <div className="text-xl font-black text-emerald-700">
               {formatCentsToTRY(transferredCents)}
             </div>
-            <div className="text-[10px] text-slate-400">IBAN&apos;a gönderilen</div>
+            <div className="text-xs text-slate-400">IBAN&apos;a gönderilen</div>
           </div>
 
           {/* 4. İade Edilen */}
@@ -260,7 +260,7 @@ function CompanyEarningsPage() {
             <div className="text-xl font-black text-slate-700">
               {formatCentsToTRY(refundedCents)}
             </div>
-            <div className="text-[10px] text-slate-400">İptal/iade işlemleri</div>
+            <div className="text-xs text-slate-400">İptal/iade işlemleri</div>
           </div>
 
           {/* 5. İtirazda Olan */}
@@ -272,7 +272,7 @@ function CompanyEarningsPage() {
             <div className="text-xl font-black text-red-600">
               {formatCentsToTRY(disputedCents)}
             </div>
-            <div className="text-[10px] text-slate-400">Hakem incelemesinde</div>
+            <div className="text-xs text-slate-400">Hakem incelemesinde</div>
           </div>
         </div>
 
@@ -316,7 +316,7 @@ function CompanyEarningsPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500 font-black text-[10px] border-b border-slate-200">
+                <thead className="bg-slate-50 text-slate-500 font-black text-xs border-b border-slate-200">
                   <tr>
                     <th className="py-3 px-4">İşlem / Tarih</th>
                     <th className="py-3 px-4">Alıcı</th>
@@ -351,10 +351,10 @@ function CompanyEarningsPage() {
                     return (
                       <tr key={tx.id} className="hover:bg-slate-50/80 transition">
                         <td className="py-3.5 px-4">
-                          <div className="font-mono text-[11px] font-bold text-navy-900">
+                          <div className="font-mono text-xs font-bold text-navy-900">
                             #{tx.id.slice(0, 14)}
                           </div>
-                          <div className="text-[10px] text-slate-400">
+                          <div className="text-xs text-slate-400">
                             {new Date(tx.created_at).toLocaleDateString('tr-TR')}
                           </div>
                         </td>
@@ -368,7 +368,7 @@ function CompanyEarningsPage() {
                           <span className="text-slate-600 font-semibold">
                             {formatCentsToTRY(tx.commission_amount_cents)}
                           </span>
-                          <span className="text-[10px] text-slate-400 block">
+                          <span className="text-xs text-slate-400 block">
                             (%{tx.commission_rate_percent})
                           </span>
                         </td>
@@ -377,7 +377,7 @@ function CompanyEarningsPage() {
                         </td>
                         <td className="py-3.5 px-4">
                           <span
-                            className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black ${
+                            className={`inline-block px-2.5 py-1 rounded-full text-xs font-black ${
                               statusColors[tx.status] || 'bg-slate-100 text-slate-600'
                             }`}
                           >
@@ -410,7 +410,7 @@ function CompanyEarningsPage() {
                 </button>
               </div>
 
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-[11px] text-blue-900 leading-relaxed">
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 leading-relaxed">
                 <strong>Veri Güvenliği İlkesi:</strong> Banka hesap IBAN bilginiz sistem veritabanında ASLA tam olarak saklanmaz. Bilgiler lisanslı ödeme sağlayıcısına iletilir; tarafımızda yalnızca son 4 hane saklanır. Şahıs kimlik numarası talep edilmez, kurumsal Vergi Kimlik No (VKN) kullanılır.
               </div>
 
@@ -457,7 +457,7 @@ function CompanyEarningsPage() {
                     maxLength={26}
                     className="w-full font-mono border border-slate-300 rounded-xl p-2.5 text-navy-900"
                   />
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                  <span className="text-xs text-slate-400 mt-0.5 block">
                     Girilen IBAN şirketin yasal unvanı ile birebir uyumlu olmalıdır.
                   </span>
                 </div>

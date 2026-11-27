@@ -111,7 +111,7 @@ export default function AdminReportsPage() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 font-extrabold border-b border-slate-200 text-[10px]">
+            <thead className="bg-slate-50 text-slate-500 font-extrabold border-b border-slate-200 text-xs">
               <tr>
                 <th className="py-3 px-4">Şikayet Nedeni</th>
                 <th className="py-3 px-4">Hedef Türü</th>
@@ -126,22 +126,22 @@ export default function AdminReportsPage() {
                 <tr key={r.id} className="hover:bg-slate-50">
                   <td className="py-3 px-4">
                     <div className="font-extrabold text-navy-900 text-sm">{r.reason}</div>
-                    <div className="text-[11px] text-slate-500 line-clamp-1">{r.details}</div>
+                    <div className="text-xs text-slate-500 line-clamp-1">{r.details}</div>
                   </td>
 
                   <td className="py-3 px-4">
                     {r.listing_id && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
                         <Layers className="w-3 h-3" /> İlan Şikayeti
                       </span>
                     )}
                     {r.message_id && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
                         <MessageSquare className="w-3 h-3" /> Mesajlaşma
                       </span>
                     )}
                     {r.review_id && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
                         <Star className="w-3 h-3" /> Yorum Şikayeti
                       </span>
                     )}
@@ -149,29 +149,29 @@ export default function AdminReportsPage() {
 
                   <td className="py-3 px-4">
                     <div>{r.reporter_id}</div>
-                    <div className="text-[10px] text-slate-400">
+                    <div className="text-xs text-slate-400">
                       {new Date(r.created_at).toLocaleDateString('tr-TR')}
                     </div>
                   </td>
 
                   <td className="py-3 px-4">
                     {r.status === 'pending' && (
-                      <span className="px-2 py-0.5 rounded bg-orange-100 text-orange-800 text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded bg-orange-100 text-orange-800 text-xs font-bold">
                         Yeni
                       </span>
                     )}
                     {r.status === 'investigating' && (
-                      <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs font-bold">
                         İnceleniyor
                       </span>
                     )}
                     {r.status === 'resolved' && (
-                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-bold">
                         Çözüldü
                       </span>
                     )}
                     {r.status === 'dismissed' && (
-                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-xs font-bold">
                         Reddedildi
                       </span>
                     )}

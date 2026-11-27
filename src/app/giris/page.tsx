@@ -136,7 +136,7 @@ function LoginForm() {
               <label className="text-xs font-bold text-slate-700">Şifre</label>
               <Link
                 href="/sifremi-unuttum"
-                className="text-[11px] font-semibold text-orange-600 hover:underline"
+                className="text-xs font-semibold text-orange-600 hover:underline"
               >
                 Şifremi Unuttum?
               </Link>

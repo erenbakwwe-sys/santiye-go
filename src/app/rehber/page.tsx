@@ -38,7 +38,7 @@ export default function GuideIndexPage() {
               className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-500">
                   <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                     {guide.category}
                   </span>

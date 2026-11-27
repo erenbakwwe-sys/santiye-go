@@ -103,7 +103,7 @@ export default function BookingModal({ listing, isOpen, onClose }: BookingModalP
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
-            <span className="text-[10px] font-bold text-orange-600 tracking-wider">
+            <span className="text-xs font-bold text-orange-600 tracking-wider">
               Rezervasyon Talebi
             </span>
             <h3 className="font-black text-navy-900 text-base line-clamp-1">
@@ -172,15 +172,15 @@ export default function BookingModal({ listing, isOpen, onClose }: BookingModalP
           {dayCount > 0 && (
             <div className="p-3.5 rounded-xl bg-orange-50/70 border border-orange-200 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold text-slate-600 block">
+                <span className="text-xs font-bold text-slate-600 block">
                   Hesaplanan Süre: {dayCount} Gün
                 </span>
-                <span className="text-[10px] text-slate-400">
+                <span className="text-xs text-slate-400">
                   (Günlük: {dailyPrice.toLocaleString('tr-TR')} ₺)
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-bold text-orange-700 block">
+                <span className="text-xs font-bold text-orange-700 block">
                   Tahmini Toplam Tutar
                 </span>
                 <span className="text-lg font-black text-orange-600">
@@ -254,7 +254,7 @@ export default function BookingModal({ listing, isOpen, onClose }: BookingModalP
           </div>
 
           {/* 48 hour auto-expiration notice */}
-          <div className="p-2.5 rounded-xl bg-slate-100 text-slate-600 flex items-start gap-2 text-[11px] leading-relaxed">
+          <div className="p-2.5 rounded-xl bg-slate-100 text-slate-600 flex items-start gap-2 text-xs leading-relaxed">
             <Clock className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
             <span>
               Firma rezervasyon talebinizi 48 saat içinde yanıtlamazsa talep otomatik olarak iptal edilir ve hiçbir taahhüt oluşmaz.

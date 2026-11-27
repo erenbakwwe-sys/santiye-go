@@ -229,11 +229,11 @@ export default function FirmaSozlesmelerPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-black text-slate-900 text-sm">{cnt.contract_number}</span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
+                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600">
                             v{cnt.template_version}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-xs text-slate-400">
                           {cnt.contract_type === 'rental' ? 'İş Makineleri Kiralama' : 'Ağır Nakliye & Hizmet'} •{' '}
                           {new Date(cnt.created_at).toLocaleDateString('tr-TR')}
                         </p>
@@ -275,13 +275,13 @@ export default function FirmaSozlesmelerPage() {
                       <p className="font-bold text-slate-800">
                         {cnt.data_snapshot?.buyer?.company_name || cnt.data_snapshot?.buyer?.full_name || '-'}
                       </p>
-                      <p className="text-slate-500 text-[11px]">{cnt.data_snapshot?.buyer?.phone || '-'}</p>
+                      <p className="text-slate-500 text-xs">{cnt.data_snapshot?.buyer?.phone || '-'}</p>
                     </div>
 
                     <div>
                       <span className="text-slate-400 block mb-0.5 font-medium">İlan & Şantiye:</span>
                       <p className="font-bold text-slate-800 truncate">{cnt.data_snapshot?.subject?.title}</p>
-                      <p className="text-slate-500 text-[11px]">
+                      <p className="text-slate-500 text-xs">
                         {cnt.data_snapshot?.subject?.worksite_address} ({cnt.data_snapshot?.subject?.city_name || ''})
                       </p>
                     </div>
@@ -292,7 +292,7 @@ export default function FirmaSozlesmelerPage() {
                         {cnt.data_snapshot?.pricing?.total_price?.toLocaleString('tr-TR')}{' '}
                         {cnt.data_snapshot?.pricing?.currency || 'TL'}
                       </p>
-                      <p className="text-slate-500 text-[11px]">
+                      <p className="text-slate-500 text-xs">
                         {cnt.data_snapshot?.pricing?.vat_included ? 'KDV Dahil' : '+ KDV Hariç'}
                       </p>
                     </div>
@@ -330,7 +330,7 @@ export default function FirmaSozlesmelerPage() {
                     </div>
 
                     {/* SHA-256 Rozeti */}
-                    <div className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
+                    <div className="text-xs text-slate-400 flex items-center gap-1 font-mono">
                       <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
                       SHA256: {cnt.pdf_sha256?.slice(0, 16)}...
                     </div>
@@ -354,7 +354,7 @@ export default function FirmaSozlesmelerPage() {
                         href={cnt.signed_copy_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-amber-600 font-bold hover:underline inline-flex items-center gap-1 text-[11px]"
+                        className="text-amber-600 font-bold hover:underline inline-flex items-center gap-1 text-xs"
                       >
                         Görüntüle <ExternalLink className="w-3 h-3" />
                       </a>

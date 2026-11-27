@@ -75,7 +75,7 @@ export default function QuoteRequestModal({
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
-            <span className="text-[10px] font-bold text-orange-600 tracking-wider">
+            <span className="text-xs font-bold text-orange-600 tracking-wider">
               Doğrudan Teklif Talebi
             </span>
             <h3 className="font-extrabold text-navy-900 text-base sm:text-lg line-clamp-1">

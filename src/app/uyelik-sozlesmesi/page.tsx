@@ -45,7 +45,7 @@ export default function MembershipAgreementPage() {
                 <Building className="w-4 h-4 text-orange-500" />
                 Resmi Firma Doğrulaması
               </div>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 Vergi Levhası, İmza Sirküleri ve VKN doğrulanmadan ilan yayını yapılamaz.
               </p>
             </div>
@@ -54,7 +54,7 @@ export default function MembershipAgreementPage() {
                 <DollarSign className="w-4 h-4 text-emerald-600" />
                 iyzico Alt Üye İşyeri
               </div>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 Hakedişler vergi numarasıyla eşleşen resmi şirket IBAN hesabına aktarılır.
               </p>
             </div>
@@ -63,7 +63,7 @@ export default function MembershipAgreementPage() {
                 <FileCheck className="w-4 h-4 text-blue-600" />
                 Şeffaf Komisyon Modeli
               </div>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-xs text-slate-600">
                 Platform komisyonu (%5-10) rezervasyon onayında şeffafça düşülür, üyelik indirimi uygulanır.
               </p>
             </div>

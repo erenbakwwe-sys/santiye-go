@@ -212,15 +212,15 @@ export default function CompanyDashboardPage() {
               <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
                 {company?.name || 'Firma Hesabı'}
               </h1>
-              <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-orange-500 text-white">
+              <span className="px-2 py-0.5 rounded text-xs font-extrabold bg-orange-500 text-white">
                 FİRMA
               </span>
               {company?.isVerified ? (
-                <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-500 text-white flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded text-xs font-extrabold bg-emerald-500 text-white flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3" /> ONAYLI FİRMA
                 </span>
               ) : (
-                <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                <span className="px-2 py-0.5 rounded text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40">
                   ONAY BEKLİYOR
                 </span>
               )}
@@ -442,7 +442,7 @@ export default function CompanyDashboardPage() {
                               className="object-cover"
                             />
                           ) : (
-                            <span className="text-[9px] font-bold text-slate-400 text-center px-1">Foto Yok</span>
+                            <span className="text-xs font-bold text-slate-400 text-center px-1">Foto Yok</span>
                           )}
                         </div>
                         <div className="max-w-xs">
@@ -452,7 +452,7 @@ export default function CompanyDashboardPage() {
                           >
                             {l.title}
                           </Link>
-                          <span className="text-[11px] text-slate-400">
+                          <span className="text-xs text-slate-400">
                             {new Date(l.created_at).toLocaleDateString('tr-TR')}
                           </span>
                         </div>
@@ -464,7 +464,7 @@ export default function CompanyDashboardPage() {
                       <span className="px-2 py-0.5 rounded bg-slate-100 font-semibold text-slate-700">
                         {l.category?.name || 'Genel'}
                       </span>
-                      <div className="text-[10px] text-slate-400 font-bold mt-0.5">
+                      <div className="text-xs text-slate-400 font-bold mt-0.5">
                         {l.listing_type === 'rental' ? 'Kiralık' : 'Satılık'}
                       </div>
                     </td>
@@ -489,19 +489,19 @@ export default function CompanyDashboardPage() {
                     {/* Status Toggle & Badge */}
                     <td className="py-3 px-4">
                       {l.status === 'pending_approval' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-800">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-800">
                           <Clock className="w-3 h-3" />
                           Onay Bekliyor
                         </span>
                       ) : l.status === 'rejected' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-rose-100 text-rose-800">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-rose-100 text-rose-800">
                           <AlertCircle className="w-3 h-3" />
                           Reddedildi
                         </span>
                       ) : (
                         <button
                           onClick={() => handleToggleStatus(l.id, l.status)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold transition ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold transition ${
                             l.status === 'active'
                               ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                               : 'bg-slate-200 text-slate-700 hover:bg-slate-300'

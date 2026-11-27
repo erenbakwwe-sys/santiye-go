@@ -88,7 +88,7 @@ function CompanyStatisticsPage() {
           <div className="text-2xl sm:text-3xl font-black text-navy-900">
             {stats.views.toLocaleString('tr-TR')}
           </div>
-          <p className="text-[11px] text-slate-500">İlan detay sayfası açılışı</p>
+          <p className="text-xs text-slate-500">İlan detay sayfası açılışı</p>
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-2">
@@ -99,7 +99,7 @@ function CompanyStatisticsPage() {
           <div className="text-2xl sm:text-3xl font-black text-navy-900">
             {stats.uniqueVisitors.toLocaleString('tr-TR')}
           </div>
-          <p className="text-[11px] text-slate-500">Farklı müteahhit oturumu</p>
+          <p className="text-xs text-slate-500">Farklı müteahhit oturumu</p>
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-2">
@@ -110,7 +110,7 @@ function CompanyStatisticsPage() {
           <div className="text-2xl sm:text-3xl font-black text-navy-900">
             {(stats.phoneClicks + stats.whatsappClicks).toLocaleString('tr-TR')}
           </div>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-xs text-slate-500">
             {stats.phoneClicks} Telefon / {stats.whatsappClicks} WhatsApp
           </p>
         </div>
@@ -123,7 +123,7 @@ function CompanyStatisticsPage() {
           <div className="text-2xl sm:text-3xl font-black text-purple-700">
             %{stats.conversionRate}
           </div>
-          <p className="text-[11px] text-slate-500">Teklif veya arama üretme oranı</p>
+          <p className="text-xs text-slate-500">Teklif veya arama üretme oranı</p>
         </div>
       </div>
 
@@ -212,7 +212,7 @@ function CompanyStatisticsPage() {
               <div className="text-2xl font-black text-navy-900 mt-1">
                 {stats.adImpressions.toLocaleString('tr-TR')}
               </div>
-              <span className="text-[10px] text-slate-400">Arama & Vitrin slotu</span>
+              <span className="text-xs text-slate-400">Arama & Vitrin slotu</span>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-center">
@@ -220,7 +220,7 @@ function CompanyStatisticsPage() {
               <div className="text-2xl font-black text-navy-900 mt-1">
                 {stats.adClicks.toLocaleString('tr-TR')}
               </div>
-              <span className="text-[10px] text-slate-400">Doğrudan ilan açılışı</span>
+              <span className="text-xs text-slate-400">Doğrudan ilan açılışı</span>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-center">
@@ -228,7 +228,7 @@ function CompanyStatisticsPage() {
               <div className="text-2xl font-black text-orange-600 mt-1">
                 %{stats.adCtr}
               </div>
-              <span className="text-[10px] text-emerald-600 font-bold">Sektör ortalaması üstü</span>
+              <span className="text-xs text-emerald-600 font-bold">Sektör ortalaması üstü</span>
             </div>
           </div>
 
@@ -243,11 +243,11 @@ function CompanyStatisticsPage() {
                 >
                   <div>
                     <span className="font-bold text-navy-900">{c.title}</span>
-                    <span className="text-slate-400 text-[11px] block">{c.duration_days} Günlük • {c.status}</span>
+                    <span className="text-slate-400 text-xs block">{c.duration_days} Günlük • {c.status}</span>
                   </div>
                   <div className="text-right">
                     <span className="font-bold text-navy-900">{c.clicks_count} Tıklama</span>
-                    <span className="text-slate-500 text-[11px] block">{c.impressions_count} Gösterim</span>
+                    <span className="text-slate-500 text-xs block">{c.impressions_count} Gösterim</span>
                   </div>
                 </div>
               ))}
@@ -269,7 +269,7 @@ function CompanyStatisticsPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs sm:text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold text-[11px]">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold text-xs">
               <tr>
                 <th className="py-3 px-4">İlan Başlığı</th>
                 <th className="py-3 px-4">Kategori</th>
