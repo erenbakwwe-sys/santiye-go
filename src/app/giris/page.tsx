@@ -7,7 +7,7 @@ import { Mail, Lock, AlertCircle, Eye, EyeOff, CheckCircle2 } from 'lucide-react
 import { createClient } from '@/lib/supabase/client';
 import { checkRateLimit, sanitizeRedirectUrl } from '@/lib/security/rate-limiter';
 import { loginUser } from '@/lib/services/auth-service';
-import { LogoMark } from '@/components/brand/Logo';
+import Logo from '@/components/brand/Logo';
 
 function LoginForm() {
   const router = useRouter();
@@ -89,9 +89,9 @@ function LoginForm() {
       <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-3xl border border-slate-200 shadow-xl">
         {/* Header */}
         <div className="text-center space-y-2">
-          <LogoMark className="w-11 h-11 mx-auto" />
+          <div className="flex justify-center"><Logo height={56} /></div>
           <h2 className="text-2xl font-black text-navy-900 tracking-tight">
-            ŞantiyeGO Giriş
+            Giriş yap
           </h2>
           <p className="text-xs text-slate-500 font-medium">
             Hesabınıza güvenle giriş yaparak ilan, teklif ve mesajlarınızı yönetin

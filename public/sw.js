@@ -1,13 +1,13 @@
-// v2: eski sürümün önbelleğe aldığı API/Supabase yanıtlarını activate sırasında temizler
-const CACHE_NAME = 'santiye-go-static-v2';
+// v3: yeni logo/ikonlar. v2: eski sürümün önbelleğe aldığı API/Supabase yanıtlarını activate sırasında temizler
+const CACHE_NAME = 'santiye-go-static-v3';
 const OFFLINE_URL = '/offline';
 
 const STATIC_ASSETS = [
   '/',
   '/offline',
   '/manifest.json',
-  '/icon-192.svg',
-  '/icon-512.svg',
+  '/icon-192.png',
+  '/brand/logo.png',
 ];
 
 const NOTIFICATION_ICON = '/icon-192.png';

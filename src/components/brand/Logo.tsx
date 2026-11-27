@@ -1,32 +1,87 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 /**
- * ŞantiyeGO marka işareti: çelik I-profil (HEA) kesiti.
- * Genel amaçlı ikon kütüphanesi yerine markaya özel, sade bir işaret.
+ * ŞantiyeGO resmi logosu (public/brand).
+ *  - logo.png / logo-light.png           : yatay logo (işaret + yazı)
+ *  - logo-full.png / logo-full-light.png : sloganlı logo
+ *  - logo-mark.png / logo-mark-light.png : yalnızca işaret
+ * "-light" sürümleri koyu zemin içindir (lacivert kısımlar beyaz).
  */
-export function LogoMark({ className = 'w-8 h-8' }: { className?: string }) {
+
+const SIZES = {
+  logo: { w: 734, h: 160 },
+  'logo-full': { w: 1101, h: 240 },
+  'logo-mark': { w: 412, h: 256 },
+} as const;
+
+type Variant = keyof typeof SIZES;
+
+function BrandImage({
+  variant,
+  tone = 'dark',
+  height,
+  className = '',
+  priority = false,
+}: {
+  variant: Variant;
+  tone?: 'dark' | 'light';
+  height: number;
+  className?: string;
+  priority?: boolean;
+}) {
+  const size = SIZES[variant];
+  const width = Math.round((size.w * height) / size.h);
+  const file = tone === 'light' ? `${variant}-light` : variant;
   return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
-      <rect width="32" height="32" rx="4" fill="#E0661B" />
-      <path d="M8 8h16v3.5h-6.25v9h6.25V24H8v-3.5h6.25v-9H8z" fill="#fff" />
-    </svg>
+    <Image
+      src={`/brand/${file}.png`}
+      alt="ŞantiyeGO"
+      width={width}
+      height={height}
+      priority={priority}
+      className={className}
+      style={{ height, width: 'auto' }}
+    />
   );
+}
+
+export function LogoMark({
+  className = '',
+  height = 32,
+  tone = 'dark',
+}: {
+  className?: string;
+  height?: number;
+  tone?: 'dark' | 'light';
+}) {
+  return <BrandImage variant="logo-mark" tone={tone} height={height} className={className} />;
+}
+
+export function LogoFull({
+  className = '',
+  height = 56,
+  tone = 'dark',
+}: {
+  className?: string;
+  height?: number;
+  tone?: 'dark' | 'light';
+}) {
+  return <BrandImage variant="logo-full" tone={tone} height={height} className={className} />;
 }
 
 export default function Logo({
   tone = 'dark',
   href = '/',
+  height = 36,
 }: {
   tone?: 'dark' | 'light';
   href?: string;
+  height?: number;
 }) {
-  const text = tone === 'light' ? 'text-white' : 'text-navy-900';
   return (
-    <Link href={href} className="flex items-center gap-2.5 shrink-0" aria-label="ŞantiyeGO ana sayfa">
-      <LogoMark />
-      <span className={`text-[19px] font-semibold tracking-tight leading-none ${text}`}>
-        Şantiye<span className="text-orange-500">GO</span>
-      </span>
+    <Link href={href} className="flex items-center shrink-0" aria-label="ŞantiyeGO ana sayfa">
+      <BrandImage variant="logo" tone={tone} height={height} priority />
     </Link>
   );
 }

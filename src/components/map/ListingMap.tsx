@@ -120,8 +120,8 @@ export default function ListingMap({
         if (radiusKm && radiusKm > 0) {
           const circle = L.circle([userCoords.lat, userCoords.lng], {
             radius: radiusKm * 1000, // meters
-            color: '#E0661B',
-            fillColor: '#E0661B',
+            color: '#EE7513',
+            fillColor: '#EE7513',
             fillOpacity: 0.12,
             weight: 2,
             dashArray: '6, 6',
@@ -150,8 +150,8 @@ export default function ListingMap({
           className: 'custom-listing-marker',
           html: `
             <div style="
-              background-color: #17191C;
-              border: 2px solid #E0661B;
+              background-color: #0F2846;
+              border: 2px solid #EE7513;
               color: white;
               width: 34px;
               height: 34px;
@@ -192,28 +192,28 @@ export default function ListingMap({
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; width: 220px; overflow: hidden; border-radius: 8px;">
             <div style="position: relative; height: 90px; width: 100%; background: #e2e8f0;">
               <img src="${imageThumb}" alt="${listing.title}" style="width: 100%; height: 100%; object-fit: cover;" />
-              <div style="position: absolute; top: 6px; left: 6px; background: #17191C; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; ">
+              <div style="position: absolute; top: 6px; left: 6px; background: #0F2846; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; ">
                 ${listing.listing_type === 'rental' ? 'Kiralık' : 'Satılık'}
               </div>
             </div>
             <div style="padding: 8px;">
-              <div style="font-size: 10px; font-weight: 700; color: #C75512; ">
+              <div style="font-size: 10px; font-weight: 700; color: #D2620B; ">
                 ${listing.category?.name || 'İlan'}
               </div>
-              <div style="font-weight: 600; font-size: 12px; margin: 2px 0 4px; color: #17191C; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+              <div style="font-weight: 600; font-size: 12px; margin: 2px 0 4px; color: #0F2846; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                 ${listing.title}
               </div>
               <div style="font-size: 11px; color: #64748B; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
                 <span>📍 ${listing.city_name || ''}${listing.district_name ? ', ' + listing.district_name : ''}</span>
-                ${formatDistance(listing.distance_km) ? `<strong style="color: #C75512;">${formatDistance(listing.distance_km)}</strong>` : ''}
+                ${formatDistance(listing.distance_km) ? `<strong style="color: #D2620B;">${formatDistance(listing.distance_km)}</strong>` : ''}
               </div>
-              <div style="font-size: 14px; font-weight: 700; color: #17191C; margin-bottom: 8px;">
+              <div style="font-size: 14px; font-weight: 700; color: #0F2846; margin-bottom: 8px;">
                 ${priceText}
               </div>
               <a href="/ilan/${listing.slug || listing.id}" style="
                 display: block;
                 text-align: center;
-                background-color: #E0661B;
+                background-color: #EE7513;
                 color: white;
                 padding: 6px;
                 border-radius: 6px;

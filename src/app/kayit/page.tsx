@@ -26,7 +26,7 @@ import { normalizeTurkishPhone, sendPhoneOtp } from '@/lib/services/sms-service'
 import { isDisposableEmail, sendEmailVerification } from '@/lib/services/email-service';
 import { checkRateLimit } from '@/lib/security/rate-limiter';
 import { registerUser } from '@/lib/services/auth-service';
-import { LogoMark } from '@/components/brand/Logo';
+import Logo from '@/components/brand/Logo';
 import { initialRoleFromParam } from '@/lib/utils/form-helpers';
 
 function RegisterForm() {
@@ -218,7 +218,7 @@ function RegisterForm() {
       <div className="max-w-xl w-full bg-white p-6 sm:p-10 rounded-3xl border border-slate-200 shadow-xl space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <LogoMark className="w-11 h-11 mx-auto" />
+          <div className="flex justify-center"><Logo height={56} /></div>
           <h2 className="text-2xl sm:text-3xl font-black text-navy-900 tracking-tight">
             ŞantiyeGO&apos;ya Katılın
           </h2>

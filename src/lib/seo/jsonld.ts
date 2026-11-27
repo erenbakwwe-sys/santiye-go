@@ -12,7 +12,7 @@ export function getOrganizationSchema() {
     '@type': 'Organization',
     name: 'ŞantiyeGO',
     url: 'https://santiyego.com',
-    logo: 'https://santiyego.com/icon-512.svg',
+    logo: 'https://santiyego.com/brand/logo-full.png',
     description: 'Türkiye geneli kiralık ve satılık iş makineleri, yapı malzemeleri ve inşaat hizmetleri dijital pazaryeri.',
     contactPoint: {
       '@type': 'ContactPoint',
@@ -51,7 +51,7 @@ export function getListingProductSchema(listing: Listing) {
     '@type': 'Product',
     name: listing.title,
     description: listing.description || `${listing.title} - ŞantiyeGO güvencesiyle kiralık/satılık.`,
-    image: listing.images && listing.images.length > 0 ? listing.images : ['https://santiyego.com/icon-512.svg'],
+    image: listing.images && listing.images.length > 0 ? listing.images : ['https://santiyego.com/brand/logo-full.png'],
     category: listing.category?.name || 'İş Makineleri & Ekipman',
   };
 
@@ -90,7 +90,7 @@ export function getLocalBusinessSchema(company: Company) {
     name: company.name,
     telephone: company.phone,
     url: `https://santiyego.com/firma/${company.id}`,
-    image: company.logo_url || 'https://santiyego.com/icon-512.svg',
+    image: company.logo_url || 'https://santiyego.com/brand/logo-full.png',
     address: {
       '@type': 'PostalAddress',
       addressCountry: 'TR',

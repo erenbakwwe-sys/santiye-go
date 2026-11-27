@@ -5,8 +5,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #f7f7f5;
-  --foreground: #17191c;
+  --background: #f6f7f9;
+  --foreground: #0f2846;
 }
 
 body {
@@ -31,7 +31,7 @@ h3 {
 }
 
 :focus-visible {
-  outline: 2px solid #e0661b;
+  outline: 2px solid #ee7513;
   outline-offset: 2px;
 }
 
@@ -40,14 +40,14 @@ h3 {
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #efefec;
+  background: #eef0f3;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cdcdc8;
-  border: 2px solid #efefec;
+  background: #cbd0d8;
+  border: 2px solid #eef0f3;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9c9c96;
+  background: #9aa1ad;
 }
 
 .leaflet-container {

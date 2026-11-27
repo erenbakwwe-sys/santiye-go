@@ -61,7 +61,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-10">
         <div className="grid grid-cols-2 md:grid-cols-6 gap-8">
           <div className="col-span-2">
-            <Logo tone="light" />
+            <Logo tone="light" height={52} />
             <p className="mt-4 text-sm leading-relaxed max-w-xs">
               İş makinesi kiralama, yapı malzemesi tedariği ve nakliye için firmaları ve şantiyeleri buluşturan
               pazaryeri.
