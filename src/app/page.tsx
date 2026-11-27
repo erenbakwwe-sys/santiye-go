@@ -15,6 +15,7 @@ import {
   FileText,
 } from 'lucide-react';
 import HeroSearch from '@/components/search/HeroSearch';
+import FindSupplierBox from '@/components/help/FindSupplierBox';
 import ListingCard from '@/components/listings/ListingCard';
 import { CATEGORIES } from '@/lib/mock-data';
 import { getActiveAdsForSlot } from '@/lib/services/ad-service';
@@ -161,6 +162,9 @@ export default async function HomePage() {
                 </span>
               </Link>
             ))}
+          </div>
+          <div className="mt-4">
+            <FindSupplierBox />
           </div>
           <Link
             href="/kayit?role=company"

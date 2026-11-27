@@ -22,6 +22,8 @@ import {
   BarChart3,
   AlertTriangle,
   MessageSquare,
+  Truck,
+  Inbox,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { getActiveProfile } from '@/lib/services/auth-service';
@@ -105,6 +107,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { label: 'Gösterge Paneli', href: '/admin', icon: LayoutDashboard },
     { label: 'Firma Doğrulama', href: '/admin/firmalar', icon: Building2 },
     { label: 'İlan Moderasyonu', href: '/admin/ilanlar', icon: Layers },
+    { label: 'ŞantiyeGO Tedarik İlanları', href: '/admin/tedarik', icon: Truck },
+    { label: 'Teklif Talepleri', href: '/admin/talepler', icon: Inbox },
     { label: 'Reklam & Vitrin', href: '/admin/reklamlar', icon: Sparkles },
     { label: 'Bölgesel Analiz', href: '/admin/analiz', icon: BarChart3 },
     { label: 'Kategori Yönetimi', href: '/admin/kategoriler', icon: FolderTree },

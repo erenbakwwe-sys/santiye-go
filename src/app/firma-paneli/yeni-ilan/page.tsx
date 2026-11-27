@@ -96,6 +96,36 @@ export default function NewListingPage() {
 
   const supabase = createClient();
 
+  // Yöneticinin firma kaydı "ŞantiyeGO Tedarik" platform hesabıysa ilan bu hesap adına,
+  // doğrudan yayında açılır ve bu durum formda açıkça belirtilir.
+  const [isPlatformAccount, setIsPlatformAccount] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase
+          .from('companies')
+          .select('is_platform')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (!cancelled && data?.is_platform) {
+          setIsPlatformAccount(true);
+          setStatus('active');
+        }
+      } catch {
+        // platform kontrolü başarısızsa normal firma akışı sürer
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Determine current category object
   const currentCategory = CATEGORIES.find(
     (c) => c.id === categoryId || c.subcategories?.some((s) => s.id === categoryId)
@@ -378,7 +408,7 @@ export default function NewListingPage() {
 
       setSuccess(true);
       setTimeout(() => {
-        router.push('/firma-paneli');
+        router.push(isPlatformAccount ? '/admin/tedarik' : '/firma-paneli');
       }, 1500);
     } catch (err: any) {
       alert(err.message || 'İlan kaydedilemedi.');
@@ -392,11 +422,11 @@ export default function NewListingPage() {
       {/* Top Bar */}
       <div className="flex items-center justify-between">
         <Link
-          href="/firma-paneli"
+          href={isPlatformAccount ? '/admin/tedarik' : '/firma-paneli'}
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-navy-900 transition"
         >
           <ArrowLeft className="w-4 h-4" />
-          Firma Paneline Dön
+          {isPlatformAccount ? 'Tedarik ilanlarına dön' : 'Firma Paneline Dön'}
         </Link>
         <span className="text-xs font-semibold text-slate-400">Yeni İlan Girişi (7 Ana Kategori)</span>
       </div>
@@ -410,6 +440,17 @@ export default function NewListingPage() {
             İş makinesi, iskele, asansör/platform, şantiye ekipmanı, yapı malzemesi veya inşaat hizmeti ilanı yayınlayın.
           </p>
         </div>
+
+        {isPlatformAccount && (
+          <div className="p-4 bg-navy-900 text-white rounded-md">
+            <p className="font-semibold">Bu ilan &quot;ŞantiyeGO Tedarik&quot; adına yayınlanacak</p>
+            <p className="text-sm text-slate-300 mt-1">
+              İlanda satıcı olarak ŞantiyeGO Tedarik görünür ve &quot;anlaşmalı firmalar aracılığıyla&quot; notu
+              yer alır. Gelen mesajlar ve teklif talepleri size düşer. Yayınlamadan önce tedarikçiden fiyat ve
+              müsaitlik teyidi almanızı öneririz.
+            </p>
+          </div>
+        )}
 
         {success && (
           <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl flex items-center gap-2">
