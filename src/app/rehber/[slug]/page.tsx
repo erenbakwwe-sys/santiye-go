@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Calendar, Clock, Share2, BookOpen } from 'lucide-react';
-import { getBreadcrumbSchema } from '@/lib/seo/jsonld';
+import { getBreadcrumbSchema, safeJsonLd } from '@/lib/seo/jsonld';
 import { getGuide } from '../articles';
 import { formatRehberDate } from '@/lib/utils/rehber-format';
 
@@ -39,7 +39,7 @@ export default async function GuideDetailPage({ params }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }}
       />
 
       <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">

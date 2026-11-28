@@ -171,9 +171,22 @@ export default function CompanyDashboardPage() {
       prev.map((l) => (l.id === id ? { ...l, status: newStatus as any } : l))
     );
 
+    const revert = () =>
+      setListings((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, status: currentStatus as any } : l))
+      );
     try {
-      await supabase.from('listings').update({ status: newStatus }).eq('id', id);
+      const { error } = await supabase.from('listings').update({ status: newStatus }).eq('id', id);
+      if (error) {
+        revert();
+        alert(
+          error.message.includes('yönetici onayı')
+            ? 'Bu ilan henüz yönetici tarafından onaylanmadı; onaylandığında otomatik yayına girer.'
+            : 'İlan durumu güncellenemedi. Lütfen tekrar deneyin.'
+        );
+      }
     } catch (err) {
+      revert();
       console.error('İlan durumu güncellenemedi:', err);
     }
   };
