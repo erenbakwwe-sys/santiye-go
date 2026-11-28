@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   Building2,
   ShieldCheck,
@@ -22,6 +21,7 @@ import {
 } from '@/lib/services/admin-service';
 import { Company } from '@/types/database';
 import { createClient } from '@/lib/supabase/client';
+import CompanyDocumentLink from '@/components/admin/CompanyDocumentLink';
 
 export default function AdminCompaniesPage() {
   const supabase = createClient();
@@ -271,23 +271,7 @@ export default function AdminCompaniesPage() {
                       <FileText className="w-4 h-4 text-orange-500" />
                       Vergi Levhası
                     </div>
-                    {activeCompany.tax_plate_url ? (
-                      <a
-                        href={activeCompany.tax_plate_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block relative aspect-video rounded-lg overflow-hidden border border-slate-200 hover:opacity-90"
-                      >
-                        <Image
-                          src={activeCompany.tax_plate_url}
-                          alt="Vergi levhası"
-                          fill
-                          className="object-cover"
-                        />
-                      </a>
-                    ) : (
-                      <div className="text-slate-400 py-6 text-center">Yüklenmemiş</div>
-                    )}
+                    <CompanyDocumentLink value={activeCompany.tax_document_url || activeCompany.tax_plate_url} />
                   </div>
 
                   <div className="border border-slate-200 rounded-xl p-3 space-y-2 bg-white">
@@ -295,23 +279,7 @@ export default function AdminCompaniesPage() {
                       <FileText className="w-4 h-4 text-blue-500" />
                       İmza Sirküleri / Yetki Belgesi
                     </div>
-                    {activeCompany.signature_circular_url ? (
-                      <a
-                        href={activeCompany.signature_circular_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block relative aspect-video rounded-lg overflow-hidden border border-slate-200 hover:opacity-90"
-                      >
-                        <Image
-                          src={activeCompany.signature_circular_url}
-                          alt="İmza sirküleri"
-                          fill
-                          className="object-cover"
-                        />
-                      </a>
-                    ) : (
-                      <div className="text-slate-400 py-6 text-center">Yüklenmemiş</div>
-                    )}
+                    <CompanyDocumentLink value={activeCompany.signature_circular_url} />
                   </div>
                 </div>
               </div>

@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+import { isDemoFallbackAllowed } from '@/lib/config/runtime';
 
 export interface FileUploadResult {
   success: boolean;
@@ -133,7 +134,16 @@ export async function uploadListingPhoto(file: File, listingId?: string): Promis
     }
   }
 
-  // 2. Fallback: İstemci tarafında optimize edilmiş, hafif sıkıştırılmış Data URL üret
+  // Üretimde Supabase bağlıyken yükleme başarısızsa fotoğraf veritabanına base64 olarak
+  // gömülmez (ilan kayıtlarını şişirir ve hatayı gizler); kullanıcıya açık hata gösterilir.
+  if (isSupabaseConfigured && !isDemoFallbackAllowed()) {
+    return {
+      success: false,
+      error: 'Fotoğraf yüklenemedi. Lütfen giriş yaptığınızdan emin olup tekrar deneyin.',
+    };
+  }
+
+  // 2. Fallback (yalnızca yerel demo): İstemci tarafında sıkıştırılmış Data URL üret
   try {
     const dataUrl = await compressImageToDataUrl(file);
     return {

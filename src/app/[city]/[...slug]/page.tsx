@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { MapPin, Sparkles, PlusCircle, ArrowRight } from 'lucide-react';
 import { searchListings } from '@/lib/services/listing-service';
 import { findCityBySlug, findDistrictBySlug, findCategoryBySlug } from '@/lib/seo/slug';
-import { getBreadcrumbSchema } from '@/lib/seo/jsonld';
+import { getBreadcrumbSchema, safeJsonLd } from '@/lib/seo/jsonld';
 import ListingCard from '@/components/listings/ListingCard';
 
 interface Props {
@@ -133,7 +133,7 @@ export default async function ProgrammaticCatchAllPage({ params }: Props) {
       <>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }}
         />
 
         <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -234,7 +234,7 @@ export default async function ProgrammaticCatchAllPage({ params }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }}
       />
 
       <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
