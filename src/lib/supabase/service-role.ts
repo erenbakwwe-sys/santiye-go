@@ -8,13 +8,19 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
  * - Dispute resolution
  * - Admin financial ledger mutations
  */
+/** Sunucuda service_role anahtarı tanımlı mı? (Hosting ortam değişkeni) */
+export function hasServiceRoleKey(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return Boolean(url && process.env.SUPABASE_SERVICE_ROLE_KEY && !url.includes('placeholder'));
+}
+
 export function createServiceRoleClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey || supabaseUrl.includes('placeholder')) {
     throw new Error(
-      'HATA: SUPABASE_SERVICE_ROLE_KEY veya NEXT_PUBLIC_SUPABASE_URL ortam değişkeni eksik. Hassas finansal işlemler ve escrow mutabakatları yetkisiz çalıştırılamaz.'
+      'Sunucu yapılandırması eksik: SUPABASE_SERVICE_ROLE_KEY ortam değişkeni tanımlı değil. Hosting panelinden ekleyip yeniden yayınlayın.'
     );
   }
 
