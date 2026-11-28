@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { createServiceRoleClient, hasServiceRoleKey } from '@/lib/supabase/service-role';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -39,7 +39,9 @@ export async function POST(req: NextRequest) {
     }
 
     const newStatus = STATUS_BY_ACTION[action];
-    const admin = createServiceRoleClient();
+    // service_role yoksa yönetici oturumu: listings UPDATE ve admin_audit_logs INSERT politikaları
+    // yöneticiye izin verir.
+    const admin = hasServiceRoleKey() ? createServiceRoleClient() : session;
     const { data, error } = await admin
       .from('listings')
       .update({ status: newStatus })

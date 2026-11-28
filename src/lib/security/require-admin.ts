@@ -1,9 +1,18 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
-import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { createServiceRoleClient, hasServiceRoleKey } from '@/lib/supabase/service-role';
 
 export type RequireAdminResult =
-  | { ok: true; adminId: string; serviceClient: SupabaseClient }
+  | {
+      ok: true;
+      adminId: string;
+      /**
+       * Okuma işlemleri için istemci. SUPABASE_SERVICE_ROLE_KEY tanımlıysa service_role,
+       * değilse yöneticinin kendi oturumu (RLS yöneticiye okuma izni verir; bkz. migration 43).
+       */
+      serviceClient: SupabaseClient;
+      usingServiceRole: boolean;
+    }
   | { ok: false; status: 401 | 403; error: string };
 
 /**
@@ -26,5 +35,9 @@ export async function requireAdmin(): Promise<RequireAdminResult> {
     return { ok: false, status: 403, error: 'Bu işlem yalnızca yöneticiler içindir.' };
   }
 
-  return { ok: true, adminId: user.id, serviceClient: createServiceRoleClient() };
+  if (hasServiceRoleKey()) {
+    return { ok: true, adminId: user.id, serviceClient: createServiceRoleClient(), usingServiceRole: true };
+  }
+  console.warn('[requireAdmin] SUPABASE_SERVICE_ROLE_KEY tanımlı değil; yönetici oturumuyla devam ediliyor.');
+  return { ok: true, adminId: user.id, serviceClient: session as unknown as SupabaseClient, usingServiceRole: false };
 }
